@@ -1,0 +1,136 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Grid
+@typeparam TEntity where TEntity : class
+@implements IDisposable
+
+@*
+    Колонка грида с автоматически построенным заголовком.
+    Получает метаданные (DisplayName, SqlName, SortName, Groupable) из зарегистрированного
+    ClayColumnDef по числовому ColumnId.
+
+    Автоматически:
+    - Берёт Title из ClayColumnDef.DisplayName
+    - Строит HeaderTemplate с drag-and-drop (SqlName) и серверной сортировкой
+    - Скрывает колонку при группировке (Hidden = IsGrouped(SqlName))
+
+    Использование:
+        <ClayColumn TEntity="IClayGridRow" ColumnId="3">
+            <CellTemplate>
+                @if (context.Item is DetailRow<MedicalTest> detail) { <MudText>@detail.Item.Name</MudText> }
+            </CellTemplate>
+        </ClayColumn>
+*@
+
+<TemplateColumn T="TEntity" Title="@_meta?.DisplayName" Sortable="false" Hidden="@_hidden" DragAndDropEnabled="false">
+    <HeaderTemplate>
+        <div style="display:flex;align-items:center;width:100%">
+            @if (Grid is not null && _meta is not null && Grid.IsValueFilterAvailable(_meta.SqlName))
+            {
+                var isActive = Grid.IsValueFilterActive(_meta.SqlName);
+                <MudIconButton Icon="@Icons.Material.Filled.Checklist" Size="Size.Small"
+                               Class="@("clay-vf-icon" + (isActive ? " clay-vf-icon--active" : ""))"
+                               OnClick="async () => await Grid.OpenValueFilterDialog(_meta.SqlName)"
+                               Style="padding:0;width:22px;height:22px;min-width:22px;margin-right:2px"
+                               title="Фильтр по значению" />
+            }
+            <div style="flex:1;display:flex;align-items:center;cursor:grab" draggable="true"
+                 data-col-sql="@_meta?.SqlName" @onclick="HandleSortClick">
+                <MudText Style="flex:1;text-align:center">@_meta?.DisplayName</MudText>
+                @if (Grid is not null && _meta is not null)
+                {
+                    @Grid.GetSortBadge(_meta.SqlName)
+                }
+            </div>
+            @if (_menuVisible && Grid is not null && _meta is not null)
+            {
+                <ClayMenu Icon="@Icons.Material.Filled.MoreVert"
+                           Class="@("clay-column-menu" + (Grid.ColumnMenuMode == ColumnMenuMode.Mobile ? " column-menu-mobile" : ""))"
+                           ActivatorStyle="padding:0;width:22px;height:22px;min-width:22px">
+                    @if (Grid.IsGroupingTrayExpanded && _meta.Groupable)
+                    {
+                        <MudMenuItem OnClick="async () => await Grid.AddGroupAsync(_meta.SqlName)"
+                                     Icon="@Icons.Material.Filled.AccountTree" IconColor="Color.Primary">Группировать</MudMenuItem>
+                    }
+                    @if (Grid.IsFilterTrayExpanded && _meta.Filterable)
+                    {
+                        <MudMenuItem OnClick="async () => await Grid.AddFilterAsync(_meta.SqlName)"
+                                     Icon="@Icons.Material.Filled.FilterAlt" IconColor="Color.Primary">Фильтровать</MudMenuItem>
+                    }
+                </ClayMenu>
+            }
+        </div>
+    </HeaderTemplate>
+    <CellTemplate>
+        @CellTemplate?.Invoke(context)
+    </CellTemplate>
+</TemplateColumn>
+
+@code {
+    /// <summary>Родительский грид — получается через каскадный параметр.</summary>
+    [CascadingParameter] private IClayGrid? Grid { get; set; }
+
+    /// <summary>
+    /// Числовой идентификатор колонки — должен совпадать с <c>ColumnId</c> соответствующего
+    /// <see cref="ClayColumnDef"/>. По нему находятся метаданные (DisplayName, SqlName, SortName).
+    /// </summary>
+    [Parameter, EditorRequired] public int ColumnId { get; set; }
+
+    /// <summary>
+    /// Шаблон содержимого ячейки.
+    /// Контекст — <c>CellContext&lt;TEntity&gt;</c>, как в стандартном <c>TemplateColumn</c>.
+    /// </summary>
+    [Parameter] public RenderFragment<CellContext<TEntity>>? CellTemplate { get; set; }
+
+    // ── Вычисляемые значения из метаданных ──────────────────────────────────────
+    private ClayColumnMeta? _meta => Grid?.GetColumnMetaById(ColumnId);
+    private bool _hidden => _meta is not null && (Grid?.IsGrouped(_meta.SqlName) == true ||
+Grid?.IsColumnHidden(_meta.SqlName) == true);
+    private bool _menuVisible =>
+        Grid is not null
+        && _meta is not null
+        && Grid.ColumnMenuMode != ColumnMenuMode.Hidden
+        && ((Grid.IsGroupingTrayExpanded && _meta.Groupable)
+            || (Grid.IsFilterTrayExpanded && _meta.Filterable)
+            || Grid.IsValueFilterAvailable(_meta.SqlName));
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Подписывается на <see cref="IClayGrid.ColumnsChanged"/> при инициализации.
+    /// Когда <see cref="ClayColumnDef"/> регистрирует метаданные, компонент получает
+    /// уведомление и перерисовывается, чтобы отобразить актуальный <c>DisplayName</c>.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        if (Grid is not null)
+        {
+            Grid.RegisterColumnInOrder(ColumnId);
+            Grid.RegisterCellTemplate(ColumnId, CellTemplate!);
+            Grid.ColumnsChanged += OnStateChanged;
+            Grid.TrayStateChanged += OnStateChanged;
+        }
+    }
+
+    /// <summary>Отписывается при уничтожении компонента.</summary>
+    public void Dispose()
+    {
+        if (Grid is not null)
+        {
+            Grid.ColumnsChanged -= OnStateChanged;
+            Grid.TrayStateChanged -= OnStateChanged;
+        }
+    }
+
+    /// <summary>
+    /// Вызывается гридом при изменении реестра колонок или состояния треев —
+    /// инициирует перерисовку заголовка (DisplayName, видимость кнопки ⋮).
+    /// </summary>
+    private void OnStateChanged()
+        => InvokeAsync(StateHasChanged);
+
+    /// <summary>Обрабатывает клик по заголовку: переключает серверную сортировку.</summary>
+    private async Task HandleSortClick()
+    {
+        if (Grid is not null && _meta is not null)
+            await Grid.ToggleSort(_meta.SqlName);
+    }
+}

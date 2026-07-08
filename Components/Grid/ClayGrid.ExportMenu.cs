@@ -1,0 +1,250 @@
+using Microsoft.JSInterop;
+using MudBlazor;
+using MudBlazor.Extensions;
+using MudBlazor.Extensions.Options;
+
+namespace Clayzor.Lib.Web.Controls.Components.Grid;
+
+public partial class ClayGrid<TEntity> where TEntity : class
+{
+    /// <summary>Флаг выполнения операции экспорта/печати (показывает спиннер).</summary>
+    private bool _isExporting;
+
+    /// <summary>Состояние раскрытия подгрупп меню групповых операций: label → isOpen.</summary>
+    private Dictionary<string, bool> _openSubGroups = [];
+
+    private void ToggleSubGroup(string label)
+    {
+        if (_openSubGroups.TryGetValue(label, out var isOpen))
+            _openSubGroups[label] = !isOpen;
+        else
+            _openSubGroups[label] = true;
+    }
+
+    private bool IsSubGroupOpen(string label)
+        => _openSubGroups.TryGetValue(label, out var isOpen) && isOpen;
+
+    // ── Разрешение колонок для печати/экспорта ───────────────────────────────────
+
+    /// <summary>
+    /// Запрашивает у пользователя состав колонок для печати/экспорта.
+    /// Три исхода: «настроить» → диалог колонок (без сортировки), «как на странице» →
+    /// текущие видимые колонки, «отмена» → null.
+    /// </summary>
+    /// <param name="contextLabel">Контекст операции, напр. «печати (все данные)».</param>
+    /// <returns>Список колонок или null, если операция отменена.</returns>
+    private async Task<IReadOnlyList<ClayColumnMeta>?> ResolveExportColumnsAsync(string contextLabel)
+    {
+        // 1. Спросить пользователя
+        var promptParams = new DialogParameters<ClayColumnSettingsPromptDialog>
+        {
+            { x => x.ContextLabel, contextLabel }
+        };
+        var promptOptions = new DialogOptionsEx
+        {
+            MaxWidth = MaxWidth.ExtraSmall,
+            FullWidth = true,
+            DragMode = MudDialogDragMode.Simple,
+        };
+        var promptDialog = await DialogService.ShowExAsync<ClayColumnSettingsPromptDialog>(
+            "Выбор колонок", promptParams, promptOptions);
+        var promptResult = await promptDialog.Result;
+
+        if (promptResult is null || promptResult.Canceled)
+            return null;
+
+        // 2. «Как на странице»
+        if (promptResult.Data is false)
+            return ((IClayGrid)this).GetVisibleColumns();
+
+        // 3. «Настроить» — диалог колонок без сортировки
+        var items = BuildColumnSettingsItems();
+        // Сбрасываем SortPriority/IsSortDesc — в режиме печати/экспорта сортировка не нужна
+        foreach (var item in items)
+        {
+            item.SortPriority = 0;
+            item.IsSortDesc = false;
+        }
+
+        var settingsParams = new DialogParameters<ClayColumnSettingsDialog>
+        {
+            { x => x.Items, items },
+            { x => x.ShowSorting, false },
+        };
+        var settingsOptions = new DialogOptionsEx
+        {
+            MaxWidth = MaxWidth.ExtraSmall,
+            FullWidth = true,
+            DragMode = MudDialogDragMode.Simple,
+        };
+        // Заголовок явно называет контекст
+        var title = contextLabel.StartsWith("печати") ? "Колонки для печати" : "Колонки для выгрузки в Excel";
+        var settingsDialog = await DialogService.ShowExAsync<ClayColumnSettingsDialog>(
+            title, settingsParams, settingsOptions);
+        var settingsResult = await settingsDialog.Result;
+
+        if (settingsResult is null || settingsResult.Canceled || settingsResult.Data is not List<ColumnSettingsItem> updatedItems)
+            return null;
+
+        // Построить результат в порядке, заданном пользователем
+        var resolved = new List<ClayColumnMeta>();
+        foreach (var item in updatedItems.Where(i => i.IsVisible))
+        {
+            var meta = ((IClayGrid)this).GetColumnMeta(item.SqlName);
+            if (meta is not null)
+                resolved.Add(meta);
+        }
+
+        return resolved;
+    }
+
+    // ── Печать ───────────────────────────────────────────────────────────────────
+
+    private async Task PrintCurrentPageInternal()
+    {
+        if (DataLoader is null) return;
+        var columns = await ResolveExportColumnsAsync("печати (текущая страница)");
+        if (columns is null) return;
+
+        var spinnerId = Id + "-print-spinner";
+        _ = JS.InvokeVoidAsync("clayGridPrint.showSpinner", spinnerId);
+        try
+        {
+            var html = await DataLoader.BuildPrintHtmlForCurrentPageAsync(
+                columns, Title, BuildFilterDescription(), BuildGroupDescription());
+            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
+            await JS.InvokeAsync<object>("clayGridPrint.printHtml", html);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
+            Snackbar.Add($"Ошибка печати: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task PrintAllInternal()
+    {
+        if (DataLoader is null) return;
+        var columns = await ResolveExportColumnsAsync("печати (все данные)");
+        if (columns is null) return;
+
+        var spinnerId = Id + "-print-spinner";
+        _ = JS.InvokeVoidAsync("clayGridPrint.showSpinner", spinnerId);
+        try
+        {
+            var html = await DataLoader.BuildPrintHtmlAsync(
+                columns, Title, BuildFilterDescription(), BuildGroupDescription());
+            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
+            await JS.InvokeAsync<object>("clayGridPrint.printHtml", html);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
+            Snackbar.Add($"Ошибка печати: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task PrintSelectedInternal()
+    {
+        if (DataLoader is null || _selectedIds.Count == 0) return;
+        var columns = await ResolveExportColumnsAsync("печати (выбранные записи)");
+        if (columns is null) return;
+
+        var spinnerId = Id + "-print-spinner";
+        _ = JS.InvokeVoidAsync("clayGridPrint.showSpinner", spinnerId);
+        try
+        {
+            var html = await DataLoader.BuildPrintHtmlForSelectedAsync(
+                columns, Title, _selectedIds.ToList(),
+                BuildFilterDescription(), BuildGroupDescription());
+            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
+            await JS.InvokeAsync<object>("clayGridPrint.printHtml", html);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
+            Snackbar.Add($"Ошибка печати: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // ── Excel ────────────────────────────────────────────────────────────────────
+
+    private async Task ExcelCurrentPageInternal()
+    {
+        if (DataLoader is null) return;
+        var columns = await ResolveExportColumnsAsync("выгрузки в Excel (текущая страница)");
+        if (columns is null) return;
+
+        _isExporting = true;
+        StateHasChanged();
+        try
+        {
+            await DataLoader.ExcelExportAsync(new ExcelExportRequest
+            {
+                Mode = ExcelExportMode.CurrentPage,
+                Title = Title,
+                VisibleColumns = columns,
+                FilterDescription = BuildFilterDescription(),
+                GroupDescription = BuildGroupDescription(),
+            });
+        }
+        finally
+        {
+            _isExporting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExcelAllInternal()
+    {
+        if (DataLoader is null) return;
+        var columns = await ResolveExportColumnsAsync("выгрузки в Excel (все данные)");
+        if (columns is null) return;
+
+        _isExporting = true;
+        StateHasChanged();
+        try
+        {
+            await DataLoader.ExcelExportAsync(new ExcelExportRequest
+            {
+                Mode = ExcelExportMode.All,
+                Title = Title,
+                VisibleColumns = columns,
+                FilterDescription = BuildFilterDescription(),
+                GroupDescription = BuildGroupDescription(),
+            });
+        }
+        finally
+        {
+            _isExporting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExcelSelectedInternal()
+    {
+        if (DataLoader is null || _selectedIds.Count == 0) return;
+        var columns = await ResolveExportColumnsAsync("выгрузки в Excel (выбранные записи)");
+        if (columns is null) return;
+
+        _isExporting = true;
+        StateHasChanged();
+        try
+        {
+            await DataLoader.ExcelExportAsync(new ExcelExportRequest
+            {
+                Mode = ExcelExportMode.Selected,
+                Title = Title,
+                VisibleColumns = columns,
+                SelectedIds = _selectedIds.ToList(),
+                FilterDescription = BuildFilterDescription(),
+                GroupDescription = BuildGroupDescription(),
+            });
+        }
+        finally
+        {
+            _isExporting = false;
+            StateHasChanged();
+        }
+    }
+}

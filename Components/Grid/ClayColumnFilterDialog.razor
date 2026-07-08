@@ -1,0 +1,357 @@
+@using MudBlazor
+@using Clayzor.Lib.Web.Controls.Components.Grid.Filter
+@inject IJSRuntime JS
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="display:flex;align-items:center;gap:8px">
+            <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Size="Size.Small" />
+            Фильтр: @ColumnDisplayName
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div @onkeydown="OnKeyDown" style="display:flex;flex-direction:column;gap:12px">
+            <MudText Typo="Typo.body2">
+                Показать только те строки, значения которых:
+            </MudText>
+
+            @* ── Первое условие ──────────────────────────────────── *@
+            <MudSelect T="ColumnFilterOperator"
+                       Label="Условие"
+                       @bind-Value="_op1"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       AnchorOrigin="Origin.BottomLeft">
+                @foreach (var op in _availableOperators)
+                {
+                    <MudSelectItem Value="@op">@GetOperatorLabel(op)</MudSelectItem>
+                }
+            </MudSelect>
+
+            <ClayFilterValueEditor Type="@_descriptor"
+                                    Value="@_value1"
+                                    ValueChanged="@(v => _value1 = v)"
+                                    Options="@LookupOptions"
+                                    Operator="@_op1"
+                                    AutoFocus="true" />
+
+            @* ── Второе условие (опционально) ────────────────────── *@
+            @if (_showSecond)
+            {
+                <MudDivider />
+
+                <div class="d-flex align-items-center gap-1">
+                    <MudButton Variant="@(_logic == LogicalOperator.And ? Variant.Filled : Variant.Outlined)"
+                               Size="Size.Small"
+                               Color="Color.Primary"
+                               OnClick="() => SetLogic(LogicalOperator.And)">И</MudButton>
+                    <MudButton Variant="@(_logic == LogicalOperator.Or ? Variant.Filled : Variant.Outlined)"
+                               Size="Size.Small"
+                               Color="Color.Primary"
+                               OnClick="() => SetLogic(LogicalOperator.Or)">ИЛИ</MudButton>
+                    <MudSpacer />
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   OnClick="RemoveSecond"
+                                   Style="width:28px;height:28px" />
+                </div>
+
+                <MudSelect T="ColumnFilterOperator"
+                           Label="Условие"
+                           @bind-Value="_op2"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           AnchorOrigin="Origin.BottomLeft">
+                    @foreach (var op in _availableOperators)
+                    {
+                        <MudSelectItem Value="@op">@GetOperatorLabel(op)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <ClayFilterValueEditor Type="@_descriptor"
+                                        Value="@_value2"
+                                        ValueChanged="@(v => _value2 = v)"
+                                        Options="@LookupOptions"
+                                        Operator="@_op2"
+                                        AutoFocus="@_focusSecond" />
+            }
+            else
+            {
+                <MudButton Variant="Variant.Text"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddSecond"
+                           Class="clay-text-normal" Style="align-self:flex-start">
+                    добавить условие
+                </MudButton>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Отмена</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Apply"
+                   Disabled="@(!HasValidValue)">
+            Применить
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .mud-dialog-content { overflow: visible; }
+    .mud-list-item { padding-block: 4px; min-height: 32px; }
+    .mud-popover .mud-list { max-height: 260px; }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>Отображаемое имя колонки (заголовок диалога).</summary>
+    [Parameter] public string ColumnDisplayName { get; set; } = "";
+
+    /// <summary>SQL-имя колонки — включается в возвращаемый <see cref="ColumnFilter"/>.</summary>
+    [Parameter] public string ColumnSqlName { get; set; } = "";
+
+    /// <summary>Тип данных колонки — определяет доступные операторы и поле ввода.</summary>
+    [Parameter] public ColumnType ColumnType { get; set; } = ColumnType.Text;
+
+    /// <summary>Существующий фильтр для режима редактирования. null — новый фильтр.</summary>
+    [Parameter] public ColumnFilter? ExistingFilter { get; set; }
+
+    /// <summary>
+    /// Начальный оператор для нового фильтра. Если задан и присутствует в списке
+    /// доступных операторов типа колонки — используется вместо <c>DefaultOperator</c>.
+    /// Игнорируется в режиме редактирования (<see cref="ExistingFilter"/> != null).
+    /// </summary>
+    [Parameter] public ColumnFilterOperator? InitialOperator { get; set; }
+
+    /// <summary>Необязательный список вариантов для выпадающего выбора значения.</summary>
+    [Parameter] public IReadOnlyList<ClayFilterOption>? LookupOptions { get; set; }
+
+    // ── Состояние первого условия ──────────────────────────────────────────────
+    private ColumnFilterOperator _op1;
+    private object? _value1;
+
+    // ── Состояние второго условия ──────────────────────────────────────────────
+    private bool _showSecond;
+    private LogicalOperator _logic = LogicalOperator.And;
+    private ColumnFilterOperator _op2;
+    private object? _value2;
+
+    private IReadOnlyList<ColumnFilterOperator> _availableOperators = [];
+
+    /// <summary>
+    /// Признак того, что второе условие только что добавлено и ему нужен AutoFocus.
+    /// Сбрасывается после рендера.
+    /// </summary>
+    private bool _focusSecond;
+
+    /// <summary>
+    /// Сбрасывает флаг <see cref="_focusSecond"/> после рендера, чтобы AutoFocus
+    /// на втором редакторе не «залипал» при последующих обновлениях.
+    /// </summary>
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusSecond)
+        {
+            _focusSecond = false;
+            StateHasChanged();
+        }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Обрабатывает нажатие Enter — применяет фильтр если значение валидно.
+    /// Задержка 50ms даёт MudTextField'у обновить связанное поле перед проверкой.
+    /// </summary>
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await Task.Delay(50);
+            if (HasValidValue)
+                Apply();
+        }
+    }
+
+    /// <summary>
+    /// Возвращает читаемое описание фильтра для отображения в чипе панели фильтров.
+    /// </summary>
+    public static string GetFilterDescription(ColumnFilter filter, string displayName)
+    {
+        var first = DescribeClauseStatic(filter.Operator, filter.Value, FormatFilterValue);
+        if (filter.HasSecondClause)
+        {
+            var second = DescribeClauseStatic(filter.SecondOperator, filter.SecondValue, FormatFilterValue);
+            var logic = filter.LogicalOperator == LogicalOperator.Or ? "ИЛИ" : "И";
+            return $"{displayName}: {first} {logic} {second}";
+        }
+        return $"{displayName}: {first}";
+    }
+
+    private static string FormatFilterValue(object? value) =>
+        value is DateTime dt ? dt.ToString("dd.MM.yyyy") : value?.ToString() ?? "";
+
+    private string DescribeClause(ColumnFilterOperator op, object? value)
+        => DescribeClauseStatic(op, value, _descriptor.Format);
+
+    /// <summary>Статическая версия для вызова из GetFilterDescription (вне диалога).</summary>
+    private static string DescribeClauseStatic(ColumnFilterOperator op, object? value, Func<object?, string> format) => op switch
+    {
+        ColumnFilterOperator.Contains           => $"содержит «{format(value)}»",
+        ColumnFilterOperator.NotContains        => $"не содержит «{format(value)}»",
+        ColumnFilterOperator.Equals             => $"= «{format(value)}»",
+        ColumnFilterOperator.NotEquals          => $"≠ «{format(value)}»",
+        ColumnFilterOperator.StartsWith         => $"начинается с «{format(value)}»",
+        ColumnFilterOperator.NotStartsWith      => $"не начинается с «{format(value)}»",
+        ColumnFilterOperator.EndsWith           => $"заканчивается на «{format(value)}»",
+        ColumnFilterOperator.NotEndsWith        => $"не заканчивается на «{format(value)}»",
+        ColumnFilterOperator.GreaterThan        => $"> «{format(value)}»",
+        ColumnFilterOperator.GreaterThanOrEqual => $"≥ «{format(value)}»",
+        ColumnFilterOperator.LessThan           => $"< «{format(value)}»",
+        ColumnFilterOperator.LessThanOrEqual    => $"≤ «{format(value)}»",
+        ColumnFilterOperator.IsEmpty            => "пустая строка",
+        ColumnFilterOperator.IsNotEmpty         => "не пустая строка",
+        ColumnFilterOperator.IsNull             => "пусто (NULL)",
+        ColumnFilterOperator.IsNotNull          => "не пусто (NOT NULL)",
+        _ => $"= «{format(value)}»"
+    };
+
+    private bool IsNoValueOperator(ColumnFilterOperator op)
+        => !_descriptor.OperatorTakesValue(op);
+
+    private ColumnTypes.ColumnTypeDescriptor _descriptor = null!;
+
+    protected override void OnParametersSet()
+    {
+        _descriptor = ColumnTypes.ColumnTypeRegistry.FromKind(ColumnType);
+        _availableOperators = (IReadOnlyList<ColumnFilterOperator>)_descriptor.Operators;
+
+        if (ExistingFilter is not null)
+        {
+            _op1    = ExistingFilter.Operator;
+            _value1 = LookupOptions is not null
+                ? ExistingFilter.Value
+                : _descriptor.Parse(ExistingFilter.Value?.ToString());
+
+            if (ExistingFilter.HasSecondClause)
+            {
+                _showSecond = true;
+                _logic      = ExistingFilter.LogicalOperator;
+                _op2        = ExistingFilter.SecondOperator;
+                _value2     = LookupOptions is not null
+                    ? ExistingFilter.SecondValue
+                    : _descriptor.Parse(ExistingFilter.SecondValue?.ToString());
+            }
+            else
+            {
+                _showSecond = false;
+            }
+        }
+        else
+        {
+            _op1 = InitialOperator is { } io && _availableOperators.Contains(io)
+                ? io
+                : _descriptor.DefaultOperator;
+            _value1     = null;
+            _showSecond = false;
+        }
+    }
+
+    private static bool ValueHasContent(object? value) =>
+        value is string s ? !string.IsNullOrEmpty(s) : value is not null;
+
+    private bool Clause1HasValue => IsNoValueOperator(_op1) || ValueHasContent(_value1);
+
+    private bool Clause2HasValue => IsNoValueOperator(_op2) || ValueHasContent(_value2);
+
+    private bool HasValidValue => _showSecond
+        ? Clause1HasValue && Clause2HasValue
+        : Clause1HasValue;
+
+    private void AddSecond()
+    {
+        _showSecond = true;
+        _op2 = _availableOperators.Count > 0 ? _availableOperators[0] : ColumnFilterOperator.Contains;
+        _focusSecond = true;
+    }
+
+    private void RemoveSecond()
+    {
+        _showSecond = false;
+        _value2 = null;
+    }
+
+    private void SetLogic(LogicalOperator op)
+    {
+        _logic = op;
+        _focusSecond = true;
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private void Apply()
+    {
+        if (!HasValidValue) return;
+
+        var filter = new ColumnFilter
+        {
+            Column    = ColumnSqlName,
+            ParamName = Transliterate("cf_" + ColumnSqlName),
+            Operator  = _op1,
+            Value     = _value1,
+        };
+
+        if (_showSecond)
+        {
+            filter.LogicalOperator = _logic;
+            filter.SecondOperator  = _op2;
+            filter.SecondValue     = _value2;
+            filter.SecondParamName = Transliterate("cf2_" + ColumnSqlName);
+        }
+
+        MudDialog?.Close(DialogResult.Ok(filter));
+    }
+
+    private static string Transliterate(string input) =>
+        input.Replace(".", "_").Replace(" ", "_")
+             .Replace("А","A").Replace("а","a")
+             .Replace("Б","B").Replace("б","b")
+             .Replace("В","V").Replace("в","v")
+             .Replace("Г","G").Replace("г","g")
+             .Replace("Д","D").Replace("д","d")
+             .Replace("Е","E").Replace("е","e")
+             .Replace("Ё","Yo").Replace("ё","yo")
+             .Replace("Ж","Zh").Replace("ж","zh")
+             .Replace("З","Z").Replace("з","z")
+             .Replace("И","I").Replace("и","i")
+             .Replace("Й","Y").Replace("й","y")
+             .Replace("К","K").Replace("к","k")
+             .Replace("Л","L").Replace("л","l")
+             .Replace("М","M").Replace("м","m")
+             .Replace("Н","N").Replace("н","n")
+             .Replace("О","O").Replace("о","o")
+             .Replace("П","P").Replace("п","p")
+             .Replace("Р","R").Replace("р","r")
+             .Replace("С","S").Replace("с","s")
+             .Replace("Т","T").Replace("т","t")
+             .Replace("У","U").Replace("у","u")
+             .Replace("Ф","F").Replace("ф","f")
+             .Replace("Х","Kh").Replace("х","kh")
+             .Replace("Ц","Ts").Replace("ц","ts")
+             .Replace("Ч","Ch").Replace("ч","ch")
+             .Replace("Ш","Sh").Replace("ш","sh")
+             .Replace("Щ","Sch").Replace("щ","sch")
+             .Replace("Ъ","").Replace("ъ","")
+             .Replace("Ы","Y").Replace("ы","y")
+             .Replace("Ь","").Replace("ь","")
+             .Replace("Э","E").Replace("э","e")
+             .Replace("Ю","Yu").Replace("ю","yu")
+             .Replace("Я","Ya").Replace("я","ya");
+
+    private static string GetOperatorLabel(ColumnFilterOperator op)
+        => ClayFilterOperatorLabels.Get(op);
+}

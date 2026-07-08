@@ -1,0 +1,63 @@
+@namespace Clayzor.Lib.Web.Controls.Components
+
+@*
+    Контролируемый (controlled) чекбокс с tri-state поддержкой.
+    Используется для выбора записей в гриде и фильтра по значению.
+
+    Родитель хранит состояние и передаёт через State.
+    При клике компонент поднимает OnToggle — родитель меняет состояние и перерисовывается.
+*@
+
+<div class="clay-checkbox @(Disabled ? "clay-checkbox--disabled" : "clay-checkbox--clickable") @Class"
+     style="@Style"
+     title="@Title"
+     @onclick="HandleClick"
+     @onclick:stopPropagation="true">
+    <span class="clay-checkbox-box @(State == true ? "clay-checkbox-box--checked" : "clay-checkbox-box--unchecked")">
+        @if (State is null)
+        {
+            <span class="clay-checkbox-indeterminate"></span>
+        }
+        else if (State == true)
+        {
+            <span class="clay-checkbox-checkmark"></span>
+        }
+    </span>
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <span class="clay-checkbox-label"
+              title="@(LabelTitle ?? (Label.Length > 30 ? Label : null))">@Label</span>
+    }
+</div>
+
+@code {
+    /// <summary>Состояние: <c>null</c> — «частично», <c>true</c> — отмечен, <c>false</c> — снят.</summary>
+    [Parameter] public bool? State { get; set; } = false;
+
+    /// <summary>Текстовая подпись справа от чекбокса (опционально).</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Тултип для подписи (если не задан — авто по длине Label).</summary>
+    [Parameter] public string? LabelTitle { get; set; }
+
+    /// <summary>Тултип (HTML-атрибут title).</summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Блокировка: клик не срабатывает, вид приглушённый.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Доп. CSS-класс обёртки.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Доп. inline-стиль обёртки.</summary>
+    [Parameter] public string? Style { get; set; }
+
+    /// <summary>Клик по чекбоксу (если не <see cref="Disabled"/>). Родитель сам меняет состояние.</summary>
+    [Parameter] public EventCallback OnToggle { get; set; }
+
+    private async Task HandleClick()
+    {
+        if (Disabled) return;
+        await OnToggle.InvokeAsync();
+    }
+}

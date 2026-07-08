@@ -1,0 +1,68 @@
+@using Clayzor.Lib.Web.Controls.Components.Grid
+@using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes
+
+@* Редактор значения фильтра — единый компонент для ClayColumnFilterDialog и будущего
+   диалога составного фильтра (задача 09). Скрывается при операторах без значения. *@
+
+@if (_takesValue)
+{
+    @if (Options is not null)
+    {
+        <MudSelect T="object" Label="Значение" Value="@Value" ValueChanged="@OnLookupChanged"
+                   Variant="Variant.Outlined" Margin="Margin.Dense"
+                   AnchorOrigin="Origin.BottomLeft" Clearable="true" AutoFocus="@AutoFocus">
+            @foreach (var opt in Options)
+            {
+                <MudSelectItem Value="@opt.Value">@opt.Label</MudSelectItem>
+            }
+        </MudSelect>
+    }
+    else
+    {
+        switch (Type.Kind)
+        {
+            case ColumnType.Text:
+                <MudTextField T="string" Label="Значение"
+                              Value="@(_typedValue as string)"
+                              ValueChanged="@((string? v) => OnTypedChanged(v))"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Immediate="true" Clearable="true" AutoFocus="@AutoFocus" />
+                break;
+
+            case ColumnType.Number:
+                <MudNumericField T="int?" Label="Значение"
+                                 Value="@(_typedValue as int?)"
+                                 ValueChanged="@((int? v) => OnTypedChanged(v))"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                                 Clearable="true" AutoFocus="@AutoFocus" />
+                break;
+
+            case ColumnType.Decimal:
+                <MudNumericField T="decimal?" Label="Значение"
+                                 Value="@(_typedValue as decimal?)"
+                                 ValueChanged="@((decimal? v) => OnTypedChanged(v))"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                                 Clearable="true" AutoFocus="@AutoFocus" />
+                break;
+
+            case ColumnType.Date:
+                <MudDatePicker Label="Значение"
+                               Date="@(_typedValue as DateTime?)"
+                               DateChanged="@((DateTime? v) => OnTypedChanged(v))"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Clearable="true" DateFormat="dd.MM.yyyy" AutoFocus="@AutoFocus" />
+                break;
+
+            case ColumnType.Boolean:
+                <MudSelect T="bool?" Label="Значение"
+                           Value="@(_typedValue as bool?)"
+                           ValueChanged="@((bool? v) => OnTypedChanged(v))"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           AnchorOrigin="Origin.BottomLeft" Clearable="true" AutoFocus="@AutoFocus">
+                    <MudSelectItem Value="@((bool?)true)">Да</MudSelectItem>
+                    <MudSelectItem Value="@((bool?)false)">Нет</MudSelectItem>
+                </MudSelect>
+                break;
+        }
+    }
+}

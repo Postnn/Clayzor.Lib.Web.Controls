@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Clayzor.Lib.Web.Controls</RootNamespace>
+    <NoWarn>NU1902</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="MudBlazor" Version="9.*" />
+    <PackageReference Include="MudBlazor.Extensions" Version="9.4.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Clayzor.Lib.Entities\Clayzor.Lib.Entities.csproj" />
+    <ProjectReference Include="..\Clayzor.Lib.Web.Settings\Clayzor.Lib.Web.Settings.csproj" />
+  </ItemGroup>
+  <Import Project="$(SolutionDir)build\StyleGuard.targets" Condition="Exists('$(SolutionDir)build\StyleGuard.targets')" />
+</Project>

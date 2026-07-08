@@ -1,0 +1,48 @@
+@using Clayzor.Lib.Web.Controls.Components.Grid
+@using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes
+
+<MudDialog ContentClass="clay-filter-dialog-content">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="display:flex;align-items:center;gap:8px">
+            <MudIcon Icon="@Icons.Material.Filled.FilterList" Size="Size.Small" />
+            @ClayFilterStrings.DialogTitle
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @* Прямые дети .mud-dialog-content (без обёртки!), чтобы работал flex-скролл *@
+
+        @if (!string.IsNullOrEmpty(_draftDescription))
+        {
+            <MudPaper Elevation="0" Class="pa-1 clay-filter-dialog__panel">
+                <MudText Typo="Typo.body2">@_draftDescription</MudText>
+            </MudPaper>
+        }
+
+        <div style="flex:1 1 auto;overflow-y:auto;min-height:0">
+            <ClayFilterGroup Node="@_draft"
+                              Columns="@Columns"
+                              LookupOptions="@LookupOptions"
+                              IsRoot="true"
+                              OnChanged="@OnDraftChanged" />
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="@Reset" Variant="Variant.Text"
+                   StartIcon="@Icons.Material.Filled.ClearAll"
+                   Class="clay-text-normal">@ClayFilterStrings.Reset</MudButton>
+        <MudSpacer />
+        <MudButton OnClick="@Cancel" Variant="Variant.Text">@ClayFilterStrings.Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   OnClick="@Apply">@ClayFilterStrings.Apply</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    /* ContentClass кладёт этот класс прямо на .mud-dialog-content — надёжнее, чем Class на MudDialog */
+    .clay-filter-dialog-content {
+        width: 600px; max-width: 100%; height: min(460px, 80vh);
+        overflow: hidden; display: flex; flex-direction: column; gap: 4px;
+    }
+</style>

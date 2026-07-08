@@ -1,0 +1,63 @@
+@using Clayzor.Lib.Web.Controls.Components.Grid
+@using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes
+
+@* Редактор одного листового условия составного фильтра.
+   Колонка, оператор, значение и кнопка удаления — в одну строку с переносом. *@
+
+<div class="clay-filter-expression">
+
+    @* ── Выбор колонки ────────────────────────────────────────── *@
+    <MudSelect T="string"
+               Label="@ClayFilterStrings.FieldLabel"
+               Value="@Node.Column"
+               ValueChanged="@OnColumnChanged"
+               Variant="Variant.Outlined"
+               Margin="Margin.Dense"
+               Dense="true"
+               AnchorOrigin="Origin.BottomLeft"
+               Style="flex:1 1 130px;min-width:120px">
+        @foreach (var col in Columns)
+        {
+            <MudSelectItem Value="@col.SqlName">@col.DisplayName</MudSelectItem>
+        }
+    </MudSelect>
+
+    @* ── Выбор оператора ──────────────────────────────────────── *@
+    <MudSelect T="ColumnFilterOperator"
+               Label="@ClayFilterStrings.ConditionLabel"
+               Value="@Node.Operator"
+               ValueChanged="@OnOperatorChanged"
+               Variant="Variant.Outlined"
+               Margin="Margin.Dense"
+               Dense="true"
+               AnchorOrigin="Origin.BottomLeft"
+               RelativeWidth="DropdownWidth.Adaptive"
+               Style="flex:1 1 120px;min-width:110px"
+               Disabled="@(_descriptor is null)">
+        @foreach (var op in _availableOperators)
+        {
+            <MudSelectItem Value="@op" Style="white-space:nowrap">@ClayFilterOperatorLabels.Get(op)</MudSelectItem>
+        }
+    </MudSelect>
+
+    @* ── Редактор значения ────────────────────────────────────────── *@
+    @if (_descriptor is not null)
+    {
+        <div style="flex:1 1 130px;min-width:120px">
+            <ClayFilterValueEditor @key="_valueKey"
+                                    Type="@_descriptor"
+                                    Value="@Node.Value"
+                                    ValueChanged="@OnValueChanged"
+                                    Options="@_options"
+                                    Operator="@Node.Operator"
+                                    AutoFocus="@_focusValue" />
+        </div>
+    }
+
+    @* ── Кнопка удаления ──────────────────────────────────────── *@
+    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                   Size="Size.Small"
+                   OnClick="@OnRemove"
+                   Style="flex:0 0 auto"
+                   title="@ClayFilterStrings.DeleteCondition" />
+</div>

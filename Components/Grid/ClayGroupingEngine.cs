@@ -1,0 +1,380 @@
+using Clayzor.Lib.Entities;
+
+namespace Clayzor.Lib.Web.Controls.Components.Grid;
+
+// ── Вспомогательные типы серверной группировки ─────────────────────────────
+
+/// <summary>
+/// Строка результата GROUP BY агрегатного запроса.
+/// Поля K0–K2 содержат значения группировочных колонок (до 3-х уровней).
+/// </summary>
+public class GridGroupRow
+{
+    /// <summary>Значение первой колонки группировки.</summary>
+    public object K0 { get; set; } = "";
+
+    /// <summary>Значение второй колонки группировки (null — уровень не задан).</summary>
+    public object? K1 { get; set; }
+
+    /// <summary>Значение третьей колонки группировки (null — уровень не задан).</summary>
+    public object? K2 { get; set; }
+
+    /// <summary>Количество строк детализации в этой листовой группе.</summary>
+    public int Cnt { get; set; }
+}
+
+/// <summary>
+/// Групповой агрегат — узел с метаданными группы (ключ, глубина, количество).
+/// Синтетические родительские узлы создаются для промежуточных уровней многоуровневой группировки.
+/// </summary>
+public class GridGroupAgg
+{
+    /// <summary>Полный ключ группы — уровни через \u001F.</summary>
+    public string FullKey { get; set; } = "";
+
+    /// <summary>Отображаемое значение группы (значение последнего уровня).</summary>
+    public string DisplayValue { get; set; } = "";
+
+    /// <summary>Количество строк детализации. Для синтетических родителей вычисляется через <see cref="ClayGroupingEngine.ComputeParentCounts"/>.</summary>
+    public int ItemCount { get; set; }
+
+    /// <summary>Уровень вложенности: 0 — внешний.</summary>
+    public int Depth { get; set; }
+
+    /// <summary>Полный ключ родительского агрегата. Пустая строка — корневой узел.</summary>
+    public string ParentKey { get; set; } = "";
+
+    /// <summary>Строковые значения ключей по уровням.</summary>
+    public List<string> KeyValues { get; set; } = [];
+
+    /// <summary>Исходные (нетипизированные) значения ключей для параметров WHERE детального запроса.</summary>
+    public List<object?> RawKeys { get; set; } = [];
+}
+
+/// <summary>
+/// Узел дерева групп. Содержит агрегат, дочерние узлы и вычисленное эффективное число строк.
+/// </summary>
+public class GridGroupNode
+{
+    /// <summary>Агрегат этого узла.</summary>
+    public GridGroupAgg Aggregate { get; set; } = default!;
+
+    /// <summary>Дочерние узлы (подгруппы следующего уровня).</summary>
+    public List<GridGroupNode> Children { get; set; } = [];
+
+    /// <summary>
+    /// Эффективное число строк — сколько строк занимает этот узел на странице
+    /// с учётом своей строки-заголовка и раскрытых дочерних строк.
+    /// Вычисляется в <see cref="ClayGroupingEngine.ComputeEffectiveRows"/>.
+    /// </summary>
+    public int EffectiveRows { get; set; }
+}
+
+/// <summary>
+/// Элемент макета страницы: заголовок группы + опциональный диапазон детальных строк.
+/// Формируется при обходе дерева в <see cref="ClayGroupingEngine.WalkTree"/>.
+/// </summary>
+public class GridLayoutItem
+{
+    /// <summary>Заголовок группы для рендеринга.</summary>
+    public GroupHeaderRow? Header { get; set; }
+
+    /// <summary>Агрегат этого узла (нужен для построения детального WHERE).</summary>
+    public GridGroupAgg? Aggregate { get; set; }
+
+    /// <summary>Начало диапазона детальных строк внутри группы (1-based).</summary>
+    public int DetailStart { get; set; }
+
+    /// <summary>Конец диапазона детальных строк внутри группы (1-based).</summary>
+    public int DetailEnd { get; set; }
+
+    /// <summary>Есть ли детальные строки для загрузки на текущей странице.</summary>
+    public bool HasDetailRange { get; set; }
+}
+
+// ── Движок группировки ──────────────────────────────────────────────────────
+
+/// <summary>
+/// Статический движок серверной группировки для <see cref="ClayGrid{TEntity}"/>.
+/// Строит SQL, преобразует плоские результаты GROUP BY в дерево,
+/// вычисляет страничную разметку.
+/// Не зависит от Blazor, MudBlazor или DbManager.
+/// </summary>
+public static class ClayGroupingEngine
+{
+    /// <summary>
+    /// Строит агрегатный SQL-запрос GROUP BY (SQL Server 2008 R2 совместимый).
+    /// Возвращает до 3-х ключевых колонок K0–K2 + COUNT(*) AS Cnt.
+    /// </summary>
+    /// <param name="selectSql">Базовый SELECT без WHERE/ORDER BY (например <c>SQLQueries.SELECT_МедицинскиеАнализы</c>).</param>
+    /// <param name="groupExprs">Выходные имена колонок группировки в порядке приоритета.</param>
+    /// <param name="where">WHERE-фрагмент или null.</param>
+    /// <param name="sortColumns">Текущая сортировка — определяет ORDER BY в агрегатном запросе.</param>
+    public static string BuildGroupAggregateSql(
+        string selectSql,
+        IReadOnlyList<string> groupExprs,
+        string? where,
+        IReadOnlyList<SortColumn> sortColumns)
+    {
+        var selectParts = new List<string>();
+        for (int i = 0; i < 3; i++)
+        {
+            selectParts.Add(i < groupExprs.Count
+                ? $"{groupExprs[i]} AS K{i}"
+                : $"CAST(NULL AS SQL_VARIANT) AS K{i}");
+        }
+
+        var grp = string.Join(", ", groupExprs);
+        var ordParts = groupExprs.Select(expr =>
+        {
+            var sc = sortColumns.FirstOrDefault(s => s.Column == expr);
+            return sc is not null ? $"{expr} {(sc.Desc ? "DESC" : "ASC")}" : expr;
+        });
+
+        var sql = $"SELECT {string.Join(", ", selectParts)}, COUNT(*) AS Cnt";
+        sql += $" FROM ({selectSql}) _g";
+        if (where is not null)
+            sql += $" WHERE {where}";
+        sql += $" GROUP BY {grp}";
+        sql += $" ORDER BY {string.Join(", ", ordParts)}";
+        return sql;
+    }
+
+    /// <summary>
+    /// Строит постраничный детальный SQL с <c>ROW_NUMBER()</c> (SQL Server 2008 R2).
+    /// Параметры границ страницы: <c>@__start</c> и <c>@__end</c>.
+    /// </summary>
+    /// <param name="selectSql">Базовый SELECT.</param>
+    /// <param name="where">WHERE-фрагмент или null.</param>
+    /// <param name="detailOrder">ORDER BY для строк внутри группы.</param>
+    public static string BuildDetailPageSql(
+        string selectSql,
+        string? where,
+        string detailOrder)
+    {
+        var sql = $"SELECT * FROM (SELECT _src.*, ROW_NUMBER() OVER (ORDER BY {detailOrder}) AS _drn";
+        sql += $" FROM ({selectSql}) _src";
+        if (!string.IsNullOrWhiteSpace(where))
+            sql += $" WHERE {where}";
+        sql += ") _d WHERE _drn BETWEEN @__start AND @__end";
+        return sql;
+    }
+
+    /// <summary>
+    /// Строит ORDER BY для детальных строк: исключает колонки группировки,
+    /// чтобы сортировка внутри группы не дублировала GROUP BY.
+    /// </summary>
+    /// <param name="fullOrderBy">Полный ORDER BY из <see cref="ClayDataQuery.BuildOrderBy"/>.</param>
+    /// <param name="groupColumns">SQL-имена колонок группировки.</param>
+    /// <param name="fallbackOrder">Порядок по умолчанию, если после исключения не осталось колонок.</param>
+    public static string BuildDetailOrder(
+        string fullOrderBy,
+        IEnumerable<string> groupColumns,
+        string fallbackOrder)
+    {
+        var groupSet = new HashSet<string>(groupColumns);
+        var parts = fullOrderBy
+            .Split(", ", StringSplitOptions.RemoveEmptyEntries)
+            .Where(p => !groupSet.Contains(p.Split(' ')[0]))
+            .ToList();
+        return parts.Count > 0 ? string.Join(", ", parts) : fallbackOrder;
+    }
+
+    /// <summary>
+    /// Превращает плоские строки GROUP BY в список <see cref="GridGroupAgg"/>
+    /// с синтетическими родительскими узлами для промежуточных уровней.
+    /// Порядок агрегатов из БД сохраняется (не пересортировывается).
+    /// </summary>
+    public static List<GridGroupAgg> BuildAggregates(IEnumerable<GridGroupRow> groupRows)
+    {
+        var aggregates = new List<GridGroupAgg>();
+        var seenKeys = new HashSet<string>();
+
+        foreach (var gr in groupRows)
+        {
+            var keys = new List<string>();
+            if (gr.K0 is not null) keys.Add(gr.K0.ToString()!);
+            if (gr.K1 is not null) keys.Add(gr.K1.ToString()!);
+
+            var depth = keys.Count - 1;
+            var rawKeyValues = new object?[] { gr.K0, gr.K1 }.Take(keys.Count).ToList();
+
+            // Синтетические родительские узлы для промежуточных уровней
+            for (int d = 0; d < depth; d++)
+            {
+                var parentKeys = keys.Take(d + 1).ToList();
+                var parentFullKey = string.Join("\u001F", parentKeys);
+                if (seenKeys.Add(parentFullKey))
+                {
+                    aggregates.Add(new GridGroupAgg
+                    {
+                        FullKey      = parentFullKey,
+                        DisplayValue = parentKeys.Last(),
+                        ItemCount    = 0,
+                        Depth        = d,
+                        ParentKey    = d > 0 ? string.Join("\u001F", parentKeys.Take(d)) : "",
+                        KeyValues    = parentKeys,
+                        RawKeys      = [],
+                    });
+                }
+            }
+
+            var fullKey   = string.Join("\u001F", keys);
+            var parentKey = depth > 0 ? string.Join("\u001F", keys.Take(depth)) : "";
+
+            aggregates.Add(new GridGroupAgg
+            {
+                FullKey      = fullKey,
+                DisplayValue = keys.Last(),
+                ItemCount    = gr.Cnt,
+                Depth        = depth,
+                ParentKey    = parentKey,
+                KeyValues    = keys,
+                RawKeys      = rawKeyValues,
+            });
+        }
+
+        return aggregates;
+    }
+
+    /// <summary>
+    /// Строит дерево <see cref="GridGroupNode"/> из плоского списка агрегатов.
+    /// Предполагает, что родительский агрегат в списке всегда предшествует дочернему.
+    /// </summary>
+    public static List<GridGroupNode> BuildTree(List<GridGroupAgg> aggregates)
+    {
+        var roots  = new List<GridGroupNode>();
+        var lookup = new Dictionary<string, GridGroupNode>();
+
+        foreach (var a in aggregates)
+        {
+            var node = new GridGroupNode { Aggregate = a, Children = [] };
+            lookup[a.FullKey] = node;
+            if (string.IsNullOrEmpty(a.ParentKey))
+                roots.Add(node);
+            else if (lookup.TryGetValue(a.ParentKey, out var parent))
+                parent.Children.Add(node);
+        }
+
+        return roots;
+    }
+
+    /// <summary>
+    /// Рекурсивно вычисляет <see cref="GridGroupAgg.ItemCount"/> родительских (синтетических)
+    /// узлов как сумму ItemCount всех дочерних листьев.
+    /// </summary>
+    /// <returns>Суммарное количество строк детализации.</returns>
+    public static int ComputeParentCounts(List<GridGroupNode> roots)
+    {
+        int total = 0;
+        foreach (var node in roots)
+        {
+            if (node.Children.Count > 0)
+            {
+                int childSum = ComputeParentCounts(node.Children);
+                node.Aggregate.ItemCount = childSum;
+                total += childSum;
+            }
+            else
+            {
+                total += node.Aggregate.ItemCount;
+            }
+        }
+        return total;
+    }
+
+    /// <summary>
+    /// Рекурсивно вычисляет <see cref="GridGroupNode.EffectiveRows"/>:
+    /// сколько строк занимает узел на странице с учётом раскрытых групп.
+    /// </summary>
+    public static int ComputeEffectiveRows(GridGroupNode node, HashSet<string> expanded)
+    {
+        int rows = 1; // сама строка-заголовок
+        if (expanded.Contains(node.Aggregate.FullKey))
+        {
+            foreach (var child in node.Children)
+                rows += ComputeEffectiveRows(child, expanded);
+            if (node.Children.Count == 0)
+                rows += node.Aggregate.ItemCount;
+        }
+        node.EffectiveRows = rows;
+        return rows;
+    }
+
+    /// <summary>
+    /// Обходит дерево групп и формирует плоский список <see cref="GridLayoutItem"/>
+    /// для строк, попадающих в диапазон текущей страницы [pageStart, pageEnd].
+    /// </summary>
+    public static void WalkTree(
+        List<GridGroupNode> nodes,
+        HashSet<string> expanded,
+        int pageStart, int pageEnd,
+        ref int currentRow,
+        List<GridLayoutItem> layout)
+    {
+        foreach (var node in nodes)
+        {
+            int groupStart = currentRow;
+            int groupEnd   = currentRow + node.EffectiveRows - 1;
+
+            if (groupStart > pageEnd)
+            {
+                currentRow = groupEnd + 1;
+                return;
+            }
+
+            bool overlaps   = groupEnd >= pageStart && groupStart <= pageEnd;
+            bool isExpanded = expanded.Contains(node.Aggregate.FullKey);
+
+            if (overlaps)
+            {
+                layout.Add(new GridLayoutItem
+                {
+                    Header = new GroupHeaderRow
+                    {
+                        DisplayValue = node.Aggregate.DisplayValue,
+                        FullKey      = node.Aggregate.FullKey,
+                        ItemCount    = node.Aggregate.ItemCount,
+                        Depth        = node.Aggregate.Depth,
+                        IsExpanded   = isExpanded,
+                        GroupKeys    = node.Aggregate.KeyValues,
+                    },
+                    Aggregate = node.Aggregate,
+                });
+            }
+            currentRow++;
+
+            if (isExpanded)
+            {
+                WalkTree(node.Children, expanded, pageStart, pageEnd, ref currentRow, layout);
+                if (currentRow > pageEnd)
+                {
+                    currentRow = groupEnd + 1;
+                    return;
+                }
+
+                if (node.Children.Count == 0)
+                {
+                    int detailCount = node.Aggregate.ItemCount;
+                    if (overlaps && detailCount > 0)
+                    {
+                        int firstDetail = Math.Max(1, pageStart - currentRow + 1);
+                        int lastDetail  = Math.Min(detailCount, pageEnd - currentRow + 1);
+                        if (firstDetail <= lastDetail)
+                        {
+                            var last = layout.Last();
+                            last.DetailStart    = firstDetail;
+                            last.DetailEnd      = lastDetail;
+                            last.HasDetailRange = true;
+                        }
+                    }
+                    currentRow += detailCount;
+                }
+            }
+            else
+            {
+                currentRow = groupEnd + 1;
+            }
+        }
+    }
+}

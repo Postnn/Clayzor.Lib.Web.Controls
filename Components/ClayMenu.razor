@@ -1,0 +1,91 @@
+@namespace Clayzor.Lib.Web.Controls.Components
+
+@*
+    Обёртка MudMenu для выпадающих меню.
+    Автоматически строит кнопку-активатор (с опциональным тултипом) и сбрасывает тултип после клика.
+
+    Использование:
+        <ClayMenu Icon="@Icons.Material.Filled.PlaylistAddCheck" Tooltip="Групповые операции" Class="toolbar-batch-btn">
+            <MudMenuItem OnClick="...">Печать</MudMenuItem>
+        </ClayMenu>
+*@
+
+<MudMenu Class="@Class"
+         AnchorOrigin="@AnchorOrigin"
+         TransformOrigin="@TransformOrigin"
+         Dense="@Dense"
+         Disabled="@Disabled">
+    <ActivatorContent Context="x">
+        @{
+            // Захватываем x как object для передачи в обработчик
+            var ctx = (object)x;
+        }
+        @if (Tooltip is not null)
+        {
+            <MudTooltip Text="@Tooltip" Placement="@TooltipPlacement" @key="@_tipKey">
+                <MudIconButton Icon="@Icon"
+                               Size="@Size"
+                               Style="@ActivatorStyle"
+                               OnClick="@(async () => await HandleOpen(ctx))" />
+            </MudTooltip>
+        }
+        else
+        {
+            <MudIconButton Icon="@Icon"
+                           Size="@Size"
+                           Style="@ActivatorStyle"
+                           OnClick="@(async () => await HandleOpen(ctx))" />
+        }
+    </ActivatorContent>
+    <ChildContent>
+        @ChildContent
+    </ChildContent>
+</MudMenu>
+
+@code {
+    /// <summary>Иконка MudBlazor для кнопки-активатора.</summary>
+    [Parameter, EditorRequired] public string Icon { get; set; } = "";
+
+    /// <summary>Текст тултипа. Если не задан — тултип не отображается.</summary>
+    [Parameter] public string? Tooltip { get; set; }
+
+    /// <summary>Позиция тултипа относительно кнопки.</summary>
+    [Parameter] public Placement TooltipPlacement { get; set; } = Placement.Bottom;
+
+    /// <summary>CSS-класс меню.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Inline-стили для кнопки-активатора.</summary>
+    [Parameter] public string? ActivatorStyle { get; set; }
+
+    /// <summary>Размер иконки кнопки-активатора.</summary>
+    [Parameter] public Size Size { get; set; } = Size.Small;
+
+    /// <summary>Компактные вертикальные отступы у пунктов меню.</summary>
+    [Parameter] public bool Dense { get; set; } = true;
+
+    /// <summary>Блокировка меню.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Точка привязки меню относительно активатора.</summary>
+    [Parameter] public Origin AnchorOrigin { get; set; } = Origin.BottomRight;
+
+    /// <summary>Точка трансформации меню.</summary>
+    [Parameter] public Origin TransformOrigin { get; set; } = Origin.TopRight;
+
+    /// <summary>Вызывается перед открытием меню (например, для сброса состояния подгрупп).</summary>
+    [Parameter] public EventCallback OnBeforeOpen { get; set; }
+
+    /// <summary>Содержимое меню — элементы MudMenuItem.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private int _tipKey;
+
+    private async Task HandleOpen(object context)
+    {
+        await OnBeforeOpen.InvokeAsync();
+        dynamic activator = context;
+        await activator.ToggleAsync(null);
+        _tipKey++;
+    }
+}

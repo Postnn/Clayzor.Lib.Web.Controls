@@ -1,0 +1,313 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Grid
+@using MudBlazor
+@inject IJSRuntime JS
+@implements IDisposable
+
+@*
+    Диалог настройки порядка и видимости колонок грида.
+
+    Drag-and-drop реализован как jQuery UI Sortable:
+    — ghost (клон чипа) следует за курсором через position:fixed
+    — placeholder (пустое место) динамически вставляется в DOM при движении
+    — Blazor получает только финальный результат через [JSInvokable] OnJsDrop
+*@
+
+<MudDialog>
+    <DialogContent>
+        <div @ref="_container"
+             class="d-flex flex-column"
+             style="gap:4px">
+
+            @* ── Заголовок ──────────────────────────────────── *@
+            <div class="column-settings-chip clay-column-settings-header">
+                <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
+                         Size="Size.Small"
+                         Style="margin-right:6px;opacity:0;flex-shrink:0;visibility:hidden" />
+                <div style="flex:1;display:flex;align-items:center;min-width:0">
+                    <span class="chip-label-clickable" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Колонка</span>
+                </div>
+                <div style="display:flex;align-items:center;flex-shrink:0;gap:6px">
+                    <MudTooltip Text="Видимость" Placement="Placement.Top">
+                        <div style="width:50px;display:flex;justify-content:flex-start;padding-left:6px">
+                            <MudIcon Icon="@Icons.Material.Filled.Visibility"
+                                     Size="Size.Small"
+                                     Style="opacity:0.55" />
+                        </div>
+                    </MudTooltip>
+                    @if (ShowSorting)
+                    {
+                        <MudTooltip Text="Фильтр по значению" Placement="Placement.Top">
+                            <div style="width:38px;display:flex;justify-content:center">
+                                <MudIcon Icon="@Icons.Material.Filled.Checklist"
+                                         Size="Size.Small"
+                                         Style="opacity:0.55" />
+                            </div>
+                        </MudTooltip>
+                    }
+                </div>
+            </div>
+
+            @for (int i = 0; i < _items.Count; i++)
+            {
+                var idx  = i;
+                var item = _items[i];
+
+                <div class="column-settings-chip"
+                     data-col-idx="@idx">
+                    <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
+                             Size="Size.Small"
+                             Style="margin-right:6px;opacity:0.45;flex-shrink:0;cursor:grab" />
+                    @if (ShowSorting)
+                    {
+                        <div class="sort-toggle-area"
+                             style="flex:1;display:flex;align-items:center;gap:3px;min-width:0;cursor:pointer"
+                             @onclick="() => ToggleDialogSort(item.SqlName)"
+                             @onclick:stopPropagation="true">
+                            <span class="chip-label-clickable"
+                                  style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@item.DisplayName</span>
+                            @GetDialogSortBadge(item.SqlName)
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="flex:1;display:flex;align-items:center;min-width:0">
+                            <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@item.DisplayName</span>
+                        </div>
+                    }
+                    <div @onpointerdown:stopPropagation="true"
+                         style="display:flex;align-items:center;flex-shrink:0;gap:6px">
+                        <MudSwitch T="bool"
+                                   @bind-Value="item.IsVisible"
+                                   Disabled="@item.IsReadonly"
+                                   Color="Color.Primary" />
+                        @if (ShowSorting)
+                        {
+                            <MudTooltip Text="Фильтр по значению" Placement="Placement.Top">
+                                <MudSwitch T="bool"
+                                           @bind-Value="item.AllowValueFilter"
+                                           Color="Color.Primary" />
+                            </MudTooltip>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <div style="flex:1;display:flex;gap:4px">
+            @if (ShowSorting)
+            {
+                <MudTooltip Text="Сбросить сортировку" Placement="Placement.Top">
+                    <MudIconButton Icon="@Icons.Material.Filled.ClearAll"
+                                   Size="Size.Small"
+                                   OnClick="ResetSort" />
+                </MudTooltip>
+            }
+            <MudTooltip Text="Восстановить порядок и видимость колонок по-умолчанию" Placement="Placement.Top">
+                <MudIconButton Icon="@Icons.Material.Filled.RestartAlt"
+                               Size="Size.Small"
+                               OnClick="ResetAll" />
+            </MudTooltip>
+        </div>
+        <div style="display:flex;gap:4px">
+            <MudButton OnClick="Cancel">Отмена</MudButton>
+            <MudButton Color="Color.Primary" OnClick="Apply">Применить</MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    /// <summary>Входной список колонок — не мутируется до нажатия «Применить».</summary>
+    [Parameter] public List<ColumnSettingsItem> Items { get; set; } = [];
+
+    /// <summary>Показывать секцию сортировки. По умолчанию true (настройки страницы);
+    /// false — для печати/экспорта, где сортировка не имеет смысла.</summary>
+    [Parameter] public bool ShowSorting { get; set; } = true;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>Рабочая копия списка — отображается и изменяется в диалоге.</summary>
+    private List<ColumnSettingsItem> _items = [];
+
+    /// <summary>ElementReference на контейнер списка чипов — передаётся в JS.</summary>
+    private ElementReference _container;
+
+    /// <summary>DotNetObjectReference для обратных вызовов из JS.</summary>
+    private DotNetObjectReference<ClayColumnSettingsDialog>? _dotnetRef;
+
+    /// <summary>
+    /// Состояние сортировки в диалоге: список пар (SqlName, Desc)
+    /// в порядке приоритета. Первый элемент — высший приоритет.
+    /// </summary>
+    private readonly List<(string SqlName, bool Desc)> _dialogSortState = [];
+
+    /// <summary>Снапшот исходного состояния Items для кнопки «Восстановить по-умолчанию».</summary>
+    private List<ColumnSettingsItem> _originalItems = [];
+
+    /// <inheritdoc/>
+    protected override void OnInitialized()
+    {
+        _items     = [..Items];
+        _originalItems = Items.Select(i => new ColumnSettingsItem
+        {
+            SqlName      = i.SqlName,
+            DisplayName  = i.DisplayName,
+            IsVisible    = i.IsVisible,
+            IsReadonly   = i.IsReadonly,
+            SortPriority = i.SortPriority,
+            IsSortDesc   = i.IsSortDesc,
+            AllowValueFilter = i.AllowValueFilter,
+        }).ToList();
+        _dotnetRef = DotNetObjectReference.Create(this);
+
+        // Восстанавливаем сортировку из входных Items (если заданы из грида)
+        if (ShowSorting)
+        {
+            foreach (var item in _items.Where(i => i.SortPriority > 0).OrderBy(i => i.SortPriority))
+                _dialogSortState.Add((item.SqlName, item.IsSortDesc));
+        }
+    }
+
+    /// <summary>При первом рендере инициализирует sortable через JS.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _dotnetRef is not null)
+            await JS.InvokeVoidAsync("clayColumnSettings.init", _container, _dotnetRef);
+    }
+
+    /// <inheritdoc/>
+    public void Dispose() => _dotnetRef?.Dispose();
+
+    // ── Drag-and-drop ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Вызывается из JS при завершении перетаскивания.
+    /// Переставляет элемент в рабочем списке и обновляет UI.
+    /// </summary>
+    /// <param name="sourceIdx">Исходный индекс перетаскиваемого чипа.</param>
+    /// <param name="targetIdx">Целевая позиция вставки.</param>
+    [JSInvokable]
+    public void OnJsDrop(int sourceIdx, int targetIdx)
+    {
+        if (sourceIdx < 0 || sourceIdx >= _items.Count) return;
+        targetIdx = Math.Clamp(targetIdx, 0, _items.Count - 1);
+        if (sourceIdx == targetIdx) return;
+
+        var item = _items[sourceIdx];
+        _items.RemoveAt(sourceIdx);
+
+        // После удаления источника вставляем в скорректированную позицию
+        var insertAt = Math.Clamp(targetIdx, 0, _items.Count);
+        _items.Insert(insertAt, item);
+        InvokeAsync(StateHasChanged);
+    }
+
+    // ── Сортировка ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Переключает сортировку по колонке: нет → ASC → DESC → нет.
+    /// Ограничение — не более 2 колонок в сортировке.
+    /// </summary>
+    private void ToggleDialogSort(string sqlName)
+    {
+        var idx = _dialogSortState.FindIndex(s => s.SqlName == sqlName);
+        if (idx >= 0)
+        {
+            if (_dialogSortState[idx].Desc)
+                _dialogSortState.RemoveAt(idx);
+            else
+                _dialogSortState[idx] = (sqlName, true);
+        }
+        else
+        {
+            _dialogSortState.Insert(0, (sqlName, false));
+            if (_dialogSortState.Count > 2)
+                _dialogSortState.RemoveAt(2);
+        }
+
+        _syncSortToItems();
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Синхронизирует поля <see cref="ColumnSettingsItem.SortPriority"/> и
+    /// <see cref="ColumnSettingsItem.IsSortDesc"/> на всех элементах из текущего _dialogSortState.
+    /// </summary>
+    private void _syncSortToItems()
+    {
+        foreach (var item in _items)
+        {
+            var sortIdx = _dialogSortState.FindIndex(s => s.SqlName == item.SqlName);
+            item.SortPriority = sortIdx >= 0 ? sortIdx + 1 : 0;
+            item.IsSortDesc = sortIdx >= 0 && _dialogSortState[sortIdx].Desc;
+        }
+    }
+
+    /// <summary>
+    /// Возвращает фрагмент разметки с бейджем сортировки (номер приоритета + стрелка),
+    /// либо пустой фрагмент если колонка не сортируется.
+    /// </summary>
+    private RenderFragment GetDialogSortBadge(string sqlName) => builder =>
+    {
+        var idx = _dialogSortState.FindIndex(s => s.SqlName == sqlName);
+        if (idx < 0) return;
+        var arrow = _dialogSortState[idx].Desc ? "\u2193" : "\u2191";
+        var label = (idx + 1).ToString() + arrow;
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "chip-sort-badge");
+        builder.AddContent(2, label);
+        builder.CloseElement();
+    };
+
+    // ── Действия ─────────────────────────────────────────────────────────────────
+
+    /// <summary>Сбрасывает пользовательскую сортировку, возвращая сортировку грида по-умолчанию.</summary>
+    private void ResetSort()
+    {
+        _dialogSortState.Clear();
+        _syncSortToItems();
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Восстанавливает исходный порядок, видимость и сортировку колонок.</summary>
+    private void ResetAll()
+    {
+        _items.Clear();
+        _items.AddRange(_originalItems.Select(i => new ColumnSettingsItem
+        {
+            SqlName      = i.SqlName,
+            DisplayName  = i.DisplayName,
+            IsVisible    = i.IsVisible,
+            IsReadonly   = i.IsReadonly,
+            SortPriority = 0,
+            IsSortDesc   = false,
+            AllowValueFilter = i.AllowValueFilter,
+        }));
+        if (ShowSorting)
+        {
+            _dialogSortState.Clear();
+            _syncSortToItems();
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Snackbar для показа ошибок валидации.</summary>
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    /// <summary>Закрывает диалог без сохранения.</summary>
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Применяет изменения и закрывает диалог.</summary>
+    private void Apply()
+    {
+        if (_items.All(i => !i.IsVisible))
+        {
+            Snackbar.Add("Должна быть видна хотя бы одна колонка", Severity.Warning);
+            return;
+        }
+
+        Items.Clear();
+        Items.AddRange(_items);
+        MudDialog.Close(DialogResult.Ok(Items));
+    }
+}

@@ -1,0 +1,94 @@
+@typeparam TEntity where TEntity : class, new()
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="display:flex;align-items:center">
+            <MudIcon Icon="@Icon" Class="mr-2" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            @ChildContent
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        @if (OnDelete.HasDelegate && ShowDelete)
+        {
+            <MudButton Color="Color.Error"
+                       Variant="Variant.Outlined"
+                       Disabled="@_deleting"
+                       OnClick="Delete"
+                       StartIcon="@Icons.Material.Filled.Delete"
+                       Class="mr-auto">
+                @if (_deleting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Удалить
+            </MudButton>
+        }
+        <MudButton OnClick="Cancel">Отмена</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="@(!_isValid || _saving || _deleting)"
+                   OnClick="Save">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Сохранить
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _saving;
+    private bool _deleting;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public string Title { get; set; } = "Редактирование";
+    [Parameter] public string Icon { get; set; } = Icons.Material.Filled.Edit;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public TEntity Model { get; set; } = new();
+    [Parameter] public EventCallback<TEntity> OnSave { get; set; }
+    [Parameter] public EventCallback<TEntity> OnDelete { get; set; }
+    [Parameter] public bool ShowDelete { get; set; } = true;
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private async Task Save()
+    {
+        if (_form is not null)
+            await _form.Validate();
+        if (!_isValid) return;
+
+        _saving = true;
+        try
+        {
+            await OnSave.InvokeAsync(Model);
+            MudDialog?.Close(DialogResult.Ok(Model));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task Delete()
+    {
+        _deleting = true;
+        try
+        {
+            await OnDelete.InvokeAsync(Model);
+        }
+        finally
+        {
+            _deleting = false;
+        }
+    }
+}

@@ -1,0 +1,35 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Grid
+@using MudBlazor
+
+@*
+    Лёгкий диалог с тремя исходами перед печатью/экспортом:
+    - «Выбрать колонки»  → Ok(true)
+    - «Как на странице»   → Ok(false)
+    - «Отмена»             → Cancel
+*@
+
+<MudDialog>
+    <DialogContent>
+        <MudText>
+            Перед выполнением @ContextLabel выберите состав колонок:
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Customize" Style="white-space:nowrap">Выбрать колонки</MudButton>
+        <MudButton Color="Color.Primary" OnClick="AsIs" Style="white-space:nowrap">Как на странице</MudButton>
+        <MudButton OnClick="Cancel" Style="white-space:nowrap">Отмена</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    /// <summary>Контекст операции — подставляется в текст вопроса.</summary>
+    [Parameter] public string ContextLabel { get; set; } = "";
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void AsIs() => MudDialog.Close(DialogResult.Ok(false));
+
+    private void Customize() => MudDialog.Close(DialogResult.Ok(true));
+}

@@ -1,0 +1,99 @@
+@using Clayzor.Lib.Web.Controls.Components.Grid
+@using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes
+
+@* Рекурсивный узел-группа составного фильтра.
+   Может содержать листья (ClayFilterExpression) и вложенные группы (ClayFilterGroup). *@
+
+<div class="@(IsRoot ? "clay-filter-group--root" : "clay-filter-group--indented")">
+
+    @* ── Заголовок группы: И/ИЛИ + добавление + удаление ── *@
+    <div class="clay-filter-group__header">
+        <MudToggleGroup T="LogicalOperator"
+                        Value="@Node.Logic"
+                        ValueChanged="@SetLogic"
+                        Color="Color.Primary"
+                        Size="Size.Small"
+                        CheckMark="false"
+                        SelectionMode="SelectionMode.SingleSelection">
+            <MudToggleItem Value="@LogicalOperator.And" Text="И" />
+            <MudToggleItem Value="@LogicalOperator.Or" Text="ИЛИ" />
+        </MudToggleGroup>
+
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@AddExpression" Class="clay-text-normal">
+            @ClayFilterStrings.AddCondition
+        </MudButton>
+        <MudButton Variant="Variant.Text" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.CreateNewFolder"
+                   OnClick="@AddGroup" Class="clay-text-normal">
+            @ClayFilterStrings.AddGroup
+        </MudButton>
+
+        <MudSpacer />
+
+        @if (!IsRoot)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                           Size="Size.Small"
+                           OnClick="@OnRemove"
+                           title="@ClayFilterStrings.DeleteGroup" />
+        }
+    </div>
+
+    @* ── Дочерние узлы ────────────────────────────────────────────── *@
+    @for (int i = 0; i < Node.Nodes.Count; i++)
+    {
+        var node = Node.Nodes[i];
+        var capturedIndex = i;
+
+        @if (node is ColumnFilter leaf)
+        {
+            @if (leaf.Source == ClayFilterSource.ColumnDialog)
+            {
+                @* Условия из диалога колонки — не редактируются здесь, только удаляются *@
+                <div class="clay-filter-leaf">
+                    <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Size="Size.Small" />
+                    <MudText Typo="Typo.body2" Style="flex:1 1 auto">
+                        @ClayFilterStrings.ColumnDialogInfo @GetLeafDescription(leaf)
+                    </MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   OnClick="@(() => RemoveNode(capturedIndex))"
+                                   title="@ClayFilterStrings.DeleteCondition" Style="flex:0 0 auto" />
+                </div>
+            }
+            else
+            {
+                <ClayFilterExpression Node="@leaf"
+                                       Columns="@Columns"
+                                       LookupOptions="@LookupOptions"
+                                       OnChanged="@NotifyChanged"
+                                       OnRemove="@(() => RemoveNode(capturedIndex))" />
+            }
+        }
+        else if (node is ClayFilterGroupNode group)
+        {
+            <ClayFilterGroup Node="@group"
+                              Columns="@Columns"
+                              LookupOptions="@LookupOptions"
+                              IsRoot="false"
+                              OnChanged="@NotifyChanged"
+                              OnRemove="@(() => RemoveNode(capturedIndex))" />
+        }
+        else if (node is ValueFilter vf)
+        {
+            <div class="clay-filter-leaf">
+                <MudIcon Icon="@Icons.Material.Filled.Checklist" Size="Size.Small" />
+                <MudText Typo="Typo.body2" Style="flex:1 1 auto">
+                    @ClayFilterStrings.ValueFilterInfo @ValueFilterLabel(vf)
+                </MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close"
+                               Size="Size.Small"
+                               OnClick="@(() => RemoveNode(capturedIndex))"
+                               title="@ClayFilterStrings.DeleteValueFilter" Style="flex:0 0 auto" />
+            </div>
+        }
+    }
+
+</div>

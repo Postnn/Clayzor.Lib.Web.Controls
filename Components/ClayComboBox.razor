@@ -1,0 +1,52 @@
+@typeparam TItem where TItem : ILookupEntity
+
+<MudSelect T="int"
+           Value="@Value"
+           ValueChanged="@ValueChanged"
+           ToStringFunc="@ToStringFunc"
+           Label="@Label"
+           Variant="@Variant"
+           Required="@Required"
+           RequiredError="@RequiredError"
+           Class="@Class"
+           Margin="Margin.Dense"
+           Dense="true"
+           PopoverClass="clay-combo-popover">
+    @if (_items is not null)
+    {
+        @foreach (var item in _items)
+        {
+            <MudSelectItem T="int" Value="@item.Id">@item.Name</MudSelectItem>
+        }
+    }
+</MudSelect>
+
+@code {
+    private List<TItem> _items = [];
+
+    /// <summary>Выбранное значение (Id справочной сущности).</summary>
+    [Parameter] public int Value { get; set; }
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+    /// <summary>Элементы справочника.</summary>
+    [Parameter] public IEnumerable<TItem>? Items { get; set; }
+    /// <summary>Надпись поля.</summary>
+    [Parameter] public string Label { get; set; } = string.Empty;
+    /// <summary>Вариант отображения.</summary>
+    [Parameter] public Variant Variant { get; set; } = Variant.Outlined;
+    /// <summary>Обязательность.</summary>
+    [Parameter] public bool Required { get; set; }
+    /// <summary>Текст ошибки обязательного поля.</summary>
+    [Parameter] public string? RequiredError { get; set; }
+    /// <summary>CSS-классы.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _items = Items?.ToList() ?? [];
+    }
+
+    private string ToStringFunc(int v)
+    {
+        return _items.FirstOrDefault(i => i.Id == v)?.Name ?? string.Empty;
+    }
+}

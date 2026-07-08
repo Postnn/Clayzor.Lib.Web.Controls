@@ -1,0 +1,502 @@
+@typeparam TEntity where TEntity : class
+@implements IClayGrid
+@implements IAsyncDisposable
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@using MudBlazor.Extensions
+@using MudBlazor.Extensions.Options
+@using Clayzor.Lib.Web.Controls.Components.Grid.Filter
+
+@* CascadingValue охватывает весь рендер — и ClayColumnDef (регистрация метаданных),
+   и ClayColumn внутри MudDataGrid (построение заголовков) получают одну ссылку на IClayGrid *@
+<CascadingValue Value="(IClayGrid)this" IsFixed="true">
+@ColumnDefs
+<MudPaper Elevation="1" Class="pa-4" Style="position:relative" id="@Id">
+    <div class="d-flex flex-wrap justify-space-between gap-2 mb-4" style="align-items:center">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h5">@Title</MudText>
+            @if (_isExporting)
+            {
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+            }
+            <span id="@(Id + "-print-spinner")" class="clay-print-spinner" style="display:none"></span>
+        </MudStack>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudTextField T="string"
+                          Value="@_searchText"
+                          ValueChanged="@OnSearchTextChanged"
+                          Placeholder="Поиск..."
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          DebounceInterval="300"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="clay-grid-search"
+                          Style="max-width:250px;min-width:140px" />
+            <ClayButton Text="Настройка колонок"
+                         Icon="@Icons.Material.Filled.ViewColumn"
+                         Class="toolbar-columns-btn"
+                         OnClick="OpenColumnSettings" />
+            @if (_columnBySqlName.Values.Any(c => c.Groupable))
+            {
+                <ClayButton Text="@(_trayExpanded ? "Отключить группировку" : "Группировать")"
+                             Icon="@Icons.Material.Filled.AccountTree"
+                             Class="@(_trayExpanded ? "grouping-toggle-btn grouping-toggle-btn--active" : "grouping-toggle-btn")"
+                             OnClick="@ToggleTray" />
+            }
+            @if (_columnBySqlName.Values.Any(c => c.Filterable))
+            {
+                <MudBadge Content="@_activeFilterCount"
+                          Visible="@(_activeFilterCount > 0)"
+                          Color="Color.Primary"
+                          Overlap="true">
+                    <ClayButton Text="@(_filterTrayExpanded ? ClayFilterStrings.HideFilters : ClayFilterStrings.ShowFilters)"
+                                 Icon="@Icons.Material.Filled.FilterAlt"
+                                 Class="@(_filterTrayExpanded ? "filter-toggle-btn filter-toggle-btn--active" : "filter-toggle-btn")"
+                                 OnClick="@ToggleFilterTray" />
+                </MudBadge>
+            }
+            @if (ShowAddButton)
+            {
+                <ClayButton Text="Добавить"
+                             Icon="@Icons.Material.Filled.Add"
+                             Class="toolbar-add-btn"
+                             OnClick="@OnAdd" />
+            }
+            @if (SelectVisible)
+            {
+                <ClayButton Text="@(_selectMode ? "Скрыть выбор" : "Выбрать записи")"
+                             Icon="@Icons.Material.Filled.CheckBox"
+                             Class="@(_selectMode ? "toolbar-select-btn toolbar-select-btn--active" : "toolbar-select-btn")"
+                             OnClick="ToggleSelectMode" />
+                <ClayMenu Icon="@Icons.Material.Filled.PlaylistAddCheck"
+                           Tooltip="Групповые операции"
+                           Class="toolbar-batch-btn"
+                           OnBeforeOpen="@(() => _openSubGroups.Clear())">
+                        @if (ShowPrint)
+                        {
+                            <MudMenuItem AutoClose="false" OnClick='() => ToggleSubGroup("Печать")'>
+                                <div class="batch-menu-header">
+                                    <MudIcon Icon="@Icons.Material.Filled.Print" Size="Size.Small" Color="Color.Primary" Class="mr-2" />
+                                    <span>Печать</span>
+                                    <MudIcon Icon="@(IsSubGroupOpen("Печать") ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small" Style="opacity:0.5" />
+                                </div>
+                            </MudMenuItem>
+                            @if (IsSubGroupOpen("Печать"))
+                            {
+                                <MudMenuItem OnClick="PrintCurrentPageInternal" Style="padding-left:44px">Текущая страница</MudMenuItem>
+                                @if (_selectedIds.Count > 0)
+                                {
+                                    <MudMenuItem OnClick="PrintSelectedInternal" Style="padding-left:44px">Выбранные (@_selectedIds.Count)</MudMenuItem>
+                                }
+                                <MudMenuItem OnClick="PrintAllInternal" Style="padding-left:44px">Все данные</MudMenuItem>
+                            }
+                        }
+                        @if (ShowExcel)
+                        {
+                            <MudMenuItem AutoClose="false" OnClick='() => ToggleSubGroup("Excel")'>
+                                <div class="batch-menu-header">
+                                    <MudIcon Icon="@Icons.Material.Filled.GridOn" Size="Size.Small" Color="Color.Primary" Class="mr-2" />
+                                    <span>Выгрузка в Excel</span>
+                                    <MudIcon Icon="@(IsSubGroupOpen("Excel") ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small" Style="opacity:0.5" />
+                                </div>
+                            </MudMenuItem>
+                            @if (IsSubGroupOpen("Excel"))
+                            {
+                                <MudMenuItem OnClick="ExcelCurrentPageInternal" Style="padding-left:44px">Текущая страница</MudMenuItem>
+                                @if (_selectedIds.Count > 0)
+                                {
+                                    <MudMenuItem OnClick="ExcelSelectedInternal" Style="padding-left:44px">Выбранные (@_selectedIds.Count)</MudMenuItem>
+                                }
+                                <MudMenuItem OnClick="ExcelAllInternal" Style="padding-left:44px">Все данные</MudMenuItem>
+                            }
+                        }
+                        @if (CustomBatchGroups is not null)
+                        {
+                            foreach (var group in CustomBatchGroups)
+                            {
+                                var groupLabel = group.Label;
+                                <MudMenuItem AutoClose="false" OnClick="() => ToggleSubGroup(groupLabel)">
+                                    <div class="batch-menu-header">
+                                        @if (group.Icon is not null)
+                                        {
+                                            <MudIcon Icon="@group.Icon" Size="Size.Small" Color="Color.Primary" Class="mr-2" />
+                                        }
+                                        <span>@groupLabel</span>
+                                        <MudIcon Icon="@(IsSubGroupOpen(groupLabel) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small" Style="opacity:0.5" />
+                                    </div>
+                                </MudMenuItem>
+                                @if (IsSubGroupOpen(groupLabel))
+                                {
+                                    foreach (var op in group.Operations)
+                                    {
+                                        var show = (!op.RequiresSelection && !op.RequiresAll)
+                                            || (op.RequiresSelection && _selectedIds.Count > 0)
+                                            || op.RequiresAll;
+                                        if (show)
+                                        {
+                                            <MudMenuItem OnClick="async () => { if (op.OnExecute is not null) await op.OnExecute(); }" Style="padding-left:44px">
+                                                @if (op.Icon is not null)
+                                                {
+                                                    <MudIcon Icon="@op.Icon" Size="Size.Small" Class="mr-2" />
+                                                }
+                                                @op.Label
+                                            </MudMenuItem>
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                </ClayMenu>
+            }
+        </MudStack>
+    </div>
+
+    @{
+        var filterDesc = BuildFilterDescription();
+        var groupDesc  = BuildGroupDescription();
+    }
+    @if (filterDesc is not null || groupDesc is not null)
+    {
+        <div class="clay-grid-print-descriptions">
+            @if (groupDesc is not null)
+            {
+                <div class="clay-grid-print-group-desc">@groupDesc</div>
+            }
+            @if (filterDesc is not null)
+            {
+                <div class="clay-grid-print-filter-desc">@filterDesc</div>
+            }
+        </div>
+    }
+
+    @if (_trayExpanded)
+    {
+        <div class="grouping-tray @(_groupColumns.Count > 0 ? "grouping-tray--active" : "") d-flex align-items-center flex-wrap gap-2 mb-2"
+             @ondragover="OnTrayDragOver"
+             @ondragover:preventDefault="true"
+             @ondrop="@(e => OnTrayDrop(e, -1))">
+            <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" Class="grouping-tray-icon" />
+            @for (int i = 0; i < _groupColumns.Count; i++)
+            {
+                var idx = i;
+                var col = _groupColumns[i];
+                var displayName = _columnBySqlName.TryGetValue(col, out var meta) ? meta.DisplayName : col;
+                <div class="grouping-chip"
+                     draggable="true"
+                     @ondragstart="@(e => OnChipDragStart(e, idx))"
+                     @ondragend="OnChipDragEnd"
+                     @ondragover="OnTrayDragOver"
+                     @ondragover:preventDefault="true"
+                     @ondrop="@(e => OnTrayDrop(e, idx))">
+                    <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
+                             Size="Size.Small"
+                             Style="margin-right:6px;opacity:0.45;flex-shrink:0;cursor:grab" />
+                    @if (DataLoader is not null)
+                    {
+                        var depth = idx;
+                        var isExpanded = DataLoader.IsLevelFullyExpanded(depth);
+                        <MudIconButton
+                            Icon="@(isExpanded ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)"
+                            Size="Size.Small"
+                            OnClick="async () => await ToggleLevel(depth)"
+                            Class="pa-0 clay-grid-chip-btn--gold"
+                            title="@(isExpanded ? "Свернуть все группы" : "Развернуть все группы")" />
+                    }
+                    <span class="chip-label chip-label-clickable" @onclick="async () => await ToggleSort(col)" @onclick:stopPropagation="true">@displayName</span>
+                    @GetSortBadge(col)
+                    @if (_filterTrayExpanded && meta is not null && meta.Filterable)
+                    {
+                        <ClayMenu Icon="@Icons.Material.Filled.MoreVert"
+                                   ActivatorStyle="padding:0;width:18px;height:18px;min-width:18px">
+                            <MudMenuItem OnClick="async () => await OpenFilterDialog(col, displayName)"
+                                         Icon="@Icons.Material.Filled.FilterAlt"
+                                         IconColor="Color.Primary">Фильтровать</MudMenuItem>
+                        </ClayMenu>
+                    }
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   OnClick="() => RemoveGroupColumn(col)"
+                                   Class="chip-remove-btn pa-0"
+                                   Style="width:18px;height:18px" />
+                </div>
+            }
+            @if (_groupColumns.Count == 0)
+            {
+                <span class="grouping-tray-hint">Перетащите заголовок колонки сюда для группировки</span>
+            }
+        </div>
+    }
+
+    @if (_filterTrayExpanded)
+    {
+        var _filterSegments   = BuildFilterSegments();
+        var _hasAnyFilter     = _filterSegments.Count > 0 || ValueFilterLeaves.Any();
+        <div class="filter-tray @(_hasAnyFilter ? "filter-tray--active" : "") d-flex align-items-center flex-wrap gap-2 mb-2"
+             @ondragover="OnFilterTrayDragOver"
+             @ondragover:preventDefault="true"
+             @ondrop="OnFilterTrayDrop">
+            <ClayButton Text="Настроить фильтр"
+                         Icon="@Icons.Material.Filled.FilterList"
+                         Class="filter-tray-icon"
+                         OnClick="@OpenCompositeFilterDialog" />
+
+            @* ── Чипы фильтра по значению (всегда, независимо от HasComposite) ── *@
+            @foreach (var vf in ValueFilterLeaves.ToList())
+            {
+                var vfSql  = vf.Column;
+                <div class="filter-chip" style="cursor:pointer"
+                     @onclick="async () => await ((IClayGrid)this).OpenValueFilterDialog(vfSql)">
+                    <span class="chip-label">@DescribeValueFilter(vf)</span>
+                    <span @onclick:stopPropagation="true">
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Size="Size.Small"
+                                       OnClick="async () => await RemoveValueFilter(vfSql)"
+                                       Class="chip-remove-btn pa-0"
+                                       Style="width:18px;height:18px"
+                                       title="Снять фильтр по значению" />
+                    </span>
+                </div>
+            }
+
+            @if (HasComposite)
+            {
+                @* ── Есть составные условия: только текст всего фильтра, без чипов/сегментов ── *@
+                <div class="filter-chip filter-chip--composite" style="cursor:pointer"
+                     @onclick="@OpenCompositeFilterDialog">
+                    <span class="chip-label">@BuildFilterDescription()</span>
+                    <span @onclick:stopPropagation="true">
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Size="Size.Small"
+                                       OnClick="@ClearAllFilters"
+                                       Class="chip-remove-btn pa-0"
+                                       Style="width:18px;height:18px"
+                                       title="Очистить фильтр" />
+                    </span>
+                </div>
+            }
+            else
+            {
+                @* ── Нет составных условий: чипы по листьям ColumnDialog (один чип на колонку) ── *@
+                @foreach (var leaf in ColumnDialogLeaves.ToList())
+                {
+                    var leafSqlName  = leaf.Column;
+                    var leafDispName = _columnBySqlName.TryGetValue(leafSqlName, out var lm) ? lm.DisplayName : leafSqlName;
+                    var leafSegments = _filterSegments
+                        .Where(s => s.Source == ClayFilterSource.ColumnDialog && s.Column == leafSqlName)
+                        .ToList();
+                    <div class="filter-chip">
+                        @foreach (var seg in leafSegments)
+                        {
+                            var segText = seg.Text;
+                            <span class="chip-label chip-label-clickable"
+                                  @onclick="async () => await OpenFilterDialog(leafSqlName, leafDispName)"
+                                  @onclick:stopPropagation="true">
+                                @segText
+                            </span>
+                        }
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Size="Size.Small"
+                                       OnClick="async () => await RemoveFilter(leafSqlName)"
+                                       Class="chip-remove-btn pa-0"
+                                       Style="width:18px;height:18px" />
+                    </div>
+                }
+            }
+
+            @if (!_hasAnyFilter)
+            {
+                <span class="filter-tray-hint">Перетащите заголовок колонки сюда для фильтрации</span>
+            }
+        </div>
+    }
+
+    <MudDataGrid T="TEntity"
+                 @key="_dataKey"
+                 Items="@Items"
+                 Filterable="false"
+                 FixedHeader="true"
+                 Height="@_gridHeight"
+                 Dense="true"
+                 Hover="true"
+                 Striped="true"
+                 Loading="@Loading"
+
+                 RowsPerPage="@_pageSize">
+        <Columns>
+            @if (!_columnsReady)
+            {
+                @Columns
+            }
+            else
+            {
+                @if (_selectMode)
+                {
+                    <TemplateColumn @key="@SelectColumnKey" T="TEntity"
+                                    Title=""
+                                    Sortable="false"
+                                    DragAndDropEnabled="false"
+                                    Style="width:48px;min-width:48px;max-width:48px">
+                        <HeaderTemplate>
+                            <div style="display:flex;align-items:center;justify-content:center;width:100%">
+                                <ClayCheckbox State="@(IsHeaderIndeterminate() ? null : (bool?)_selectAllChecked)"
+                                               Title="@(IsHeaderIndeterminate() ? "Выбраны не все" : _selectAllChecked ? "Снять выделение" : "Выделить всё")"
+                                               OnToggle="OnHeaderTriToggle" />
+                            </div>
+                        </HeaderTemplate>
+                        <CellTemplate>
+                            <div style="display:flex;align-items:center;justify-content:center;width:100%">
+                            @if (context.Item is GroupHeaderRow gh)
+                            {
+                                var gs = ComputeGroupCheckState(gh);
+                                <ClayCheckbox State="@(gs.Indeterminate ? null : (bool?)gs.Checked)"
+                                               Title="Переключить выделение группы"
+                                               OnToggle="() => OnGroupTriToggle(gh)" />
+                            }
+                            else if (context.Item is IDetailRow dr)
+                            {
+                                var ent = dr.Item as Entity;
+                                if (ent != null)
+                                {
+                                    var eid = ent.Id;
+                                    var detailChecked = _selectedIds.Contains(eid);
+                                    <ClayCheckbox State="(bool?)detailChecked"
+                                                   Title="Выбрать запись"
+                                                   OnToggle="() => OnRowSelectAsync(eid, !detailChecked)" />
+                                }
+                            }
+                            </div>
+                        </CellTemplate>
+                    </TemplateColumn>
+                }
+                @if (EditDialogType is not null)
+                {
+                    <TemplateColumn @key="ServiceEditColumnKey" T="TEntity"
+                                    Title=""
+                                    Sortable="false"
+                                    DragAndDropEnabled="false"
+                                    CellClassFunc="@(item => item is GroupHeaderRow && GroupRowHostKey == "__edit__" ? "group-header-cell" : "")"
+                                    Style="width:44px;min-width:44px;max-width:44px">
+                        <CellTemplate>
+                            @if (context.Item is GroupHeaderRow gh)
+                            {
+                                @if (GroupRowHostKey == "__edit__")
+                                {
+                                    <ClayGroupHeader Header="gh" OnToggle="OnGroupToggle" />
+                                }
+                            }
+                            else if (context.Item is IDetailRow detail)
+                            {
+                                <ClayButton Icon="@Icons.Material.Filled.Edit"
+                                             Text="Редактировать"
+                                             Size="Size.Small"
+                                             OnClick="async () => await HandleEditClick(detail)" />
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                }
+                @foreach (var colId in _columnOrder)
+                {
+                    if (!_columnById.TryGetValue(colId, out var ordMeta)) continue;
+                    if (_hiddenSqlNames.Contains(ordMeta.SqlName)) continue;
+                    if (!_cellTemplates.TryGetValue(colId, out var templateObj)) continue;
+                    var sqlName  = ordMeta.SqlName;
+                    var dispName = ordMeta.DisplayName;
+                    <TemplateColumn @key="colId" T="TEntity"
+                                    Title="@dispName"
+                                    Sortable="false"
+                                    Hidden="@IsGrouped(sqlName)"
+                                    DragAndDropEnabled="false"
+                                    CellClassFunc="@(item => item is GroupHeaderRow && IsGroupRowHost(sqlName) ? "group-header-cell" : "")">
+                        <HeaderTemplate>
+                            <div style="display:flex;align-items:center;width:100%">
+                                @if (((IClayGrid)this).IsValueFilterAvailable(sqlName))
+                                {
+                                    var vfSql    = sqlName;
+                                    var vfActive = ((IClayGrid)this).IsValueFilterActive(vfSql);
+                                    <MudIconButton Icon="@Icons.Material.Filled.Checklist"
+                                                   Size="Size.Small"
+                                                   Class="@("clay-vf-icon" + (vfActive ? " clay-vf-icon--active" : ""))"
+                                                   OnClick="async () => await ((IClayGrid)this).OpenValueFilterDialog(vfSql)"
+                                                   Style="padding:0;width:22px;height:22px;min-width:22px;margin-right:2px"
+                                                   title="Фильтр по значению" />
+                                }
+                                 <div style="flex:1;display:flex;align-items:center;cursor:grab"
+                                      draggable="true"
+                                      data-col-sql="@sqlName"
+                                      @onclick="() => HandleSortClick(sqlName)">
+                                    <MudText Style="flex:1;text-align:center">@dispName</MudText>
+                                    @GetSortBadge(sqlName)
+                                </div>
+                                @if (_menuVisible(ordMeta))
+                                {
+                                    var gSqlName = sqlName;
+                                    <ClayMenu Icon="@Icons.Material.Filled.MoreVert"
+                                               Class="@("clay-column-menu" + (ColumnMenuMode == ColumnMenuMode.Mobile ? " column-menu-mobile" : ""))"
+                                               ActivatorStyle="padding:0;width:22px;height:22px;min-width:22px">
+                                        @if (_trayExpanded && ordMeta.Groupable)
+                                        {
+                                            <MudMenuItem OnClick="async () => await AddGroupColumn(gSqlName)"
+                                                         Icon="@Icons.Material.Filled.AccountTree"
+                                                         IconColor="Color.Primary">Группировать</MudMenuItem>
+                                        }
+                                        @if (_filterTrayExpanded && ordMeta.Filterable)
+                                        {
+                                            <MudMenuItem OnClick="async () => await ((IClayGrid)this).AddFilterAsync(gSqlName)"
+                                                         Icon="@Icons.Material.Filled.FilterAlt"
+                                                         IconColor="Color.Primary">Фильтровать</MudMenuItem>
+                                        }
+                                    </ClayMenu>
+                                }
+                            </div>
+                        </HeaderTemplate>
+                        <CellTemplate>
+                            @if (context.Item is GroupHeaderRow gh)
+                            {
+                                @if (IsGroupRowHost(sqlName))
+                                {
+                                    <ClayGroupHeader Header="gh" OnToggle="OnGroupToggle" />
+                                }
+                            }
+                            else
+                            {
+                                var cellTemplate = (RenderFragment<CellContext<TEntity>>)templateObj;
+                                @cellTemplate(context)
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                }
+            }
+        </Columns>
+    </MudDataGrid>
+    @if (ShowPagination)
+    {
+        <div class="d-flex flex-wrap justify-space-between gap-2 mt-3 clay-grid-paginator" style="align-items:center">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudText>Строк на странице:</MudText>
+                <MudNumericField T="int" Value="_pageSize" ValueChanged="OnPageSizeChangedAsync" Min="1" Max="999" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:80px" />
+                <MudText>Всего: @TotalCount записей</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="RefreshAsync" Size="Size.Small" title="Обновить" />
+            </MudStack>
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                <MudIconButton Icon="@Icons.Material.Filled.FirstPage" OnClick="GoToFirstPageAsync" Disabled="@(_pageNumber <= 1)" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Filled.NavigateBefore" OnClick="GoToPrevPageAsync" Disabled="@(_pageNumber <= 1)" Size="Size.Small" />
+                <MudText Class="mx-2">Стр. @_pageNumber из @_totalPages</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.NavigateNext" OnClick="GoToNextPageAsync" Disabled="@(_pageNumber >= _totalPages)" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Filled.LastPage" OnClick="GoToLastPageAsync" Disabled="@(_pageNumber >= _totalPages)" Size="Size.Small" />
+            </MudStack>
+        </div>
+    }
+</MudPaper>
+</CascadingValue>
+
+<style>
+    /* Печатная шапка (описание группировки/фильтра) — скрыта на экране, видна только при печати */
+    .clay-grid-print-descriptions { display: none; }
+    @@media print {
+        .clay-grid-print-descriptions { display: block; }
+    }
+</style>
+

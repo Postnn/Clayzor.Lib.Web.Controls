@@ -1,0 +1,88 @@
+@using Clayzor.Lib.Web.Controls
+@implements IDisposable
+
+@inject ClayErrorService ErrorService
+
+@if (ErrorService.HasError)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+        <div class="clay-error-bar__header">
+            <span class="clay-error-bar__message">@ErrorService.ErrorMessage</span>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                           Class="clay-error-bar__close" OnClick="() => Close()" />
+        </div>
+
+        <div class="clay-error-details" @onclick="() => ToggleDetails()">
+            @(_showDebug ? "▲ Скрыть детали" : "▼ Детали запроса")
+        </div>
+
+        @if (_showDebug)
+        {
+            <div class="clay-error-details-wrapper">
+                @if (!string.IsNullOrEmpty(ErrorService.ConnectionString))
+                {
+                    <div class="mb-1"><strong>Строка подключения:</strong><br>@ErrorService.ConnectionString</div>
+                }
+                @if (ErrorService.CommandTexts.Count > 0)
+                {
+                    <div class="mb-1"><strong>SQL:</strong></div>
+                    @for (int i = 0; i < ErrorService.CommandTexts.Count; i++)
+                    {
+                        var label = i < ErrorService.CommandLabels.Count ? ErrorService.CommandLabels[i] : $"Запрос {i + 1}";
+                        <details class="mb-1">
+                            <summary class="clay-error-sql-summary">@label</summary>
+                            <pre class="clay-error-sql">@ErrorService.CommandTexts[i]</pre>
+                        </details>
+                    }
+                }
+                @if (ErrorService.Parameters.Count > 0)
+                {
+                    <div class="mt-2 mb-1"><strong>Параметры:</strong></div>
+                    <table class="clay-error-param-table">
+                        <thead>
+                            <tr>
+                                <th>Параметр</th>
+                                <th>Значение</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in ErrorService.Parameters)
+                            {
+                                <tr>
+                                    <td>@p.Name</td>
+                                    <td class="clay-error-param-value"><code>@(p.Value?.ToString() ?? "NULL")</code></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        }
+    </MudAlert>
+}
+
+@code {
+    private bool _showDebug;
+
+    protected override void OnInitialized()
+    {
+        ErrorService.OnChanged += StateHasChanged;
+    }
+
+    private void ToggleDetails()
+    {
+        _showDebug = !_showDebug;
+        StateHasChanged();
+    }
+
+    private void Close()
+    {
+        _showDebug = false;
+        ErrorService.Clear();
+    }
+
+    public void Dispose()
+    {
+        ErrorService.OnChanged -= StateHasChanged;
+    }
+}

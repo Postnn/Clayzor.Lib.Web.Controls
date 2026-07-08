@@ -1,0 +1,78 @@
+@implements IDisposable
+
+@* Невидимый компонент-регистратор. Не рендерит HTML.
+   Размещается внутри блока <ColumnDefs> компонента ClayGrid.
+   При инициализации регистрирует метаданные колонки в родительском ClayGrid
+   через каскадный параметр IClayGrid. *@
+
+@code {
+    /// <summary>Родительский грид — получается через каскадный параметр.</summary>
+    [CascadingParameter] private IClayGrid? Grid { get; set; }
+
+    /// <summary>
+    /// Числовой идентификатор колонки — связывает <see cref="ClayColumnDef"/> с
+    /// соответствующим <see cref="ClayColumn{TEntity}"/> по значению <c>ColumnId</c>.
+    /// Должен быть уникальным в пределах грида.
+    /// </summary>
+    [Parameter, EditorRequired] public int ColumnId { get; set; }
+
+    /// <summary>
+    /// SQL-имя колонки — выходное имя из SELECT.
+    /// Используется как идентификатор для группировки, фильтрации, drag-and-drop и <c>IsGrouped</c>.
+    /// Пример: <c>"КодМедицинскогоАнализа"</c>, <c>"TestTypeName"</c>.
+    /// </summary>
+    [Parameter] public string SqlName { get; set; } = "";
+
+    /// <summary>
+    /// Отображаемое имя колонки — используется в заголовке колонки грида,
+    /// в чипах трея группировки и в описании фильтров.
+    /// Пример: <c>"Код"</c>, <c>"Тип"</c>.
+    /// </summary>
+    [Parameter] public string DisplayName { get; set; } = "";
+
+    /// <summary>
+    /// Имя колонки, используемое в ORDER BY при сортировке.
+    /// Если не задано — используется <see cref="SqlName"/>.
+    /// Задаётся когда SQL-алиас SELECT отличается от реального выражения сортировки,
+    /// например <c>"a.НазваниеАнализа"</c> вместо выходного <c>"НазваниеАнализа"</c>.
+    /// </summary>
+    [Parameter] public string? SortName { get; set; }
+
+    /// <summary>
+    /// Разрешить группировку по этой колонке.
+    /// При <c>true</c> заголовок колонки можно перетащить на панель группировки.
+    /// </summary>
+    [Parameter] public bool Groupable { get; set; }
+
+    /// <summary>
+    /// Разрешить фильтрацию по этой колонке.
+    /// При <c>true</c> заголовок колонки можно перетащить на панель фильтрации.
+    /// </summary>
+    [Parameter] public bool Filterable { get; set; }
+
+    /// <summary>
+    /// Включает фильтр по уникальному значению (Excel-style) для этой колонки.
+    /// Имеет эффект только при <see cref="Filterable"/>=<c>true</c>.
+    /// </summary>
+    [Parameter] public bool AllowValueFilter { get; set; }
+
+    /// <summary>
+    /// Пользовательская подпись для значения <c>true</c> в булевой колонке
+    /// (напр. «Только IT оборудование»). Если <c>null</c> — используется «Да».
+    /// </summary>
+    [Parameter] public string? BoolTrueLabel { get; set; }
+
+    /// <summary>
+    /// Пользовательская подпись для значения <c>false</c> в булевой колонке
+    /// (напр. «Не IT оборудование»). Если <c>null</c> — используется «Нет».
+    /// </summary>
+    [Parameter] public string? BoolFalseLabel { get; set; }
+
+    /// <summary>Регистрирует колонку в гриде при инициализации компонента.</summary>
+    protected override void OnInitialized()
+        => Grid?.RegisterColumn(ColumnId, SqlName, DisplayName, Groupable, Filterable, SortName, AllowValueFilter, BoolTrueLabel, BoolFalseLabel);
+
+    /// <summary>Отменяет регистрацию при уничтожении компонента.</summary>
+    public void Dispose()
+        => Grid?.UnregisterColumn(ColumnId, SqlName);
+}

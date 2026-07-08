@@ -1,0 +1,363 @@
+@using MudBlazor
+@using Clayzor.Lib.Web.Controls.Components.Grid.Filter
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="display:flex;align-items:center;gap:8px">
+            <MudIcon Icon="@Icons.Material.Filled.Checklist" Size="Size.Small" />
+            Фильтр: @ColumnDisplayName
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="clay-vf-dialog" style="display:flex;flex-direction:column;gap:6px;min-width:300px">
+
+            @* ── Индикатор загрузки ────────────────────────────── *@
+            @if (_loading)
+            {
+                <div style="display:flex;align-items:center;gap:8px;cursor:wait;padding:24px 0">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                    <MudText Typo="Typo.body2">Загрузка значений…</MudText>
+                </div>
+            }
+            else if (_result is null)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Error">Ошибка загрузки значений.</MudText>
+            }
+            else
+            {
+                @* ── Контекстный список условий (треб. 7) ───────── *@
+                @if (_availableOperators.Count > 1 && ColumnType != ColumnType.Boolean)
+                {
+                    <div style="display:flex;align-items:center">
+                        <MudMenu Dense="true"
+                                 AnchorOrigin="Origin.TopRight"
+                                 TransformOrigin="Origin.TopLeft">
+                            <ActivatorContent Context="menuCtx">
+                                @{ var ctx = (object)menuCtx; }
+                                <div style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:2px 0"
+                                     @onclick="@(async () => await ((dynamic)ctx).ToggleAsync(null))">
+                                    <MudText Typo="Typo.body2">@_conditionsLabel</MudText>
+                                    <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+                                </div>
+                            </ActivatorContent>
+                            <ChildContent>
+                                @foreach (var op in _availableOperators)
+                                {
+                                    if (!_descriptor.OperatorTakesValue(op) && op != ColumnFilterOperator.IsNull
+                                        && op != ColumnFilterOperator.IsNotNull && op != ColumnFilterOperator.IsEmpty
+                                        && op != ColumnFilterOperator.IsNotEmpty)
+                                        continue;
+
+                                    var captured = op;
+                                    <MudMenuItem Dense="true" OnClick="() => OpenCondition(captured)">
+                                        @ClayFilterOperatorLabels.Get(op)
+                                    </MudMenuItem>
+                                }
+                            </ChildContent>
+                        </MudMenu>
+                    </div>
+                }
+
+                @* ── Плашка существующего условия (треб. 8-9) ───── *@
+                @if (ExistingConditionFilter is not null)
+                {
+                    var desc = ClayColumnFilterDialog.GetFilterDescription(ExistingConditionFilter, ColumnDisplayName);
+                    <MudAlert Severity="Severity.Info" Style="padding:8px 12px">
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <MudText Typo="Typo.body2" Style="flex:1">Установлен фильтр по условию: @desc</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                           Size="Size.Small"
+                                           OnClick="RemoveCondition"
+                                           Style="width:28px;height:28px" />
+                        </div>
+                    </MudAlert>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Фильтр по значению недоступен, пока задан фильтр по условию.
+                    </MudText>
+                }
+                else if (_result.Capped)
+                {
+                    @* ── Порог 100 превышен (треб. 10) ──────────── *@
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Фильтр по уникальным значениям недоступен: значений больше 100.
+                    </MudText>
+                }
+                else
+                {
+                    @* ── «Выделить все» — sticky, tri-state (треб. 6) ── *@
+                    <div class="value-filter-select-all">
+                        <ClayCheckbox State="IsSelectAllState"
+                                       Label="(Выделить все)"
+                                       Style="padding:4px 0"
+                                       OnToggle="ToggleSelectAll" />
+                    </div>
+
+                    @* ── Прокручиваемый список значений ── *@
+                    <div class="value-filter-values-scroll">
+                        @foreach (var value in _result.Values)
+                        {
+                            var captured  = value;
+                            <ClayCheckbox State="(bool?)_checkedValues.Contains(captured)"
+                                           Label="@FormatValue(value)"
+                                           LabelTitle="@FormatValue(value)"
+                                           Style="padding:4px 0"
+                                           OnToggle="() => ToggleValue(captured)" />
+                        }
+
+                        @if (_result.HasBlanks)
+                        {
+                            <ClayCheckbox State="(bool?)_blankChecked"
+                                           Label="(пустые)"
+                                           Style="padding:4px 0"
+                                           OnToggle="ToggleBlank" />
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Size="Size.Small">Отмена</MudButton>
+        @if (!_loading && _result is not null && !_result.Capped && ExistingConditionFilter is null)
+        {
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       Size="Size.Small"
+                       OnClick="Apply">
+                Применить
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .clay-vf-dialog { }
+    .clay-vf-dialog .clay-checkbox { padding: 1px 0 !important; gap: 6px; }
+    .clay-vf-dialog .clay-checkbox > span:last-child {
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 340px;
+    }
+    .clay-vf-dialog .value-filter-values-scroll { overflow-y: auto; max-height: 260px; }
+    .clay-vf-dialog .value-filter-select-all {
+        position: sticky; top: 0; z-index: 1;
+        background: var(--mud-palette-background);
+        padding-bottom: 2px; border-bottom: 1px solid var(--mud-palette-divider);
+    }
+    .mud-popover .mud-list { max-height: 260px; }
+    .mud-popover .mud-list-item { min-height: 30px; padding-block: 3px; }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>SQL-имя колонки.</summary>
+    [Parameter] public string ColumnSqlName { get; set; } = "";
+
+    /// <summary>Отображаемое имя колонки (заголовок диалога).</summary>
+    [Parameter] public string ColumnDisplayName { get; set; } = "";
+
+    /// <summary>Тип данных колонки.</summary>
+    [Parameter] public ColumnType ColumnType { get; set; } = ColumnType.Text;
+
+    /// <summary>Пользовательская подпись true для булевой колонки. null → «Да».</summary>
+    [Parameter] public string? BoolTrueLabel { get; set; }
+
+    /// <summary>Пользовательская подпись false для булевой колонки. null → «Нет».</summary>
+    [Parameter] public string? BoolFalseLabel { get; set; }
+
+    /// <summary>Существующий фильтр по значению (для восстановления галочек).</summary>
+    [Parameter] public ValueFilter? ExistingValueFilter { get; set; }
+
+    /// <summary>Существующий фильтр по условию этой колонки (Source=ColumnDialog).</summary>
+    [Parameter] public ColumnFilter? ExistingConditionFilter { get; set; }
+
+    /// <summary>Ленивый загрузчик уникальных значений (замыкание на LoadDistinctValuesAsync).</summary>
+    [Parameter] public Func<Task<DistinctValuesResult>>? LoadValues { get; set; }
+
+    // ── Сентинелы возврата ─────────────────────────────────────────────────
+
+    /// <summary>Сентинел: снять фильтр по значению для колонки.</summary>
+    internal static readonly object ClearedSentinel = new();
+
+    /// <summary>Сентинел: удалить фильтр по условию для колонки.</summary>
+    internal static readonly object RemoveConditionSentinel = new();
+
+    // ── Состояние ──────────────────────────────────────────────────────────
+
+    private bool _loading;
+    private DistinctValuesResult? _result;
+    private ColumnTypes.ColumnTypeDescriptor _descriptor = null!;
+    private IReadOnlyList<ColumnFilterOperator> _availableOperators = [];
+    private HashSet<object?> _checkedValues = [];
+    private bool _blankChecked;
+
+    private string _conditionsLabel => ColumnType switch
+    {
+        ColumnType.Text    => "Текстовые фильтры",
+        ColumnType.Number  => "Числовые фильтры",
+        ColumnType.Decimal => "Числовые фильтры",
+        ColumnType.Date    => "Фильтры дат",
+        _                  => "Фильтры",
+    };
+
+    // ── Жизненный цикл ─────────────────────────────────────────────────────
+
+    /// <summary>Ленивая загрузка значений при открытии диалога.</summary>
+    protected override async Task OnInitializedAsync()
+    {
+        _descriptor = ColumnTypes.ColumnTypeRegistry.FromKind(ColumnType);
+        _availableOperators = (IReadOnlyList<ColumnFilterOperator>?)_descriptor.Operators ?? [];
+
+        if (LoadValues is not null)
+        {
+            _loading = true;
+            StateHasChanged();
+            _result = await LoadValues();
+            _loading = false;
+        }
+        else
+        {
+            _result = new DistinctValuesResult();
+        }
+
+        // Восстановить галочки из ExistingValueFilter
+        if (ExistingValueFilter is not null && _result is not null)
+        {
+            if (ExistingValueFilter.Negate)
+            {
+                // NOT IN: отмечены все КРОМЕ Values
+                foreach (var v in _result.Values)
+                    _checkedValues.Add(v);
+                foreach (var v in ExistingValueFilter.Values)
+                    _checkedValues.Remove(v!);
+            }
+            else
+            {
+                // IN: отмечены только Values
+                foreach (var v in ExistingValueFilter.Values)
+                    _checkedValues.Add(v!);
+            }
+            _blankChecked = ExistingValueFilter.BlankChecked;
+        }
+        else if (_result is not null)
+        {
+            // По умолчанию выбраны все (Excel-поведение)
+            foreach (var v in _result.Values) _checkedValues.Add(v);
+            _blankChecked = _result.HasBlanks;
+        }
+    }
+
+    // ── Формат значения ────────────────────────────────────────────────────
+
+    private string FormatValue(object? value)
+    {
+        if (value is bool b)
+        {
+            if (b && BoolTrueLabel is not null) return BoolTrueLabel;
+            if (!b && BoolFalseLabel is not null) return BoolFalseLabel;
+        }
+        return _descriptor.Format(value);
+    }
+
+    // ── Select-all tri-state (треб. 6) ─────────────────────────────────────
+
+    private bool? IsSelectAllState
+    {
+        get
+        {
+            if (_result is null) return false;
+            var total = _result.Values.Count + (_result.HasBlanks ? 1 : 0);
+            if (total == 0) return false;
+            var checkedCount = _checkedValues.Count + (_blankChecked ? 1 : 0);
+            if (checkedCount == total) return true;
+            if (checkedCount == 0) return false;
+            return null; // indeterminate
+        }
+    }
+
+    private void ToggleSelectAll()
+    {
+        if (_result is null) return;
+        if (IsSelectAllState == true)            // сейчас всё → снять всё
+        {
+            _checkedValues.Clear();
+            _blankChecked = false;
+        }
+        else                                     // иначе → выбрать всё
+        {
+            _checkedValues = _result.Values.ToHashSet();
+            _blankChecked = _result.HasBlanks;
+        }
+        StateHasChanged();
+    }
+
+    private void ToggleValue(object? value)
+    {
+        if (!_checkedValues.Add(value))          // Add вернул false → уже было → снять
+            _checkedValues.Remove(value);
+        StateHasChanged();
+    }
+
+    private void ToggleBlank()
+    {
+        _blankChecked = !_blankChecked;
+        StateHasChanged();
+    }
+
+    // ── Контекстные условия ────────────────────────────────────────────────
+
+    private void OpenCondition(ColumnFilterOperator op)
+        => MudDialog?.Close(DialogResult.Ok<object>(new OpenConditionRequest(op)));
+
+    private void RemoveCondition()
+        => MudDialog?.Close(DialogResult.Ok<object>(RemoveConditionSentinel));
+
+    // ── Применить / Отмена ─────────────────────────────────────────────────
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private void Apply()
+    {
+        if (_result is null) return;
+
+        var total = _result.Values.Count;
+        var chosen = _checkedValues;
+        var unchosenCount = total - chosen.Count;
+
+        // Всё выбрано → снятие фильтра
+        if (chosen.Count == total && (!_result.HasBlanks || _blankChecked))
+        {
+            MudDialog?.Close(DialogResult.Ok<object>(ClearedSentinel));
+            return;
+        }
+
+        // Ничего не выбрано → тоже снятие
+        if (chosen.Count == 0 && !_blankChecked)
+        {
+            MudDialog?.Close(DialogResult.Ok<object>(ClearedSentinel));
+            return;
+        }
+
+        var vf = new ValueFilter
+        {
+            Column       = ColumnSqlName,
+            ParamPrefix  = "vf_" + ColumnSqlName,
+            BlankChecked = _blankChecked,
+        };
+
+        if (unchosenCount < chosen.Count)
+        {
+            // Меньшая сторона — невыбранные → Negate=true (NOT IN)
+            vf.Negate = true;
+            vf.Values = _result.Values.Where(v => !chosen.Contains(v)).Cast<object?>().ToList();
+        }
+        else
+        {
+            // Меньшая сторона — выбранные → Negate=false (IN)
+            vf.Negate = false;
+            vf.Values = chosen.ToList();
+        }
+
+        MudDialog?.Close(DialogResult.Ok<object>(vf));
+    }
+}
