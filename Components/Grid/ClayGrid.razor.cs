@@ -340,7 +340,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             {
                 SqlName           = m.SqlName,
                 DisplayName       = m.DisplayName,
-                IsVisible         = !_hiddenSqlNames.Contains(m.SqlName),
+                IsVisible         = !_hiddenSqlNames.Contains(m.SqlName) && !IsGrouped(m.SqlName),
                 IsReadonly        = IsGrouped(m.SqlName),
                 AllowValueFilter  = !_valueFilterDisabledColumns.Contains(m.SqlName) && m.AllowValueFilter,
             })
