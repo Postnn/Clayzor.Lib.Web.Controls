@@ -171,14 +171,13 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
         }
     }
 
-    async Task<string> IClayGridDataLoader.BuildPrintHtmlForCurrentPageAsync(
+    Task<string> IClayGridDataLoader.BuildPrintHtmlForCurrentPageAsync(
         IReadOnlyList<ClayColumnMeta> columns, string title,
         string? filterDescription, string? groupDescription)
     {
-        var rows = await BuildExportRows();
-        return ClayGridPrintHtmlGenerator.Build(
-            title, columns, rows, typeof(T), _query.ExpandedGroups,
-            filterDescription, groupDescription);
+        return Task.FromResult(ClayGridPrintHtmlGenerator.Build(
+            title, columns, _rows, typeof(T), _query.ExpandedGroups,
+            filterDescription, groupDescription));
     }
 
     /// <summary>
