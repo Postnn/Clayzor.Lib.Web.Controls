@@ -247,14 +247,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private async Task OpenCompositeFilterDialog(ClayFilterGroupNode? seedRoot)
     {
-        // Фильтруемые колонки — только зарегистрированные Filterable в текущем порядке
-        var filterableCols = ((IClayGrid)this).GetVisibleColumns()
+        // Фильтруемые колонки — все зарегистрированные Filterable (включая сгруппированные,
+        // чтобы диалог мог разрешить display-name для колонок, которые и сгруппированы, и фильтруются)
+        var filterableCols = _columnBySqlName.Values
             .Where(c => c.Filterable)
             .ToList();
-
-        // Если нет ни одной Filterable колонки — берём все зарегистрированные
-        if (filterableCols.Count == 0)
-            filterableCols = _columnBySqlName.Values.Where(c => c.Filterable).ToList();
 
         var parameters = new DialogParameters<ClayFilterDialog>
         {
