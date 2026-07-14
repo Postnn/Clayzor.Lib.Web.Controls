@@ -60,6 +60,7 @@
 | `ClayColumnTypeMap` | `Resolve(int)` → существующий `ColumnTypeDescriptor` (1→Number, 2→Text, 3→Date, 4→Text, 7→Boolean); `IsSupported(int)` |
 | `ClayColumnFormat` | `Parse(int, string?)` — разбор строки `Формат` из БД |
 | `ClayGridLinkResolver` | `Resolve(string?, IConfiguration?)` — резолвинг URL из определения: null/пусто, `@Key` из конфигурации, прямые URL |
+| `GridStateSerializer` | Сериализация/десериализация состояния грида (колонки, сортировка, группировка, фильтр JSON, размер страницы). Чистые функции |
 | `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
@@ -74,6 +75,7 @@
 - G4 — `ClayGrid.Dynamic.cs`: динамический рендер, загрузка определения/колонок/данных из БД
 - G5 — `ClayGridLinkResolver`, кнопки действий (edit/add/delete) в динамическом режиме
 - G6 — `ClayGridUserParamsData` в Entities: сохранение/чтение пользовательских параметров (INSERT-only), тесты TG5
+- G7 — `GridStateSerializer`, сохранение/восстановление состояния в `ClayGrid.Dynamic.cs` (CLID, 5 параметров), тесты TG6
 
 ### Services
 

@@ -45,6 +45,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private string? _dynamicNewUrl;
     private string? _dynamicDeleteSql;
 
+    // ID грида и CLID для персистенции состояния
+    private int _dynamicGridId;
+    private int _dynamicClid;
+
     /// <summary>
     /// Инициализация динамического режима при первом рендере.
     /// </summary>
@@ -60,6 +64,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var gridId = ResolveDynamicGridId(opt);
 
         if (gridId == 0) return;
+
+        _dynamicGridId = gridId;
+        _dynamicClid   = ResolveClientId(opt);
 
         _dynamicDef = await ClayGridDefinitionData.LoadGridAsync(Db, gridId, opt.SettingsTable, opt.Schema);
         if (_dynamicDef is null) return;
@@ -116,6 +123,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _dynamicEditUrl   = ClayGridLinkResolver.Resolve(_dynamicDef.EditForm, Config);
         _dynamicNewUrl    = ClayGridLinkResolver.Resolve(_dynamicDef.NewForm, Config);
         _dynamicDeleteSql = string.IsNullOrWhiteSpace(_dynamicDef.SqlDelete) ? null : _dynamicDef.SqlDelete;
+
+        // Восстановление сохранённого состояния пользователя
+        await RestoreDynamicState(opt);
 
         _dynamicInitDone = true;
     }
@@ -227,5 +237,126 @@ public partial class ClayGrid<TEntity> where TEntity : class
         TotalCount = await DynamicSql.QueryCountAsync(Db, SelectSql, where, dp);
 
         Items = (IEnumerable<TEntity>)rows;
+
+        // Сохраняем состояние после каждой загрузки данных
+        await SaveDynamicState();
+    }
+
+    // ── Персистенция состояния ─────────────────────────────────────────────────
+
+    private int ResolveClientId(ClayGridDynamicOptions opt)
+    {
+        var uri  = new Uri(Nav.Uri);
+        var qs   = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var val  = qs[opt.ClientIdQueryParam];
+        return val is not null && int.TryParse(val, out var clid) ? clid : 0;
+    }
+
+    private async Task RestoreDynamicState(ClayGridDynamicOptions opt)
+    {
+        var p = (string prefix) => ClayGridUserParamsData.BuildParamName(prefix, _dynamicGridId);
+        var paramNames = new[] {
+            p(opt.ColumnsParamPrefix), p(opt.FilterParamPrefix),
+            p(opt.GroupingParamPrefix), p(opt.SortingParamPrefix), p(opt.PageSizeParamPrefix)
+        };
+
+        var saved = await ClayGridUserParamsData.LoadAsync(
+            Db, _dynamicClid, paramNames, opt.UserParamsTable, opt.Schema);
+
+        // Видимость/порядок колонок
+        var colsName = p(opt.ColumnsParamPrefix);
+        if (saved.TryGetValue(colsName, out var colsVal))
+            ApplySavedColumns(colsVal);
+
+        // Сортировка
+        var srtName = p(opt.SortingParamPrefix);
+        if (saved.TryGetValue(srtName, out var srtVal))
+            ApplySavedSort(srtVal);
+
+        // Группировка
+        var grpName = p(opt.GroupingParamPrefix);
+        if (saved.TryGetValue(grpName, out var grpVal))
+            ApplySavedGroups(grpVal);
+
+        // Размер страницы
+        var pgsName = p(opt.PageSizeParamPrefix);
+        if (saved.TryGetValue(pgsName, out var pgsVal) && int.TryParse(pgsVal, out var ps) && ps > 0)
+            _pageSize = ps;
+
+        // Фильтр
+        var fltName = p(opt.FilterParamPrefix);
+        if (saved.TryGetValue(fltName, out var fltVal))
+        {
+            var root = GridStateSerializer.DeserializeFilter(fltVal);
+            if (root is not null)
+                _filterRoot = root;
+        }
+    }
+
+    private void ApplySavedColumns(string value)
+    {
+        var cols = GridStateSerializer.DeserializeColumns(value);
+        if (cols.Count == 0) return;
+
+        _hiddenSqlNames.Clear();
+        _columnOrder.Clear();
+
+        foreach (var (sqlName, visible) in cols)
+        {
+            if (_columnBySqlName.TryGetValue(sqlName, out var meta))
+            {
+                _columnOrder.Add(meta.ColumnId);
+                if (visible == 0)
+                    _hiddenSqlNames.Add(sqlName);
+            }
+        }
+
+        _dataKey++;
+    }
+
+    private void ApplySavedSort(string value)
+    {
+        var sort = GridStateSerializer.DeserializeSort(value);
+        if (sort.Count == 0) return;
+
+        _sortState.Clear();
+        _sortState.AddRange(sort);
+    }
+
+    private void ApplySavedGroups(string value)
+    {
+        var groups = GridStateSerializer.DeserializeGroups(value);
+        if (groups.Count == 0) return;
+
+        _groupColumns.Clear();
+        foreach (var sqlName in groups)
+        {
+            if (_columnBySqlName.ContainsKey(sqlName))
+                _groupColumns.Add(sqlName);
+        }
+        if (_groupColumns.Count > 0)
+            _trayExpanded = true;
+    }
+
+    private async Task SaveDynamicState()
+    {
+        var opt = DynamicOpts.Value;
+        var p   = (string prefix) => ClayGridUserParamsData.BuildParamName(prefix, _dynamicGridId);
+
+        var colsVal = GridStateSerializer.SerializeColumns(_columnOrder, _columnById, _hiddenSqlNames);
+        var srtVal  = GridStateSerializer.SerializeSort(_sortState);
+        var grpVal  = GridStateSerializer.SerializeGroups(_groupColumns);
+        var pgsVal  = GridStateSerializer.SerializePageSize(_pageSize);
+        var fltVal  = GridStateSerializer.SerializeFilter(_filterRoot);
+
+        var t = opt.UserParamsTable;
+        var s = opt.Schema;
+
+        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.ColumnsParamPrefix),  colsVal, t, s);
+        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.SortingParamPrefix),   srtVal, t, s);
+        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.GroupingParamPrefix),  grpVal, t, s);
+        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.PageSizeParamPrefix),  pgsVal, t, s);
+        if (fltVal is not null)
+            await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.FilterParamPrefix), fltVal, t, s);
     }
 }
