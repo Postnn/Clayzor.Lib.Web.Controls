@@ -58,12 +58,12 @@
                                  OnClick="@ToggleFilterTray" />
                 </MudBadge>
             }
-            @if (ShowAddButton)
+            @if (ShowAddButton || HasDynamicAdd)
             {
                 <ClayButton Text="Добавить"
                              Icon="@Icons.Material.Filled.Add"
                              Class="toolbar-add-btn"
-                             OnClick="@OnAdd" />
+                             OnClick="async () => await HandleRowAddClick()" />
             }
             @if (SelectVisible)
             {
@@ -371,14 +371,14 @@
                         </CellTemplate>
                     </TemplateColumn>
                 }
-                @if (EditDialogType is not null)
+                @if (EditDialogType is not null || HasDynamicEdit)
                 {
                     <TemplateColumn @key="ServiceEditColumnKey" T="TEntity"
                                     Title=""
                                     Sortable="false"
                                     DragAndDropEnabled="false"
                                     CellClassFunc="@(item => item is GroupHeaderRow && GroupRowHostKey == "__edit__" ? "group-header-cell" : "")"
-                                    Style="width:44px;min-width:44px;max-width:44px">
+                                    Style="@GetEditColumnStyle()">
                         <CellTemplate>
                             @if (context.Item is GroupHeaderRow gh)
                             {
@@ -392,7 +392,14 @@
                                 <ClayButton Icon="@Icons.Material.Filled.Edit"
                                              Text="Редактировать"
                                              Size="Size.Small"
-                                             OnClick="async () => await HandleEditClick(detail)" />
+                                             OnClick="async () => await HandleRowEditClick(detail)" />
+                                @if (HasDynamicDelete && detail is not null)
+                                {
+                                    <ClayButton Icon="@Icons.Material.Filled.Delete"
+                                                 Text="Удалить"
+                                                 Size="Size.Small"
+                                                 OnClick="async () => await HandleDynamicDelete(detail.Item)" />
+                                }
                             }
                         </CellTemplate>
                     </TemplateColumn>

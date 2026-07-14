@@ -4,8 +4,11 @@ using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes;
 using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 using Clayzor.Lib.Web.Controls.Components.Grid.Filter;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using MudBlazor;
+using MudBlazor.Extensions;
+using MudBlazor.Extensions.Options;
 using Dapper;
 using System.Web;
 
@@ -30,10 +33,17 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     [Parameter] public int? DynamicGridId { get; set; }
 
+    [Inject] private IConfiguration Config { get; set; } = default!;
+
     private ClayGridDefinition? _dynamicDef;
     private IReadOnlyList<ClayColumnDefinition> _dynamicCols = [];
     private bool _dynamicInitDone;
     private HashSet<string> _dynamicKnownColumns = [];
+
+    // Закешированные URL/SQL действий
+    private string? _dynamicEditUrl;
+    private string? _dynamicNewUrl;
+    private string? _dynamicDeleteSql;
 
     /// <summary>
     /// Инициализация динамического режима при первом рендере.
@@ -102,7 +112,85 @@ public partial class ClayGrid<TEntity> where TEntity : class
             });
         }
 
+        // Действия строк: резолвим URL/SQL из определения
+        _dynamicEditUrl   = ClayGridLinkResolver.Resolve(_dynamicDef.EditForm, Config);
+        _dynamicNewUrl    = ClayGridLinkResolver.Resolve(_dynamicDef.NewForm, Config);
+        _dynamicDeleteSql = string.IsNullOrWhiteSpace(_dynamicDef.SqlDelete) ? null : _dynamicDef.SqlDelete;
+
         _dynamicInitDone = true;
+    }
+
+    // ── Динамические действия ─────────────────────────────────────────────────
+
+    /// <summary>Признак, что в динамическом режиме есть колонка редактирования.</summary>
+    private bool HasDynamicEdit => _dynamicEditUrl is not null;
+
+    /// <summary>Признак, что в динамическом режиме есть кнопка добавления.</summary>
+    private bool HasDynamicAdd => _dynamicNewUrl is not null;
+
+    /// <summary>Признак, что в динамическом режиме есть кнопка удаления.</summary>
+    private bool HasDynamicDelete => _dynamicDeleteSql is not null;
+
+    /// <summary>CSS-стиль сервисной колонки (ширина зависит от наличия кнопки удаления).</summary>
+    private string GetEditColumnStyle()
+    {
+        var w = HasDynamicDelete ? "88px" : "44px";
+        return $"width:{w};min-width:{w};max-width:{w}";
+    }
+
+    /// <summary>Единый обработчик клика по карандашу (статический + динамический).</summary>
+    private async Task HandleRowEditClick(IDetailRow detail)
+    {
+        if (HasDynamicEdit)
+            await HandleDynamicEdit(detail);
+        else
+            await HandleEditClick(detail);
+    }
+
+    private async Task HandleDynamicEdit(IDetailRow detail)
+    {
+        var idVal = GetRowIdValue(detail.Item);
+        if (idVal is null) return;
+        var url = $"{_dynamicEditUrl}?{_dynamicDef!.IdColumn}={Uri.EscapeDataString(idVal)}";
+        Nav.NavigateTo(url);
+    }
+
+    /// <summary>Единый обработчик клика по кнопке «+» (статический + динамический).</summary>
+    private async Task HandleRowAddClick()
+    {
+        if (HasDynamicAdd)
+            Nav.NavigateTo(_dynamicNewUrl!);
+        else
+            await OnAdd.InvokeAsync();
+    }
+
+    /// <summary>Обработчик клика по кнопке удаления строки.</summary>
+    private async Task HandleDynamicDelete(object? rowItem)
+    {
+        var idVal = GetRowIdValue(rowItem);
+        if (idVal is null || _dynamicDeleteSql is null) return;
+
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Message, "Удалить запись?" }
+        };
+        var options = new DialogOptionsEx { DragMode = MudDialogDragMode.Simple };
+        var dialog = await DialogService.ShowExAsync<ConfirmDialog>("Подтверждение", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        await DynamicSql.ExecuteAsync(Db, _dynamicDeleteSql, new { id = idVal });
+        await NotifyQueryChanged();
+    }
+
+    /// <summary>Извлекает значение ID строки из словаря-строки по IdColumn.</summary>
+    private string? GetRowIdValue(object? rowItem)
+    {
+        if (_dynamicDef is null) return null;
+        if (rowItem is IReadOnlyDictionary<string, object?> dict
+            && dict.TryGetValue(_dynamicDef.IdColumn!, out var v) && v is not null)
+            return v.ToString();
+        return null;
     }
 
     private int ResolveDynamicGridId(ClayGridDynamicOptions opt)
