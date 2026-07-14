@@ -56,16 +56,20 @@
 | Класс | Назначение |
 |---|---|
 | `ClayGridDynamicOptions` | Настройки динрежима: имена таблиц, префиксы query-параметров, `ConnectionStringName`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
+| `ClayColumnKind` | Enum типов колонок (1–13): Number, Text, Date, Link, List, ConditionBool, Bool, Html, Icon, DateTimeLocal, ConditionList, LimitedText, TimeLocal |
+| `ClayColumnTypeMap` | `Resolve(int)` → существующий `ColumnTypeDescriptor` (1→Number, 2→Text, 3→Date, 4→Text, 7→Boolean); `IsSupported(int)` |
+| `ClayColumnFormat` | `Parse(int, string?)` — разбор строки `Формат` из БД |
 | `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../Clayzor.Lib.Entities/AGENTS.md).
 
-**Выполненные шаги (G0–G2):**
+**Выполненные шаги (G0–G3):**
 - G0 — `scripts/dynamic-grid/schema.sql`: 3 таблицы + триггер-upsert + сид #140
 - G1 — опции, схема, DI, тесты TG1
 - G1b — `DynamicSql` в `Clayzor.Lib.Entities.DynamicGrid`
 - G2 — модели (`ClayGridDefinition`, `ClayColumnDefinition`), `ClayGridDefinitionData`, перенос `ClayGridSchemaMap` в Entities, тесты TG2
+- G3 — `ClayColumnKind`, `ClayColumnTypeMap`, `ClayColumnFormat`, тесты TG3
 
 ### Services
 
