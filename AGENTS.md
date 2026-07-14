@@ -73,6 +73,7 @@
 - G3 — `ClayColumnKind`, `ClayColumnTypeMap`, `ClayColumnFormat`, тесты TG3
 - G4 — `ClayGrid.Dynamic.cs`: динамический рендер, загрузка определения/колонок/данных из БД
 - G5 — `ClayGridLinkResolver`, кнопки действий (edit/add/delete) в динамическом режиме
+- G6 — `ClayGridUserParamsData` в Entities: сохранение/чтение пользовательских параметров (INSERT-only), тесты TG5
 
 ### Services
 
