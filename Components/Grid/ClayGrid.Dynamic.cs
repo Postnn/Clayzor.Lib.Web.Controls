@@ -163,11 +163,15 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _columnOrder.Add(col.ColumnId);
 
             // Кешируем имя колонки для замыкания
-            var colName   = col.Column;
-            var lookup    = _dynamicLookups.GetValueOrDefault(col.Column);
+            var colName    = col.Column;
+            var lookup     = _dynamicLookups.GetValueOrDefault(col.Column);
             var iconLookup = _dynamicIconLookups.GetValueOrDefault(col.Column);
-            var isList    = col.Type == (int)ClayColumnKind.List;
-            var isIcon    = col.Type == (int)ClayColumnKind.Icon;
+            var isList     = col.Type == (int)ClayColumnKind.List;
+            var isIcon     = col.Type == (int)ClayColumnKind.Icon;
+            var isHtml     = col.Type == (int)ClayColumnKind.Html;
+            var isLink     = col.Type == (int)ClayColumnKind.Link;
+            var isLimText  = col.Type == (int)ClayColumnKind.LimitedText;
+            var limLen     = isLimText && int.TryParse(col.Format, out var n) ? n : 0;
             _cellTemplates[col.ColumnId] = (RenderFragment<CellContext<TEntity>>)(ctx =>
             {
                 string text = "";
@@ -186,6 +190,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
                     {
                         text = display;
                     }
+                    else if (isHtml)
+                    {
+                        text = ClayHtmlSanitizer.Sanitize(raw);
+                    }
                     else
                     {
                         text = raw;
@@ -201,6 +209,34 @@ public partial class ClayGrid<TEntity> where TEntity : class
                             builder.AddAttribute(2, "title", iconTitle);
                         builder.AddAttribute(3, "style", "width:16px;height:16px");
                         builder.CloseElement();
+                    }
+                    else if (isLink && !string.IsNullOrEmpty(text))
+                    {
+                        builder.OpenElement(0, "a");
+                        builder.AddAttribute(1, "href", ClayHtmlSanitizer.Sanitize(text));
+                        builder.AddContent(2, text);
+                        builder.CloseElement();
+                    }
+                    else if (isLimText)
+                    {
+                        var display = limLen > 0 && text.Length > limLen
+                            ? text[..limLen] + "…"
+                            : text;
+                        if (display != text)
+                        {
+                            builder.OpenElement(0, "span");
+                            builder.AddAttribute(1, "title", text);
+                            builder.AddContent(2, display);
+                            builder.CloseElement();
+                        }
+                        else
+                        {
+                            builder.AddContent(0, display);
+                        }
+                    }
+                    else if (isHtml)
+                    {
+                        builder.AddMarkupContent(0, text);
                     }
                     else
                     {

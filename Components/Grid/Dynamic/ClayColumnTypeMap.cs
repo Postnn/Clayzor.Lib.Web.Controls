@@ -12,6 +12,8 @@ public static class ClayColumnTypeMap
     private static readonly ClayIconColumnType _icon = new();
     private static readonly ClayConditionBoolColumnType _conditionBool = new();
     private static readonly ClayConditionListColumnType _conditionList = new();
+    private static readonly ClayHtmlColumnType _html = new();
+    private static readonly ClayLimitedTextColumnType _limitedText = new();
 
     /// <summary>
     /// Возвращает дескриптор для поддерживаемых типов.
@@ -28,6 +30,8 @@ public static class ClayColumnTypeMap
         (int)ClayColumnKind.ConditionBool  => _conditionBool,
         (int)ClayColumnKind.Bool           => ColumnTypeRegistry.FromKind(ColumnType.Boolean),
         (int)ClayColumnKind.ConditionList  => _conditionList,
+        (int)ClayColumnKind.Html          => _html,
+        (int)ClayColumnKind.LimitedText   => _limitedText,
         _ => null
     };
 

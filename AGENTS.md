@@ -62,6 +62,7 @@
 | `ClayGridLinkResolver` | `Resolve(string?, IConfiguration?)` — резолвинг URL из определения: null/пусто, `@Key` из конфигурации, прямые URL |
 | `GridStateSerializer` | Сериализация/десериализация состояния грида (колонки, сортировка, группировка, фильтр JSON, размер страницы). Чистые функции |
 | `ClayGridUrlFilterParser` | Разбор URL-фильтра `КлючURL=op~value`: `ParsedUrlFilter` record, `Parse` (правила 1/2/5), `Apply` (слияние в дерево с учётом сохранённых параметров) |
+| `ClayHtmlSanitizer` | `Sanitize(html)` — вырезает `<script>`, `onXxx`-атрибуты, `javascript:` |
 | `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
@@ -82,6 +83,7 @@
 - G10 — `ClayListColumnType` (Тип 5): справочник через подзапрос, кеш, CellTemplate с резолвом text по value, тесты TG7
 - G11 — `ClayIconColumnType` (Тип 9): 3-колоночный подзапрос, `<img>` с tooltip, тесты TG7
 - G12 — `ClayConditionBoolColumnType` (Тип 6) и `ClayConditionListColumnType` (Тип 11): фильтр-онли, не выводятся в гриде, тесты TG7
+- G13 — `ClayHtmlSanitizer`, `ClayHtmlColumnType` (Тип 8), `ClayLimitedTextColumnType` (Тип 12), Тип 4 (Ссылка): `<a>`, обрезка+tooltip, `AddMarkupContent`, тесты TG8
 
 ### Services
 
@@ -235,7 +237,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 
 ### Дескрипторы типов колонок (`Components/Grid/ColumnTypes/`)
 - `ColumnTypeDescriptor` — абстрактный базовый класс: `Kind`, `ClrType`, `Operators`, `DefaultOperator`, `OperatorTakesValue(op)`, `Parse(string?)`, `Format(object?)`, `ToParameter(object?)`. Единая точка типозависимого поведения
-- `TextColumnType`, `NumberColumnType`, `DecimalColumnType`, `BooleanColumnType`, `DateColumnType`, `ClayListColumnType` (Тип 5), `ClayIconColumnType` (Тип 9), `ClayConditionBoolColumnType` (Тип 6), `ClayConditionListColumnType` (Тип 11) — конкретные дескрипторы
+- `TextColumnType`, `NumberColumnType`, `DecimalColumnType`, `BooleanColumnType`, `DateColumnType`, `ClayListColumnType` (Тип 5), `ClayIconColumnType` (Тип 9), `ClayConditionBoolColumnType` (Тип 6), `ClayConditionListColumnType` (Тип 11), `ClayHtmlColumnType` (Тип 8), `ClayLimitedTextColumnType` (Тип 12) — конкретные дескрипторы
 - `ColumnTypeRegistry` — `FromClr(Type)` (CLR→дескриптор), `FromKind(ColumnType)` (enum→дескриптор), синглтоны
 - `ClayColumnMeta.Type` — дескриптор, заполняемый при регистрации колонки; единственный источник операторов/парсинга/формата
 - `ClayColumnFilterDialog` получает операторы и DefaultOperator из дескриптора, парсинг/формат — через `_descriptor.Parse/Format`
