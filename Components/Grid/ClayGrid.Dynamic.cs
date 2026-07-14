@@ -40,6 +40,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private bool _dynamicInitDone;
     private HashSet<string> _dynamicKnownColumns = [];
     private Dictionary<string, IReadOnlyDictionary<string, string>> _dynamicLookups = [];
+    private Dictionary<string, IReadOnlyDictionary<string, (string Tooltip, string Href)>> _dynamicIconLookups = [];
 
     // Закешированные URL/SQL действий
     private string? _dynamicEditUrl;
@@ -105,6 +106,22 @@ public partial class ClayGrid<TEntity> where TEntity : class
             }
         }
 
+        // Загружаем справочники для колонок типа 9 (Пиктограмма)
+        foreach (var col in visibleCols.Where(c => c.Type == (int)ClayColumnKind.Icon))
+        {
+            if (!string.IsNullOrWhiteSpace(col.Format))
+            {
+                try
+                {
+                    var triples = await DynamicSql.QueryTriplesAsync(Db, col.Format);
+                    _dynamicIconLookups[col.Column] = triples
+                        .Where(t => t.Value is not null)
+                        .ToDictionary(t => t.Value?.ToString() ?? "", t => (t.Text ?? "", t.Icon ?? ""));
+                }
+                catch { /* справочник иконок не загрузился */ }
+            }
+        }
+
         foreach (var col in visibleCols)
         {
             var desc = ClayColumnTypeMap.Resolve(col.Type);
@@ -125,21 +142,50 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _columnOrder.Add(col.ColumnId);
 
             // Кешируем имя колонки для замыкания
-            var colName  = col.Column;
-            var lookup   = _dynamicLookups.GetValueOrDefault(col.Column);
-            var isList   = col.Type == (int)ClayColumnKind.List;
+            var colName   = col.Column;
+            var lookup    = _dynamicLookups.GetValueOrDefault(col.Column);
+            var iconLookup = _dynamicIconLookups.GetValueOrDefault(col.Column);
+            var isList    = col.Type == (int)ClayColumnKind.List;
+            var isIcon    = col.Type == (int)ClayColumnKind.Icon;
             _cellTemplates[col.ColumnId] = (RenderFragment<CellContext<TEntity>>)(ctx =>
             {
                 string text = "";
+                string? iconHref = null;
+                string? iconTitle = null;
                 if (ctx.Item is IReadOnlyDictionary<string, object?> dict
                     && dict.TryGetValue(colName, out var v) && v is not null)
                 {
                     var raw = v.ToString()!;
-                    text = isList && lookup is not null && lookup.TryGetValue(raw, out var display)
-                        ? display
-                        : raw;
+                    if (isIcon && iconLookup is not null && iconLookup.TryGetValue(raw, out var iconData))
+                    {
+                        iconHref  = iconData.Href;
+                        iconTitle = iconData.Tooltip;
+                    }
+                    else if (isList && lookup is not null && lookup.TryGetValue(raw, out var display))
+                    {
+                        text = display;
+                    }
+                    else
+                    {
+                        text = raw;
+                    }
                 }
-                return (RenderFragment)(builder => builder.AddContent(0, text));
+                return (RenderFragment)(builder =>
+                {
+                    if (isIcon && iconHref is not null)
+                    {
+                        builder.OpenElement(0, "img");
+                        builder.AddAttribute(1, "src", iconHref);
+                        if (!string.IsNullOrEmpty(iconTitle))
+                            builder.AddAttribute(2, "title", iconTitle);
+                        builder.AddAttribute(3, "style", "width:16px;height:16px");
+                        builder.CloseElement();
+                    }
+                    else
+                    {
+                        builder.AddContent(0, text);
+                    }
+                });
             });
         }
 

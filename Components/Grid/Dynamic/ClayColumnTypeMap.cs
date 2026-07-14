@@ -9,6 +9,7 @@ namespace Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 public static class ClayColumnTypeMap
 {
     private static readonly ClayListColumnType _list = new();
+    private static readonly ClayIconColumnType _icon = new();
 
     /// <summary>
     /// Возвращает дескриптор для поддерживаемых типов.
@@ -21,6 +22,7 @@ public static class ClayColumnTypeMap
         (int)ClayColumnKind.Date   => ColumnTypeRegistry.FromKind(ColumnType.Date),
         (int)ClayColumnKind.Link   => ColumnTypeRegistry.FromKind(ColumnType.Text), // Link пока как Text
         (int)ClayColumnKind.List   => _list,
+        (int)ClayColumnKind.Icon   => _icon,
         (int)ClayColumnKind.Bool   => ColumnTypeRegistry.FromKind(ColumnType.Boolean),
         _ => null
     };
