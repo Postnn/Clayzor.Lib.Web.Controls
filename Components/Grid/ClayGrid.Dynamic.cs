@@ -49,6 +49,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private int _dynamicGridId;
     private int _dynamicClid;
     private IReadOnlyDictionary<string, string> _dynamicSavedParams = new Dictionary<string, string>();
+    private HashSet<string> _dynamicForcedParamNames = [];
 
     /// <summary>
     /// Инициализация динамического режима при первом рендере.
@@ -128,8 +129,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
         // Восстановление сохранённого состояния пользователя
         await RestoreDynamicState(opt);
 
-        // Применить URL-фильтры (опережают сохранённое состояние)
-        ApplyUrlFilters(opt);
+        // Применить URL-параметры (фильтры и колонки)
+        ApplyUrlParams(opt);
 
         _dynamicInitDone = true;
     }
@@ -344,13 +345,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _trayExpanded = true;
     }
 
-    /// <summary>Разбирает URL-параметры фильтра и применяет к _filterRoot.</summary>
-    private void ApplyUrlFilters(ClayGridDynamicOptions opt)
+    /// <summary>Разбирает URL-параметры фильтра и колонок, применяет к состоянию грида.</summary>
+    private void ApplyUrlParams(ClayGridDynamicOptions opt)
     {
         var uri = new Uri(Nav.Uri);
         var qs  = System.Web.HttpUtility.ParseQueryString(uri.Query);
 
-        // Собираем все query-параметры, чьи имена совпадают с UrlKey динамических колонок
+        // --- Фильтры ---
         var urlKeyToCol = _dynamicCols
             .Where(c => !string.IsNullOrEmpty(c.UrlKey))
             .ToDictionary(c => c.UrlKey!, c => c);
@@ -366,7 +367,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
             if (desc is null) continue;
 
             var rawValue = qs[key] ?? "";
-            urlFilters.Add(ClayGridUrlFilterParser.Parse(key, rawValue, desc));
+            var pf = ClayGridUrlFilterParser.Parse(key, rawValue, desc);
+            urlFilters.Add(pf);
+
+            if (pf.IsForced)
+                _dynamicForcedParamNames.Add(ClayGridUserParamsData.BuildParamName(opt.FilterParamPrefix, _dynamicGridId));
         }
 
         if (urlFilters.Count > 0)
@@ -374,6 +379,43 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _filterRoot ??= new ClayFilterGroupNode();
             ClayGridUrlFilterParser.Apply(_filterRoot, urlFilters, _dynamicSavedParams);
         }
+
+        // --- Колонки (видимость/порядок) ---
+        var colsParamName  = ClayGridUserParamsData.BuildParamName(opt.ColumnsParamPrefix, _dynamicGridId);
+        var defColsParamName = "_" + colsParamName;
+
+        // Forced (без '_'): применить всегда
+        var forcedCols = qs[colsParamName];
+        if (!string.IsNullOrEmpty(forcedCols))
+        {
+            _dynamicForcedParamNames.Add(colsParamName);
+            ApplyUrlColumnsValue(forcedCols);
+        }
+        // Default (с '_'): только если нет сохранённого
+        else if (!string.IsNullOrEmpty(qs[defColsParamName]) && !_dynamicSavedParams.ContainsKey(colsParamName))
+        {
+            ApplyUrlColumnsValue(qs[defColsParamName]!);
+        }
+    }
+
+    /// <summary>Применяет значение cols из URL к видимости и порядку колонок.</summary>
+    private void ApplyUrlColumnsValue(string value)
+    {
+        var cols = GridStateSerializer.DeserializeColumns(value);
+        if (cols.Count == 0) return;
+
+        _hiddenSqlNames.Clear();
+        _columnOrder.Clear();
+        foreach (var (sqlName, visible) in cols)
+        {
+            if (_columnBySqlName.TryGetValue(sqlName, out var meta))
+            {
+                _columnOrder.Add(meta.ColumnId);
+                if (visible == 0)
+                    _hiddenSqlNames.Add(sqlName);
+            }
+        }
+        _dataKey++;
     }
 
     private async Task SaveDynamicState()
@@ -390,11 +432,16 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var t = opt.UserParamsTable;
         var s = opt.Schema;
 
-        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.ColumnsParamPrefix),  colsVal, t, s);
-        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.SortingParamPrefix),   srtVal, t, s);
-        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.GroupingParamPrefix),  grpVal, t, s);
-        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.PageSizeParamPrefix),  pgsVal, t, s);
-        if (fltVal is not null)
+        // Сохраняем только НЕ-forced параметры (G9)
+        if (!_dynamicForcedParamNames.Contains(p(opt.ColumnsParamPrefix)))
+            await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.ColumnsParamPrefix),  colsVal, t, s);
+        if (!_dynamicForcedParamNames.Contains(p(opt.SortingParamPrefix)))
+            await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.SortingParamPrefix),   srtVal, t, s);
+        if (!_dynamicForcedParamNames.Contains(p(opt.GroupingParamPrefix)))
+            await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.GroupingParamPrefix),  grpVal, t, s);
+        if (!_dynamicForcedParamNames.Contains(p(opt.PageSizeParamPrefix)))
+            await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.PageSizeParamPrefix),  pgsVal, t, s);
+        if (fltVal is not null && !_dynamicForcedParamNames.Contains(p(opt.FilterParamPrefix)))
             await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.FilterParamPrefix), fltVal, t, s);
     }
 }

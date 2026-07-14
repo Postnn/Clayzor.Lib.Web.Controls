@@ -78,6 +78,7 @@
 - G6 — `ClayGridUserParamsData` в Entities: сохранение/чтение пользовательских параметров (INSERT-only), тесты TG5
 - G7 — `GridStateSerializer`, сохранение/восстановление состояния в `ClayGrid.Dynamic.cs` (CLID, 5 параметров), тесты TG6
 - G8 — `ClayGridUrlFilterParser`, разбор URL-фильтра `op~value`, интеграция в `InitDynamicMode`, тесты TG4
+- G9 — URL-параметр `cols` (видимость колонок), исключение forced-параметров из сохранения
 
 ### Services
 
