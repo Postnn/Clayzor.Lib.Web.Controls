@@ -81,6 +81,7 @@
 - G9 — URL-параметр `cols` (видимость колонок), исключение forced-параметров из сохранения
 - G10 — `ClayListColumnType` (Тип 5): справочник через подзапрос, кеш, CellTemplate с резолвом text по value, тесты TG7
 - G11 — `ClayIconColumnType` (Тип 9): 3-колоночный подзапрос, `<img>` с tooltip, тесты TG7
+- G12 — `ClayConditionBoolColumnType` (Тип 6) и `ClayConditionListColumnType` (Тип 11): фильтр-онли, не выводятся в гриде, тесты TG7
 
 ### Services
 
@@ -234,7 +235,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 
 ### Дескрипторы типов колонок (`Components/Grid/ColumnTypes/`)
 - `ColumnTypeDescriptor` — абстрактный базовый класс: `Kind`, `ClrType`, `Operators`, `DefaultOperator`, `OperatorTakesValue(op)`, `Parse(string?)`, `Format(object?)`, `ToParameter(object?)`. Единая точка типозависимого поведения
-- `TextColumnType`, `NumberColumnType`, `DecimalColumnType`, `BooleanColumnType`, `DateColumnType`, `ClayListColumnType` (Тип 5), `ClayIconColumnType` (Тип 9) — конкретные дескрипторы
+- `TextColumnType`, `NumberColumnType`, `DecimalColumnType`, `BooleanColumnType`, `DateColumnType`, `ClayListColumnType` (Тип 5), `ClayIconColumnType` (Тип 9), `ClayConditionBoolColumnType` (Тип 6), `ClayConditionListColumnType` (Тип 11) — конкретные дескрипторы
 - `ColumnTypeRegistry` — `FromClr(Type)` (CLR→дескриптор), `FromKind(ColumnType)` (enum→дескриптор), синглтоны
 - `ClayColumnMeta.Type` — дескриптор, заполняемый при регистрации колонки; единственный источник операторов/парсинга/формата
 - `ClayColumnFilterDialog` получает операторы и DefaultOperator из дескриптора, парсинг/формат — через `_descriptor.Parse/Format`

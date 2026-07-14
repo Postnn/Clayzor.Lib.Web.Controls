@@ -122,6 +122,27 @@ public partial class ClayGrid<TEntity> where TEntity : class
             }
         }
 
+        // Регистрируем фильтр-онли колонки (Тип 6, 11): не выводятся в гриде, только фильтрация
+        foreach (var col in _dynamicCols.Where(c => c.Type == (int)ClayColumnKind.ConditionBool || c.Type == (int)ClayColumnKind.ConditionList))
+        {
+            var desc = ClayColumnTypeMap.Resolve(col.Type);
+            if (desc is null) continue;
+
+            var meta = new ClayColumnMeta
+            {
+                ColumnId    = col.ColumnId,
+                SqlName     = col.Column,
+                DisplayName = col.Header ?? col.Column,
+                SortName    = col.Column,
+                Groupable   = false,
+                Filterable  = true,
+                Type        = desc,
+            };
+            _columnById[col.ColumnId]     = meta;
+            _columnBySqlName[col.Column]  = meta;
+            _dynamicKnownColumns.Add(col.Column);
+        }
+
         foreach (var col in visibleCols)
         {
             var desc = ClayColumnTypeMap.Resolve(col.Type);

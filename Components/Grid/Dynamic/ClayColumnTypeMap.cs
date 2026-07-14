@@ -10,6 +10,8 @@ public static class ClayColumnTypeMap
 {
     private static readonly ClayListColumnType _list = new();
     private static readonly ClayIconColumnType _icon = new();
+    private static readonly ClayConditionBoolColumnType _conditionBool = new();
+    private static readonly ClayConditionListColumnType _conditionList = new();
 
     /// <summary>
     /// Возвращает дескриптор для поддерживаемых типов.
@@ -22,8 +24,10 @@ public static class ClayColumnTypeMap
         (int)ClayColumnKind.Date   => ColumnTypeRegistry.FromKind(ColumnType.Date),
         (int)ClayColumnKind.Link   => ColumnTypeRegistry.FromKind(ColumnType.Text), // Link пока как Text
         (int)ClayColumnKind.List   => _list,
-        (int)ClayColumnKind.Icon   => _icon,
-        (int)ClayColumnKind.Bool   => ColumnTypeRegistry.FromKind(ColumnType.Boolean),
+        (int)ClayColumnKind.Icon           => _icon,
+        (int)ClayColumnKind.ConditionBool  => _conditionBool,
+        (int)ClayColumnKind.Bool           => ColumnTypeRegistry.FromKind(ColumnType.Boolean),
+        (int)ClayColumnKind.ConditionList  => _conditionList,
         _ => null
     };
 
