@@ -61,6 +61,7 @@
 | `ClayColumnFormat` | `Parse(int, string?)` — разбор строки `Формат` из БД |
 | `ClayGridLinkResolver` | `Resolve(string?, IConfiguration?)` — резолвинг URL из определения: null/пусто, `@Key` из конфигурации, прямые URL |
 | `GridStateSerializer` | Сериализация/десериализация состояния грида (колонки, сортировка, группировка, фильтр JSON, размер страницы). Чистые функции |
+| `ClayGridUrlFilterParser` | Разбор URL-фильтра `КлючURL=op~value`: `ParsedUrlFilter` record, `Parse` (правила 1/2/5), `Apply` (слияние в дерево с учётом сохранённых параметров) |
 | `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
@@ -76,6 +77,7 @@
 - G5 — `ClayGridLinkResolver`, кнопки действий (edit/add/delete) в динамическом режиме
 - G6 — `ClayGridUserParamsData` в Entities: сохранение/чтение пользовательских параметров (INSERT-only), тесты TG5
 - G7 — `GridStateSerializer`, сохранение/восстановление состояния в `ClayGrid.Dynamic.cs` (CLID, 5 параметров), тесты TG6
+- G8 — `ClayGridUrlFilterParser`, разбор URL-фильтра `op~value`, интеграция в `InitDynamicMode`, тесты TG4
 
 ### Services
 

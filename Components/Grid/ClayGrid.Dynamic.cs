@@ -48,6 +48,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     // ID грида и CLID для персистенции состояния
     private int _dynamicGridId;
     private int _dynamicClid;
+    private IReadOnlyDictionary<string, string> _dynamicSavedParams = new Dictionary<string, string>();
 
     /// <summary>
     /// Инициализация динамического режима при первом рендере.
@@ -126,6 +127,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         // Восстановление сохранённого состояния пользователя
         await RestoreDynamicState(opt);
+
+        // Применить URL-фильтры (опережают сохранённое состояние)
+        ApplyUrlFilters(opt);
 
         _dynamicInitDone = true;
     }
@@ -263,6 +267,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var saved = await ClayGridUserParamsData.LoadAsync(
             Db, _dynamicClid, paramNames, opt.UserParamsTable, opt.Schema);
 
+        _dynamicSavedParams = saved; // кешируем для G8/G9
+
         // Видимость/порядок колонок
         var colsName = p(opt.ColumnsParamPrefix);
         if (saved.TryGetValue(colsName, out var colsVal))
@@ -336,6 +342,38 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
         if (_groupColumns.Count > 0)
             _trayExpanded = true;
+    }
+
+    /// <summary>Разбирает URL-параметры фильтра и применяет к _filterRoot.</summary>
+    private void ApplyUrlFilters(ClayGridDynamicOptions opt)
+    {
+        var uri = new Uri(Nav.Uri);
+        var qs  = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+        // Собираем все query-параметры, чьи имена совпадают с UrlKey динамических колонок
+        var urlKeyToCol = _dynamicCols
+            .Where(c => !string.IsNullOrEmpty(c.UrlKey))
+            .ToDictionary(c => c.UrlKey!, c => c);
+
+        var urlFilters = new List<ParsedUrlFilter>();
+        foreach (string? key in qs.Keys)
+        {
+            if (key is null) continue;
+            var cleanKey = key.StartsWith('_') ? key[1..] : key;
+            if (!urlKeyToCol.TryGetValue(cleanKey, out var col)) continue;
+
+            var desc = ClayColumnTypeMap.Resolve(col.Type);
+            if (desc is null) continue;
+
+            var rawValue = qs[key] ?? "";
+            urlFilters.Add(ClayGridUrlFilterParser.Parse(key, rawValue, desc));
+        }
+
+        if (urlFilters.Count > 0)
+        {
+            _filterRoot ??= new ClayFilterGroupNode();
+            ClayGridUrlFilterParser.Apply(_filterRoot, urlFilters, _dynamicSavedParams);
+        }
     }
 
     private async Task SaveDynamicState()
