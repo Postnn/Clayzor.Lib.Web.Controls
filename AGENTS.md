@@ -48,6 +48,22 @@
 | **IClayGridDataLoader** — контракт обратного вызова: `OnQueryChangedAsync(ClayDataQuery)`, `ExcelExportAsync(ExcelExportRequest)`, `BuildPrintHtmlAsync(columns, title, filterDescription, groupDescription)`, `BuildPrintHtmlForCurrentPageAsync(columns, title, filterDescription, groupDescription)`, `BuildPrintHtmlForSelectedAsync(...)`, `LoadDistinctValuesAsync(sqlName, query, limit)` — загрузка уникальных значений колонки для Excel-style фильтра. Реализуется ClayGridPageBase, передаётся через `DataLoader="this"` | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayColumnMeta** — метаданные зарегистрированной колонки: `ColumnId`, `SqlName`, `DisplayName`, `SortName`, `Groupable`, `Filterable`, `AllowValueFilter`, `BoolTrueLabel`, `BoolFalseLabel`, `Type` | [docs/clay-grid.md](docs/clay-grid.md) |
 
+### DynamicGrid — динамический режим ClayGrid
+
+Пакет `Components/Grid/Dynamic/` — конфигурация и DI для динамического режима, в котором грид читает определение
+(SQL, колонки, кнопки) из БД. План реализации: [promts/_readme_grid_dynamic.md](Components/Grid/promts/_readme_grid_dynamic.md).
+
+| Класс | Назначение |
+|---|---|
+| `ClayGridDynamicOptions` | Настройки динрежима: имена таблиц, префиксы query-параметров, `ConnectionStringName`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
+| `ClayGridSchemaMap` | Имена колонок трёх таблиц (Settings, Columns, UserParams). Свойства C# — английские, значения по умолчанию — русские имена из схемы БД |
+| `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
+
+**Выполненные шаги (G0–G1b):**
+- G0 — `scripts/dynamic-grid/schema.sql`: 3 таблицы + триггер-upsert + сид #140
+- G1 — опции, схема, DI, тесты TG1
+- G1b — `DynamicSql` в `Clayzor.Lib.Entities.DynamicGrid`
+
 ### Services
 
 | Сервис | Назначение |
