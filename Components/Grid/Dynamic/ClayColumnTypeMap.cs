@@ -8,9 +8,11 @@ namespace Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 /// </summary>
 public static class ClayColumnTypeMap
 {
+    private static readonly ClayListColumnType _list = new();
+
     /// <summary>
-    /// Возвращает дескриптор для поддерживаемых типов (1,2,3,4,7).
-    /// Для неподдержанных (5,6,8–13) возвращает null.
+    /// Возвращает дескриптор для поддерживаемых типов.
+    /// Для неподдержанных (6,8,10–13) возвращает null.
     /// </summary>
     public static ColumnTypeDescriptor? Resolve(int type) => type switch
     {
@@ -18,6 +20,7 @@ public static class ClayColumnTypeMap
         (int)ClayColumnKind.Text   => ColumnTypeRegistry.FromKind(ColumnType.Text),
         (int)ClayColumnKind.Date   => ColumnTypeRegistry.FromKind(ColumnType.Date),
         (int)ClayColumnKind.Link   => ColumnTypeRegistry.FromKind(ColumnType.Text), // Link пока как Text
+        (int)ClayColumnKind.List   => _list,
         (int)ClayColumnKind.Bool   => ColumnTypeRegistry.FromKind(ColumnType.Boolean),
         _ => null
     };

@@ -39,6 +39,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private IReadOnlyList<ClayColumnDefinition> _dynamicCols = [];
     private bool _dynamicInitDone;
     private HashSet<string> _dynamicKnownColumns = [];
+    private Dictionary<string, IReadOnlyDictionary<string, string>> _dynamicLookups = [];
 
     // Закешированные URL/SQL действий
     private string? _dynamicEditUrl;
@@ -88,6 +89,22 @@ public partial class ClayGrid<TEntity> where TEntity : class
         DefaultOrder  = string.Join(", ", visibleCols.Select(c => c.Column));
         _dynamicKnownColumns = visibleCols.Select(c => c.Column).ToHashSet();
 
+        // Загружаем справочники для колонок типа 5 (Список)
+        foreach (var col in visibleCols.Where(c => c.Type == (int)ClayColumnKind.List))
+        {
+            if (!string.IsNullOrWhiteSpace(col.Format))
+            {
+                try
+                {
+                    var pairs = await DynamicSql.QueryPairsAsync(Db, col.Format);
+                    _dynamicLookups[col.Column] = pairs
+                        .Where(p => p.Value is not null)
+                        .ToDictionary(p => p.Value?.ToString() ?? "", p => p.Text ?? "");
+                }
+                catch { /* справочник не загрузился — покажем value как есть */ }
+            }
+        }
+
         foreach (var col in visibleCols)
         {
             var desc = ClayColumnTypeMap.Resolve(col.Type);
@@ -100,7 +117,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 DisplayName = col.Header ?? col.Column,
                 SortName    = col.Column,
                 Groupable   = true,
-                Filterable  = true,
+                Filterable  = col.Type != (int)ClayColumnKind.List,
                 Type        = desc,
             };
             _columnById[col.ColumnId]     = meta;
@@ -108,14 +125,19 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _columnOrder.Add(col.ColumnId);
 
             // Кешируем имя колонки для замыкания
-            var colName = col.Column;
+            var colName  = col.Column;
+            var lookup   = _dynamicLookups.GetValueOrDefault(col.Column);
+            var isList   = col.Type == (int)ClayColumnKind.List;
             _cellTemplates[col.ColumnId] = (RenderFragment<CellContext<TEntity>>)(ctx =>
             {
                 string text = "";
-                if (ctx.Item is IReadOnlyDictionary<string, object?> dict)
+                if (ctx.Item is IReadOnlyDictionary<string, object?> dict
+                    && dict.TryGetValue(colName, out var v) && v is not null)
                 {
-                    if (dict.TryGetValue(colName, out var v) && v is not null)
-                        text = v.ToString()!;
+                    var raw = v.ToString()!;
+                    text = isList && lookup is not null && lookup.TryGetValue(raw, out var display)
+                        ? display
+                        : raw;
                 }
                 return (RenderFragment)(builder => builder.AddContent(0, text));
             });

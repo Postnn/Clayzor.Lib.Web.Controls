@@ -79,6 +79,7 @@
 - G7 — `GridStateSerializer`, сохранение/восстановление состояния в `ClayGrid.Dynamic.cs` (CLID, 5 параметров), тесты TG6
 - G8 — `ClayGridUrlFilterParser`, разбор URL-фильтра `op~value`, интеграция в `InitDynamicMode`, тесты TG4
 - G9 — URL-параметр `cols` (видимость колонок), исключение forced-параметров из сохранения
+- G10 — `ClayListColumnType` (Тип 5): справочник через подзапрос, кеш, CellTemplate с резолвом text по value, тесты TG7
 
 ### Services
 
@@ -232,7 +233,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 
 ### Дескрипторы типов колонок (`Components/Grid/ColumnTypes/`)
 - `ColumnTypeDescriptor` — абстрактный базовый класс: `Kind`, `ClrType`, `Operators`, `DefaultOperator`, `OperatorTakesValue(op)`, `Parse(string?)`, `Format(object?)`, `ToParameter(object?)`. Единая точка типозависимого поведения
-- `TextColumnType`, `NumberColumnType`, `DecimalColumnType`, `BooleanColumnType`, `DateColumnType` — конкретные дескрипторы
+- `TextColumnType`, `NumberColumnType`, `DecimalColumnType`, `BooleanColumnType`, `DateColumnType`, `ClayListColumnType` (Тип 5) — конкретные дескрипторы
 - `ColumnTypeRegistry` — `FromClr(Type)` (CLR→дескриптор), `FromKind(ColumnType)` (enum→дескриптор), синглтоны
 - `ClayColumnMeta.Type` — дескриптор, заполняемый при регистрации колонки; единственный источник операторов/парсинга/формата
 - `ClayColumnFilterDialog` получает операторы и DefaultOperator из дескриптора, парсинг/формат — через `_descriptor.Parse/Format`
