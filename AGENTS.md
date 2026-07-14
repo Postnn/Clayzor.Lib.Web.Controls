@@ -64,12 +64,13 @@
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../Clayzor.Lib.Entities/AGENTS.md).
 
-**Выполненные шаги (G0–G3):**
+**Выполненные шаги (G0–G4):**
 - G0 — `scripts/dynamic-grid/schema.sql`: 3 таблицы + триггер-upsert + сид #140
 - G1 — опции, схема, DI, тесты TG1
 - G1b — `DynamicSql` в `Clayzor.Lib.Entities.DynamicGrid`
 - G2 — модели (`ClayGridDefinition`, `ClayColumnDefinition`), `ClayGridDefinitionData`, перенос `ClayGridSchemaMap` в Entities, тесты TG2
 - G3 — `ClayColumnKind`, `ClayColumnTypeMap`, `ClayColumnFormat`, тесты TG3
+- G4 — `ClayGrid.Dynamic.cs`: динамический рендер, загрузка определения/колонок/данных из БД
 
 ### Services
 
@@ -94,6 +95,7 @@
 | `ClayGrid.Selection.cs` | 113 | `_selectMode`, `_selectAllChecked`, `_selectedIds`, `OnRowSelectAsync`, `SelectAllAsync`, `DeselectAllAsync`, `ToggleSelectMode`, персистентность выделения |
 | `ClayGrid.ExportMenu.cs` | ~240 | `_isExporting`, `_openSubGroups`, `ToggleSubGroup`, `ResolveExportColumnsAsync` (prompt → настройка/как на странице/null), `Print{CurrentPage,Selected,All}Internal` (через `BuildPrintHtmlForCurrentPageAsync` / `BuildPrintHtmlAsync` / `BuildPrintHtmlForSelectedAsync`), `Excel{CurrentPage,Selected,All}Internal` |
 | `ClayGrid.Paging.cs` | 59 | `_pageSize`, `OnPageSizeChanged`, `PrevPage`, `NextPage`, `LastPage` |
+| `ClayGrid.Dynamic.cs` | ~110 | Динамический режим: инжекты (`DbManager`, `IOptions<ClayGridDynamicOptions>`, `NavigationManager`), параметры (`Dynamic`, `DynamicGridId`), `InitDynamicMode` (загрузка определения + колонок из БД, регистрация `ClayColumnMeta`, CellTemplate из словаря), `LoadDynamicData` (WHERE из композитного фильтра через `ClayCompositeSqlBuilder.Build` + поиск через `BuildWhereClause`, выполнение через `DynamicSql`), `ResolveDynamicGridId` (из параметра или query-строки) |
 
 **Правила модификации:**
 - Новые поля/методы добавлять в соответствующий тематический файл, а не в `ClayGrid.razor.cs`

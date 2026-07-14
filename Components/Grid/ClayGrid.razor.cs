@@ -455,6 +455,14 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
 
         _lastQuery = query;
+
+        if (Dynamic)
+        {
+            await LoadDynamicData(query);
+            StateHasChanged();
+            return;
+        }
+
         if (DataLoader is not null)
             await DataLoader.OnQueryChangedAsync(query);
         else
