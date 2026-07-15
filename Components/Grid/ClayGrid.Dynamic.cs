@@ -574,7 +574,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var srtVal  = GridStateSerializer.SerializeSort(_sortState);
         var grpVal  = GridStateSerializer.SerializeGroups(_groupColumns);
         var pgsVal  = GridStateSerializer.SerializePageSize(_pageSize);
-        var fltVal  = GridStateSerializer.SerializeFilter(_filterRoot);
+        // SerializeFilter отдаёт null для пустого дерева. Пропускать запись нельзя:
+        // снятый пользователем фильтр остался бы в БД и вернулся после перезагрузки.
+        var fltVal  = GridStateSerializer.SerializeFilter(_filterRoot) ?? string.Empty;
 
         var t = opt.UserParamsTable;
         var s = opt.Schema;
@@ -588,7 +590,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.GroupingParamPrefix),  grpVal, t, s);
         if (!_dynamicForcedParamNames.Contains(p(opt.PageSizeParamPrefix)))
             await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.PageSizeParamPrefix),  pgsVal, t, s);
-        if (fltVal is not null && !_dynamicForcedParamNames.Contains(p(opt.FilterParamPrefix)))
+        if (!_dynamicForcedParamNames.Contains(p(opt.FilterParamPrefix)))
             await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.FilterParamPrefix), fltVal, t, s);
     }
 }
