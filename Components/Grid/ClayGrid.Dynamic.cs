@@ -421,7 +421,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         // Видимость/порядок колонок
         var colsName = p(opt.ColumnsParamPrefix);
         if (saved.TryGetValue(colsName, out var colsVal))
-            ApplySavedColumns(colsVal);
+            ApplyColumnsState(colsVal);
 
         // Сортировка
         var srtName = p(opt.SortingParamPrefix);
@@ -448,22 +448,40 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
     }
 
-    private void ApplySavedColumns(string value)
+    /// <summary>
+    /// Применяет строку состояния колонок (из ClayGridUserParams или URL) ПОВЕРХ дефолта
+    /// из определения. Колонки, которых нет в строке состояния, сохраняют дефолтную
+    /// видимость и добавляются в конец — иначе новая колонка в ЗапросыКолонки никогда
+    /// не появится у пользователя с сохранённым состоянием.
+    /// </summary>
+    private void ApplyColumnsState(string value)
     {
         var cols = GridStateSerializer.DeserializeColumns(value);
         if (cols.Count == 0) return;
 
-        _hiddenSqlNames.Clear();
+        var defOrder  = _columnOrder.ToList();
+        var defHidden = _hiddenSqlNames.ToHashSet();
+
         _columnOrder.Clear();
+        _hiddenSqlNames.Clear();
 
         foreach (var (sqlName, visible) in cols)
         {
-            if (_columnBySqlName.TryGetValue(sqlName, out var meta))
-            {
-                _columnOrder.Add(meta.ColumnId);
-                if (visible == 0)
-                    _hiddenSqlNames.Add(sqlName);
-            }
+            if (!_columnBySqlName.TryGetValue(sqlName, out var meta)) continue;
+            if (!defOrder.Contains(meta.ColumnId)) continue;      // фильтр-онли в вывод не пускаем
+            if (_columnOrder.Contains(meta.ColumnId)) continue;   // защита от дублей
+            _columnOrder.Add(meta.ColumnId);
+            if (visible == 0)
+                _hiddenSqlNames.Add(sqlName);
+        }
+
+        // Колонки определения, которых нет в состоянии, — в конец с дефолтной видимостью
+        foreach (var id in defOrder)
+        {
+            if (_columnOrder.Contains(id)) continue;
+            _columnOrder.Add(id);
+            if (_columnById.TryGetValue(id, out var meta) && defHidden.Contains(meta.SqlName))
+                _hiddenSqlNames.Add(meta.SqlName);
         }
 
         _dataKey++;
@@ -537,33 +555,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (!string.IsNullOrEmpty(forcedCols))
         {
             _dynamicForcedParamNames.Add(colsParamName);
-            ApplyUrlColumnsValue(forcedCols);
+            ApplyColumnsState(forcedCols);
         }
         // Default (с '_'): только если нет сохранённого
         else if (!string.IsNullOrEmpty(qs[defColsParamName]) && !_dynamicSavedParams.ContainsKey(colsParamName))
         {
-            ApplyUrlColumnsValue(qs[defColsParamName]!);
+            ApplyColumnsState(qs[defColsParamName]!);
         }
-    }
-
-    /// <summary>Применяет значение cols из URL к видимости и порядку колонок.</summary>
-    private void ApplyUrlColumnsValue(string value)
-    {
-        var cols = GridStateSerializer.DeserializeColumns(value);
-        if (cols.Count == 0) return;
-
-        _hiddenSqlNames.Clear();
-        _columnOrder.Clear();
-        foreach (var (sqlName, visible) in cols)
-        {
-            if (_columnBySqlName.TryGetValue(sqlName, out var meta))
-            {
-                _columnOrder.Add(meta.ColumnId);
-                if (visible == 0)
-                    _hiddenSqlNames.Add(sqlName);
-            }
-        }
-        _dataKey++;
     }
 
     private async Task SaveDynamicState()
