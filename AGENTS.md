@@ -94,6 +94,7 @@
 - GF1 — `ClayDynamicRow`: единый тип строки динрежима (`IClayGridRow` + `IDetailRow` + `IReadOnlyDictionary`), убран `InvalidCastException` в `LoadDynamicData`
 - GF2 — `InitDynamicMode()` вызывает `NotifyQueryChanged()` — первая загрузка данных при открытии страницы, без ручного «Обновить»
 - GF3 — `OnParametersSet()` не сбрасывает `_pageNumber` в динамическом режиме — пагинация не прыгает на 1 при ре-рендере
+- GF4 — скрытые по умолчанию колонки (`Порядок=0/NULL`) регистрируются в `_columnBySqlName` и `_hiddenSqlNames` — доступны в диалоге «Настройка колонок»
 
 ### Services
 

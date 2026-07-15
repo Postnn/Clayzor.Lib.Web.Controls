@@ -83,18 +83,23 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         _dynamicCols = await ClayGridDefinitionData.LoadColumnsAsync(Db, gridId, opt.ColumnsTable, opt.Schema);
 
-        // Видимые колонки: Order > 0, сортировка по Order
-        var visibleCols = _dynamicCols
-            .Where(c => c.Order is > 0)
-            .OrderBy(c => c.Order ?? int.MaxValue)
+        // Колонки вывода: сначала видимые по Порядок, затем скрытые (Порядок 0/NULL).
+        // Фильтр-онли типы (6, 11) в вывод не идут — они регистрируются отдельно.
+        var gridCols = _dynamicCols
+            .Where(c => c.Type != (int)ClayColumnKind.ConditionBool
+                     && c.Type != (int)ClayColumnKind.ConditionList)
+            .OrderBy(c => c.Order is > 0 ? 0 : 1)
+            .ThenBy(c => c.Order ?? int.MaxValue)
             .ToList();
+
+        var visibleCols = gridCols.Where(c => c.Order is > 0).ToList();
 
         SearchColumns = visibleCols.Select(c => c.Column).ToArray();
         DefaultOrder  = string.Join(", ", visibleCols.Select(c => c.Column));
-        _dynamicKnownColumns = visibleCols.Select(c => c.Column).ToHashSet();
+        _dynamicKnownColumns = gridCols.Select(c => c.Column).ToHashSet();
 
         // Загружаем справочники для колонок типа 5 (Список)
-        foreach (var col in visibleCols.Where(c => c.Type == (int)ClayColumnKind.List))
+        foreach (var col in gridCols.Where(c => c.Type == (int)ClayColumnKind.List))
         {
             if (!string.IsNullOrWhiteSpace(col.Format))
             {
@@ -110,7 +115,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
 
         // Загружаем справочники для колонок типа 9 (Пиктограмма)
-        foreach (var col in visibleCols.Where(c => c.Type == (int)ClayColumnKind.Icon))
+        foreach (var col in gridCols.Where(c => c.Type == (int)ClayColumnKind.Icon))
         {
             if (!string.IsNullOrWhiteSpace(col.Format))
             {
@@ -146,7 +151,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _dynamicKnownColumns.Add(col.Column);
         }
 
-        foreach (var col in visibleCols)
+        foreach (var col in gridCols)
         {
             var desc = ClayColumnTypeMap.Resolve(col.Type);
             if (desc is null) continue; // неподдержанный тип — пропускаем с логом
@@ -164,6 +169,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _columnById[col.ColumnId]     = meta;
             _columnBySqlName[col.Column]  = meta;
             _columnOrder.Add(col.ColumnId);
+
+            // Порядок 0/NULL — скрыта по умолчанию, но доступна в «Настройке колонок»
+            if (col.Order is not > 0)
+                _hiddenSqlNames.Add(col.Column);
 
             // Кешируем имя колонки для замыкания
             var colName    = col.Column;
