@@ -66,6 +66,7 @@
 | `ClayDateTimeLocalColumnType` | Дескриптор Тип 10: дата-время из UTC в локальный пояс. Формат = .NET-строка (напр. `"dd.MM.yyyy HH:mm"`). Фильтруется как Date |
 | `ClayTimeLocalColumnType` | Дескриптор Тип 13: время из UTC в локальный пояс. Формат = .NET-строка (напр. `"HH:mm"`). Фильтруется как Date |
 | `ClayDateTimeConverter` | Статический конвертер: `ConvertFromUtc(DateTime?, TimeSpan)` и `Format(object?, string?, TimeSpan?)`. Чистые функции (без DateTime.Now), тестируемо |
+| `ClayDynamicRow` | Строка динамического грида. Реализует `IClayGridRow` + `IDetailRow` + `IReadOnlyDictionary<string, object?>`. `IDetailRow.Item => this` — строка сама является словарём для `GetRowIdValue`. Заменяет `InvalidCastException`-каст в `LoadDynamicData` |
 | `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
@@ -88,6 +89,10 @@
 - G12 — `ClayConditionBoolColumnType` (Тип 6) и `ClayConditionListColumnType` (Тип 11): фильтр-онли, не выводятся в гриде, тесты TG7
 - G13 — `ClayHtmlSanitizer`, `ClayHtmlColumnType` (Тип 8), `ClayLimitedTextColumnType` (Тип 12), Тип 4 (Ссылка): `<a>`, обрезка+tooltip, `AddMarkupContent`, тесты TG8
 - G14 — `ClayDateTimeLocalColumnType` (Тип 10), `ClayTimeLocalColumnType` (Тип 13), `ClayDateTimeConverter`: UTC→локальный пояс, `_clientOffset` из JS, тесты TG8
+
+**Выполненные багфиксы (GF1–GF2):**
+- GF1 — `ClayDynamicRow`: единый тип строки динрежима (`IClayGridRow` + `IDetailRow` + `IReadOnlyDictionary`), убран `InvalidCastException` в `LoadDynamicData`
+- GF2 — `InitDynamicMode()` вызывает `NotifyQueryChanged()` — первая загрузка данных при открытии страницы, без ручного «Обновить»
 
 ### Services
 
@@ -112,7 +117,7 @@
 | `ClayGrid.Selection.cs` | 113 | `_selectMode`, `_selectAllChecked`, `_selectedIds`, `OnRowSelectAsync`, `SelectAllAsync`, `DeselectAllAsync`, `ToggleSelectMode`, персистентность выделения |
 | `ClayGrid.ExportMenu.cs` | ~240 | `_isExporting`, `_openSubGroups`, `ToggleSubGroup`, `ResolveExportColumnsAsync` (prompt → настройка/как на странице/null), `Print{CurrentPage,Selected,All}Internal` (через `BuildPrintHtmlForCurrentPageAsync` / `BuildPrintHtmlAsync` / `BuildPrintHtmlForSelectedAsync`), `Excel{CurrentPage,Selected,All}Internal` |
 | `ClayGrid.Paging.cs` | 59 | `_pageSize`, `OnPageSizeChanged`, `PrevPage`, `NextPage`, `LastPage` |
-| `ClayGrid.Dynamic.cs` | ~110 | Динамический режим: инжекты (`DbManager`, `IOptions<ClayGridDynamicOptions>`, `NavigationManager`), параметры (`Dynamic`, `DynamicGridId`), `InitDynamicMode` (загрузка определения + колонок из БД, регистрация `ClayColumnMeta`, CellTemplate из словаря), `LoadDynamicData` (WHERE из композитного фильтра через `ClayCompositeSqlBuilder.Build` + поиск через `BuildWhereClause`, выполнение через `DynamicSql`), `ResolveDynamicGridId` (из параметра или query-строки) |
+| `ClayGrid.Dynamic.cs` | ~120 | Динамический режим: инжекты (`DbManager`, `IOptions<ClayGridDynamicOptions>`, `NavigationManager`), параметры (`Dynamic`, `DynamicGridId`), `InitDynamicMode` (загрузка определения + колонок из БД, регистрация `ClayColumnMeta`, CellTemplate из словаря, первая загрузка через `NotifyQueryChanged`), `LoadDynamicData` (WHERE из композитного фильтра через `ClayCompositeSqlBuilder.Build` + поиск через `BuildWhereClause`, оборачивание строк в `ClayDynamicRow`, выполнение через `DynamicSql`), `ResolveDynamicGridId` (из параметра или query-строки) |
 
 **Правила модификации:**
 - Новые поля/методы добавлять в соответствующий тематический файл, а не в `ClayGrid.razor.cs`

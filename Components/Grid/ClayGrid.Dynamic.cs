@@ -268,6 +268,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
         ApplyUrlParams(opt);
 
         _dynamicInitDone = true;
+
+        // Первая загрузка: в динамическом режиме страницы-загрузчика нет,
+        // грид обязан стартовать сам.
+        await NotifyQueryChanged();
     }
 
     // ── Динамические действия ─────────────────────────────────────────────────
