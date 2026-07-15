@@ -204,7 +204,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <inheritdoc/>
     protected override void OnParametersSet()
     {
-        _pageNumber = PageNumber;
+        // В динамическом режиме пагинация внутренняя: PageNumber снаружи не передают,
+        // безусловный сброс убивал переход по страницам.
+        if (!Dynamic)
+            _pageNumber = PageNumber;
         if (TotalCount > 0 && _pageNumber > _totalPages)
             _pageNumber = _totalPages;
         if (_selectMode)
