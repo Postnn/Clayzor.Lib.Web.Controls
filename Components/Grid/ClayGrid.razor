@@ -359,17 +359,12 @@
                                                Title="Переключить выделение группы"
                                                OnToggle="() => OnGroupTriToggle(gh)" />
                             }
-                            else if (context.Item is IDetailRow dr)
+                            else if (context.Item is IDetailRow dr && TryGetSelectionId(dr.Item, out var eid))
                             {
-                                var ent = dr.Item as Entity;
-                                if (ent != null)
-                                {
-                                    var eid = ent.Id;
-                                    var detailChecked = _selectedIds.Contains(eid);
-                                    <ClayCheckbox State="(bool?)detailChecked"
-                                                   Title="Выбрать запись"
-                                                   OnToggle="() => OnRowSelectAsync(eid, !detailChecked)" />
-                                }
+                                var detailChecked = _selectedIds.Contains(eid);
+                                <ClayCheckbox State="(bool?)detailChecked"
+                                               Title="Выбрать запись"
+                                               OnToggle="() => OnRowSelectAsync(eid, !detailChecked)" />
                             }
                             </div>
                         </CellTemplate>

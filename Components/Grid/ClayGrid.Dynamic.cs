@@ -1,4 +1,5 @@
 using Clayzor.Lib.DALC;
+using Clayzor.Lib.Entities;
 using Clayzor.Lib.Entities.DynamicGrid;
 using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes;
 using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
@@ -389,6 +390,30 @@ public partial class ClayGrid<TEntity> where TEntity : class
             && dict.TryGetValue(_dynamicDef.IdColumn!, out var v) && v is not null)
             return v.ToString();
         return null;
+    }
+
+    /// <summary>
+    /// ID строки для режима выбора. В динамическом режиме берётся из колонки
+    /// <c>_dynamicDef.IdColumn</c>, в статическом — из <see cref="Entity.Id"/>.
+    /// Возвращает false, если ID нечисловой: выбор для такого грида недоступен.
+    /// </summary>
+    private bool TryGetSelectionId(object? rowItem, out int id)
+    {
+        id = 0;
+
+        if (Dynamic)
+        {
+            var raw = GetRowIdValue(rowItem);
+            return raw is not null && int.TryParse(raw, out id);
+        }
+
+        if (rowItem is Entity e)
+        {
+            id = e.Id;
+            return true;
+        }
+
+        return false;
     }
 
     private int ResolveDynamicGridId(ClayGridDynamicOptions opt)

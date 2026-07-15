@@ -42,10 +42,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         foreach (var row in Items)
         {
-            if (row is IDetailRow dr && dr.Item is Entity e)
+            if (row is IDetailRow dr && TryGetSelectionId(dr.Item, out var eid))
             {
                 anyItem = true;
-                if (_selectedIds.Contains(e.Id)) anySelected = true;
+                if (_selectedIds.Contains(eid)) anySelected = true;
                 else allSelected = false;
             }
             else if (row is GroupHeaderRow gh)
@@ -78,10 +78,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         foreach (var row in Items)
         {
-            if (row is IDetailRow dr && dr.Item is Entity e)
+            if (row is IDetailRow dr && TryGetSelectionId(dr.Item, out var eid))
             {
                 anyItem = true;
-                if (!_selectedIds.Contains(e.Id)) return false;
+                if (!_selectedIds.Contains(eid)) return false;
             }
             else if (row is GroupHeaderRow gh)
             {
