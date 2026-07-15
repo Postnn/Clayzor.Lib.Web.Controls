@@ -437,6 +437,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private async Task LoadDynamicData(ClayDataQuery query)
     {
+        // NotifyQueryChanged собирает query без ExpandedGroups (в статике их владелец — страница).
+        query.ExpandedGroups = _dynamicExpandedGroups;
+
         var dp = new DynamicParameters();
 
         // BuildWhereClause генерирует "col LIKE @search", но параметр не добавляет —

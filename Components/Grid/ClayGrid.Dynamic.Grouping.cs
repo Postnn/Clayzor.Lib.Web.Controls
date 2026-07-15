@@ -12,6 +12,12 @@ namespace Clayzor.Lib.Web.Controls.Components.Grid;
 /// </summary>
 public partial class ClayGrid<TEntity> where TEntity : class
 {
+    /// <summary>
+    /// Раскрытые группы (полные ключи через ) в динамическом режиме.
+    /// В статическом режиме тем же владеет ClayGridPageBase._query.ExpandedGroups.
+    /// </summary>
+    private readonly HashSet<string> _dynamicExpandedGroups = [];
+
     /// <summary>Корни дерева групп последней загрузки. null — плоский режим или данных нет.</summary>
     private List<GridGroupNode>? _dynamicGroupRoots;
 
@@ -74,5 +80,46 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         Items      = newRows;
         TotalCount = totalEffective;
+    }
+
+    /// <summary>
+    /// Раскрывает/сворачивает группу в динамическом режиме.
+    /// Копия логики ClayGridPageBase.ToggleGroup, включая автопереход страницы.
+    /// </summary>
+    private async Task ToggleDynamicGroup(GroupHeaderRow header)
+    {
+        var wasExpanded = _dynamicExpandedGroups.Contains(header.FullKey);
+        if (wasExpanded)
+            _dynamicExpandedGroups.Remove(header.FullKey);
+        else
+            _dynamicExpandedGroups.Add(header.FullKey);
+
+        await NotifyQueryChanged();
+
+        if (!wasExpanded)
+        {
+            // Раскрыли последнюю группу на странице: её детали физически не влезли —
+            // сразу уходим на следующую страницу, иначе клик выглядит как «не сработал».
+            var expandedHeader = (Items ?? []).OfType<GroupHeaderRow>()
+                .FirstOrDefault(h => h.FullKey == header.FullKey);
+            if (expandedHeader is not null)
+            {
+                var rows      = (Items ?? []).ToList();
+                var headerIdx = rows.IndexOf((TEntity)(object)expandedHeader);
+                if (headerIdx >= 0 && headerIdx == rows.Count - 1 && header.ItemCount > 0)
+                {
+                    _pageNumber++;
+                    await NotifyQueryChanged();
+                }
+            }
+        }
+        else if (TotalCount > 0 && _pageNumber > _totalPages)
+        {
+            // Свернули группу: эффективных строк стало меньше, текущей страницы может уже не быть.
+            _pageNumber = _totalPages;
+            await NotifyQueryChanged();
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 }

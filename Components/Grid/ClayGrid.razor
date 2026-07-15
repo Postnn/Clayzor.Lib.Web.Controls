@@ -383,7 +383,7 @@
                             {
                                 @if (GroupRowHostKey == "__edit__")
                                 {
-                                    <ClayGroupHeader Header="gh" OnToggle="OnGroupToggle" />
+                                    <ClayGroupHeader Header="gh" OnToggle="HandleGroupToggle" />
                                 }
                             }
                             else if (context.Item is IDetailRow detail)
@@ -463,7 +463,7 @@
                             {
                                 @if (IsGroupRowHost(sqlName))
                                 {
-                                    <ClayGroupHeader Header="gh" OnToggle="OnGroupToggle" />
+                                    <ClayGroupHeader Header="gh" OnToggle="HandleGroupToggle" />
                                 }
                             }
                             else

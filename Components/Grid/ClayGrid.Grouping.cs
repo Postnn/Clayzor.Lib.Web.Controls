@@ -13,6 +13,18 @@ public partial class ClayGrid<TEntity> where TEntity : class
     [Parameter] public EventCallback<GroupHeaderRow> OnGroupToggle { get; set; }
 
     /// <summary>
+    /// Единый обработчик клика по шеврону заголовка группы.
+    /// Динамический режим обрабатывает сам; статический — отдаёт странице через OnGroupToggle.
+    /// </summary>
+    private async Task HandleGroupToggle(GroupHeaderRow header)
+    {
+        if (Dynamic)
+            await ToggleDynamicGroup(header);
+        else
+            await OnGroupToggle.InvokeAsync(header);
+    }
+
+    /// <summary>
     /// SqlName колонки, которая должна отображать заголовок группы (шеврон + подпись + счётчик).
     /// "__edit__" — колонка редактирования. Никогда не совпадает с колонкой, скрытой текущей
     /// группировкой или пользовательскими настройками — вычисляется заново на каждый рендер.
