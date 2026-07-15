@@ -376,7 +376,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         TotalCount = await DynamicSql.QueryCountAsync(Db, SelectSql, where, dp);
 
-        Items = (IEnumerable<TEntity>)rows;
+        Items = rows.Select(r => (TEntity)(object)new ClayDynamicRow(r)).ToList();
 
         // Сохраняем состояние после каждой загрузки данных
         await SaveDynamicState();
