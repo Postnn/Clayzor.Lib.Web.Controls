@@ -14,6 +14,8 @@ public static class ClayColumnTypeMap
     private static readonly ClayConditionListColumnType _conditionList = new();
     private static readonly ClayHtmlColumnType _html = new();
     private static readonly ClayLimitedTextColumnType _limitedText = new();
+    private static readonly ClayDateTimeLocalColumnType _dateTimeLocal = new();
+    private static readonly ClayTimeLocalColumnType _timeLocal = new();
 
     /// <summary>
     /// Возвращает дескриптор для поддерживаемых типов.
@@ -31,7 +33,9 @@ public static class ClayColumnTypeMap
         (int)ClayColumnKind.Bool           => ColumnTypeRegistry.FromKind(ColumnType.Boolean),
         (int)ClayColumnKind.ConditionList  => _conditionList,
         (int)ClayColumnKind.Html          => _html,
-        (int)ClayColumnKind.LimitedText   => _limitedText,
+        (int)ClayColumnKind.LimitedText    => _limitedText,
+        (int)ClayColumnKind.DateTimeLocal => _dateTimeLocal,
+        (int)ClayColumnKind.TimeLocal     => _timeLocal,
         _ => null
     };
 

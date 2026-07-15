@@ -47,6 +47,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private string? _dynamicNewUrl;
     private string? _dynamicDeleteSql;
 
+    // Смещение часового пояса клиента (для Тип 10/13)
+    private TimeSpan _clientOffset = TimeSpan.Zero;
+
     // ID грида и CLID для персистенции состояния
     private int _dynamicGridId;
     private int _dynamicClid;
@@ -170,8 +173,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
             var isIcon     = col.Type == (int)ClayColumnKind.Icon;
             var isHtml     = col.Type == (int)ClayColumnKind.Html;
             var isLink     = col.Type == (int)ClayColumnKind.Link;
-            var isLimText  = col.Type == (int)ClayColumnKind.LimitedText;
-            var limLen     = isLimText && int.TryParse(col.Format, out var n) ? n : 0;
+            var isLimText   = col.Type == (int)ClayColumnKind.LimitedText;
+            var isDateTime  = col.Type == (int)ClayColumnKind.DateTimeLocal;
+            var isTime      = col.Type == (int)ClayColumnKind.TimeLocal;
+            var limLen      = isLimText && int.TryParse(col.Format, out var n) ? n : 0;
+            var dtFormat    = isDateTime || isTime ? col.Format : null;
             _cellTemplates[col.ColumnId] = (RenderFragment<CellContext<TEntity>>)(ctx =>
             {
                 string text = "";
@@ -193,6 +199,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
                     else if (isHtml)
                     {
                         text = ClayHtmlSanitizer.Sanitize(raw);
+                    }
+                    else if (isDateTime || isTime)
+                    {
+                        text = ClayDateTimeConverter.Format(v, dtFormat, _clientOffset);
                     }
                     else
                     {

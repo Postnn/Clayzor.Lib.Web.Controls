@@ -56,19 +56,22 @@
 | Класс | Назначение |
 |---|---|
 | `ClayGridDynamicOptions` | Настройки динрежима: имена таблиц, префиксы query-параметров, `ConnectionStringName`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
-| `ClayColumnKind` | Enum типов колонок (1–13): Number, Text, Date, Link, List, ConditionBool, Bool, Html, Icon, DateTimeLocal, ConditionList, LimitedText, TimeLocal |
+| `ClayColumnKind` | Enum типов колонок (1–13): Number=1, Text=2, Date=3, Link=4, List=5, ConditionBool=6, Bool=7, Html=8, Icon=9, DateTimeLocal=10, ConditionList=11, LimitedText=12, TimeLocal=13 |
 | `ClayColumnTypeMap` | `Resolve(int)` → существующий `ColumnTypeDescriptor` (1→Number, 2→Text, 3→Date, 4→Text, 7→Boolean); `IsSupported(int)` |
 | `ClayColumnFormat` | `Parse(int, string?)` — разбор строки `Формат` из БД |
 | `ClayGridLinkResolver` | `Resolve(string?, IConfiguration?)` — резолвинг URL из определения: null/пусто, `@Key` из конфигурации, прямые URL |
 | `GridStateSerializer` | Сериализация/десериализация состояния грида (колонки, сортировка, группировка, фильтр JSON, размер страницы). Чистые функции |
 | `ClayGridUrlFilterParser` | Разбор URL-фильтра `КлючURL=op~value`: `ParsedUrlFilter` record, `Parse` (правила 1/2/5), `Apply` (слияние в дерево с учётом сохранённых параметров) |
 | `ClayHtmlSanitizer` | `Sanitize(html)` — вырезает `<script>`, `onXxx`-атрибуты, `javascript:` |
+| `ClayDateTimeLocalColumnType` | Дескриптор Тип 10: дата-время из UTC в локальный пояс. Формат = .NET-строка (напр. `"dd.MM.yyyy HH:mm"`). Фильтруется как Date |
+| `ClayTimeLocalColumnType` | Дескриптор Тип 13: время из UTC в локальный пояс. Формат = .NET-строка (напр. `"HH:mm"`). Фильтруется как Date |
+| `ClayDateTimeConverter` | Статический конвертер: `ConvertFromUtc(DateTime?, TimeSpan)` и `Format(object?, string?, TimeSpan?)`. Чистые функции (без DateTime.Now), тестируемо |
 | `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../Clayzor.Lib.Entities/AGENTS.md).
 
-**Выполненные шаги (G0–G5):**
+**Выполненные шаги (G0–G14):**
 - G0 — `scripts/dynamic-grid/schema.sql`: 3 таблицы + триггер-upsert + сид #140
 - G1 — опции, схема, DI, тесты TG1
 - G1b — `DynamicSql` в `Clayzor.Lib.Entities.DynamicGrid`
@@ -84,6 +87,7 @@
 - G11 — `ClayIconColumnType` (Тип 9): 3-колоночный подзапрос, `<img>` с tooltip, тесты TG7
 - G12 — `ClayConditionBoolColumnType` (Тип 6) и `ClayConditionListColumnType` (Тип 11): фильтр-онли, не выводятся в гриде, тесты TG7
 - G13 — `ClayHtmlSanitizer`, `ClayHtmlColumnType` (Тип 8), `ClayLimitedTextColumnType` (Тип 12), Тип 4 (Ссылка): `<a>`, обрезка+tooltip, `AddMarkupContent`, тесты TG8
+- G14 — `ClayDateTimeLocalColumnType` (Тип 10), `ClayTimeLocalColumnType` (Тип 13), `ClayDateTimeConverter`: UTC→локальный пояс, `_clientOffset` из JS, тесты TG8
 
 ### Services
 
@@ -237,7 +241,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 
 ### Дескрипторы типов колонок (`Components/Grid/ColumnTypes/`)
 - `ColumnTypeDescriptor` — абстрактный базовый класс: `Kind`, `ClrType`, `Operators`, `DefaultOperator`, `OperatorTakesValue(op)`, `Parse(string?)`, `Format(object?)`, `ToParameter(object?)`. Единая точка типозависимого поведения
-- `TextColumnType`, `NumberColumnType`, `DecimalColumnType`, `BooleanColumnType`, `DateColumnType`, `ClayListColumnType` (Тип 5), `ClayIconColumnType` (Тип 9), `ClayConditionBoolColumnType` (Тип 6), `ClayConditionListColumnType` (Тип 11), `ClayHtmlColumnType` (Тип 8), `ClayLimitedTextColumnType` (Тип 12) — конкретные дескрипторы
+- `TextColumnType`, `NumberColumnType`, `DecimalColumnType`, `BooleanColumnType`, `DateColumnType`, `ClayListColumnType` (Тип 5), `ClayIconColumnType` (Тип 9), `ClayConditionBoolColumnType` (Тип 6), `ClayConditionListColumnType` (Тип 11), `ClayHtmlColumnType` (Тип 8), `ClayLimitedTextColumnType` (Тип 12), `ClayDateTimeLocalColumnType` (Тип 10), `ClayTimeLocalColumnType` (Тип 13) — конкретные дескрипторы
 - `ColumnTypeRegistry` — `FromClr(Type)` (CLR→дескриптор), `FromKind(ColumnType)` (enum→дескриптор), синглтоны
 - `ClayColumnMeta.Type` — дескриптор, заполняемый при регистрации колонки; единственный источник операторов/парсинга/формата
 - `ClayColumnFilterDialog` получает операторы и DefaultOperator из дескриптора, парсинг/формат — через `_descriptor.Parse/Format`
