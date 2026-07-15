@@ -439,6 +439,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         var dp = new DynamicParameters();
 
+        // BuildWhereClause генерирует "col LIKE @search", но параметр не добавляет —
+        // это делает вызывающий (ср. ClayGridPageBase.LoadFlatData).
+        dp.Add("search", $"%{query.SearchText}%");
+
         var searchWhere = query.BuildWhereClause(SearchColumns);
         var filterWhere = ClayCompositeSqlBuilder.Build(query.CompositeFilter, dp, _dynamicKnownColumns);
         var where       = ClayDataQuery.CombineWhere(searchWhere, filterWhere);
