@@ -112,6 +112,7 @@
 
 **Выполненные шаги группировки (GG1+):**
 - GG1 — `ClayDynamicGroupMapper`: маппинг словарей агрегатного GROUP BY в `GridGroupRow` (чистые функции, DBNull→null, K0 null→"")
+- GG2 — `LoadDynamicGroupedData`: конвейер группировки (агрегат→дерево→layout→детали), `LoadDynamicData` → диспетчер + `LoadDynamicFlatData`
 
 ### Services
 

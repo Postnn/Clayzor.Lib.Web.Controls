@@ -446,17 +446,29 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var searchWhere = query.BuildWhereClause(SearchColumns);
         var filterWhere = ClayCompositeSqlBuilder.Build(query.CompositeFilter, dp, _dynamicKnownColumns);
         var where       = ClayDataQuery.CombineWhere(searchWhere, filterWhere);
-        var orderBy     = query.BuildOrderBy(DefaultOrder);
+
+        if (query.GroupEnabled && query.GroupColumns.Count > 0)
+            await LoadDynamicGroupedData(query, where, dp);
+        else
+            await LoadDynamicFlatData(query, where, dp);
+
+        // Сохраняем состояние после каждой загрузки данных
+        await SaveDynamicState();
+    }
+
+    /// <summary>Плоский режим: страница строк без группировки.</summary>
+    private async Task LoadDynamicFlatData(ClayDataQuery query, string? where, DynamicParameters dp)
+    {
+        _dynamicGroupRoots       = null;
+        _dynamicGroupKeysByDepth = null;
+
+        var orderBy = query.BuildOrderBy(DefaultOrder);
 
         var rows = await DynamicSql.QueryPagedRowsAsync(
             Db, SelectSql, where, orderBy, dp, query.PageNumber, query.PageSize);
 
         TotalCount = await DynamicSql.QueryCountAsync(Db, SelectSql, where, dp);
-
-        Items = rows.Select(r => (TEntity)(object)new ClayDynamicRow(r)).ToList();
-
-        // Сохраняем состояние после каждой загрузки данных
-        await SaveDynamicState();
+        Items      = rows.Select(r => (TEntity)(object)new ClayDynamicRow(r)).ToList();
     }
 
     // ── Персистенция состояния ─────────────────────────────────────────────────
