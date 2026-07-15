@@ -103,6 +103,7 @@
 **Выполненные багфиксы (GF8+):**
 - GF8 — tie-breaker в сортировке колонок: `ORDER BY [Порядок], [КодКолонки]` в SQL и `.ThenBy(ColumnId/Column)` в LINQ — детерминированный порядок при одинаковом `Порядок`
 - GF9 — снятый фильтр затирается в БД: `SerializeFilter(...) ?? string.Empty` — пустая строка вместо `null`, `DeserializeFilter("")` корректно возвращает `null`
+- GF10 — `_dynamicError` + `MudAlert` в `ClayGrid.razor`: при отсутствии `?id=` или несуществующем запросе — предупреждение вместо пустой страницы
 
 ### Services
 

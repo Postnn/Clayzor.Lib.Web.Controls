@@ -13,6 +13,12 @@
 <CascadingValue Value="(IClayGrid)this" IsFixed="true">
 @ColumnDefs
 <MudPaper Elevation="1" Class="pa-4" Style="position:relative" id="@Id">
+    @if (_dynamicError is not null)
+    {
+        <MudAlert Severity="Severity.Warning">@_dynamicError</MudAlert>
+    }
+    else
+    {
     <div class="d-flex flex-wrap justify-space-between gap-2 mb-4" style="align-items:center">
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.h5">@Title</MudText>
@@ -154,10 +160,8 @@
         </MudStack>
     </div>
 
-    @{
-        var filterDesc = BuildFilterDescription();
-        var groupDesc  = BuildGroupDescription();
-    }
+    var filterDesc = BuildFilterDescription();
+    var groupDesc  = BuildGroupDescription();
     @if (filterDesc is not null || groupDesc is not null)
     {
         <div class="clay-grid-print-descriptions">
@@ -495,6 +499,7 @@
                 <MudIconButton Icon="@Icons.Material.Filled.LastPage" OnClick="GoToLastPageAsync" Disabled="@(_pageNumber >= _totalPages)" Size="Size.Small" />
             </MudStack>
         </div>
+    }
     }
 </MudPaper>
 </CascadingValue>

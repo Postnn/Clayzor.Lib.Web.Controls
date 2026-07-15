@@ -50,6 +50,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     // Смещение часового пояса клиента (для Тип 10/13)
     private TimeSpan _clientOffset = TimeSpan.Zero;
 
+    // Ошибка инициализации динамического режима
+    private string? _dynamicError;
+
     // ID грида и CLID для персистенции состояния
     private int _dynamicGridId;
     private int _dynamicClid;
@@ -70,13 +73,21 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var opt = DynamicOpts.Value;
         var gridId = ResolveDynamicGridId(opt);
 
-        if (gridId == 0) return;
+        if (gridId == 0)
+        {
+            _dynamicError = $"Не указан код запроса: ожидается query-параметр «{opt.GridIdQueryParam}».";
+            return;
+        }
 
         _dynamicGridId = gridId;
         _dynamicClid   = ResolveClientId(opt);
 
         _dynamicDef = await ClayGridDefinitionData.LoadGridAsync(Db, gridId, opt.SettingsTable, opt.Schema);
-        if (_dynamicDef is null) return;
+        if (_dynamicDef is null)
+        {
+            _dynamicError = $"Грид не найден: запрос №{gridId} отсутствует в «{opt.SettingsTable}».";
+            return;
+        }
 
         Title     = _dynamicDef.Title ?? "Список";
         SelectSql = _dynamicDef.Sql;
