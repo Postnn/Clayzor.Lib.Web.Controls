@@ -52,6 +52,8 @@
 
 Пакет `Components/Grid/Dynamic/` — конфигурация и DI для динамического режима, в котором грид читает определение
 (SQL, колонки, кнопки) из БД. План реализации: [promts/_readme_grid_dynamic.md](Components/Grid/promts/_readme_grid_dynamic.md).
+Выполненные промты (G0–G14, GF1–GF7, TG1–TG9): `promts/_done/DynamicFilter/`.
+Активные промты (GF8–GF16): `promts/GF*.md`. Оркестратор багфиксов: `promts/GF0_README_dynamic_fixes.md`.
 
 | Класс | Назначение |
 |---|---|
