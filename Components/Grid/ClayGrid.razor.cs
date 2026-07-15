@@ -337,11 +337,15 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private List<ColumnSettingsItem> BuildColumnSettingsItems()
     {
-        var items = _columnBySqlName.Values
-            .OrderBy(m => _columnOrder.IndexOf(m.ColumnId))
+        // Строим из _columnOrder, а не из _columnBySqlName — фильтр-онли колонки
+        // (Тип 6/11) есть в _columnBySqlName, но не в _columnOrder, и не должны
+        // попадать в диалог настройки колонок.
+        var items = _columnOrder
+            .Select(id => _columnById.GetValueOrDefault(id))
+            .Where(m => m is not null)
             .Select(m => new ColumnSettingsItem
             {
-                SqlName           = m.SqlName,
+                SqlName           = m!.SqlName,
                 DisplayName       = m.DisplayName,
                 IsVisible         = !_hiddenSqlNames.Contains(m.SqlName) && !IsGrouped(m.SqlName),
                 IsReadonly        = IsGrouped(m.SqlName),
