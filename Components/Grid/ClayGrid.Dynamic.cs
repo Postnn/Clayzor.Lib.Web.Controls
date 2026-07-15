@@ -90,6 +90,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
                      && c.Type != (int)ClayColumnKind.ConditionList)
             .OrderBy(c => c.Order is > 0 ? 0 : 1)
             .ThenBy(c => c.Order ?? int.MaxValue)
+            .ThenBy(c => c.Order is > 0 ? c.ColumnId.ToString("D10") : c.Column)
             .ToList();
 
         var visibleCols = gridCols.Where(c => c.Order is > 0).ToList();
