@@ -53,6 +53,28 @@ public partial class ClayGrid<TEntity> where TEntity : class
     // Ошибка инициализации динамического режима
     private string? _dynamicError;
 
+    /// <summary>
+    /// Читает смещение часового пояса клиента через JS. Вызывается только из
+    /// OnAfterRenderAsync(firstRender): при пререндере JS недоступен.
+    /// </summary>
+    private async Task InitClientOffset()
+    {
+        try
+        {
+            var minutes = await JS.InvokeAsync<int>("clayGridTimeZone.getOffsetMinutes", Array.Empty<object?>());
+            var offset  = TimeSpan.FromMinutes(minutes);
+            if (offset == _clientOffset) return;
+
+            _clientOffset = offset;
+            _dataKey++;              // пересобрать ячейки с уже новым смещением
+            StateHasChanged();
+        }
+        catch
+        {
+            // JS недоступен (пререндер/отвал) — остаёмся на UTC
+        }
+    }
+
     // ID грида и CLID для персистенции состояния
     private int _dynamicGridId;
     private int _dynamicClid;

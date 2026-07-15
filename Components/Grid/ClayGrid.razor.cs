@@ -221,6 +221,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         if (firstRender)
         {
+            if (Dynamic)
+                await InitClientOffset();
+
             _columnsReady = true;
             _dataKey++;
             StateHasChanged();
