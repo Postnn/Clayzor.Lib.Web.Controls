@@ -69,6 +69,7 @@
 | `ClayTimeLocalColumnType` | Дескриптор Тип 13: время из UTC в локальный пояс. Формат = .NET-строка (напр. `"HH:mm"`). Фильтруется как Date |
 | `ClayDateTimeConverter` | Статический конвертер: `ConvertFromUtc(DateTime?, TimeSpan)` и `Format(object?, string?, TimeSpan?)`. Чистые функции (без DateTime.Now), тестируемо |
 | `ClayDynamicRow` | Строка динамического грида. Реализует `IClayGridRow` + `IDetailRow` + `IReadOnlyDictionary<string, object?>`. `IDetailRow.Item => this` — строка сама является словарём для `GetRowIdValue`. Заменяет `InvalidCastException`-каст в `LoadDynamicData` |
+| `ClayDynamicGroupMapper` | Статический маппер словарей агрегатного GROUP BY в `GridGroupRow` для `ClayGroupingEngine`. `MapRow`/`MapRows`, нормализация DBNull, K0 null→"". Чистые функции |
 | `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
@@ -108,6 +109,9 @@
 - GF12 — `SaveParamIfChanged`: запись в БД только изменившихся параметров (кеш `_dynamicSavedParams`), а не 5 `INSERT` на каждую загрузку
 - GF13 — `TryGetSelectionId`: чекбоксы выбора строк в динрежиме (ID из `_dynamicDef.IdColumn` вместо `Entity.Id`)
 - GF16 — `dp.Add("search", ...)` в `LoadDynamicData`: поиск в динрежиме больше не падает `SqlException`
+
+**Выполненные шаги группировки (GG1+):**
+- GG1 — `ClayDynamicGroupMapper`: маппинг словарей агрегатного GROUP BY в `GridGroupRow` (чистые функции, DBNull→null, K0 null→"")
 
 ### Services
 
