@@ -78,7 +78,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
     // ID грида и CLID для персистенции состояния
     private int _dynamicGridId;
     private int _dynamicClid;
-    private IReadOnlyDictionary<string, string> _dynamicSavedParams = new Dictionary<string, string>();
+    /// <summary>Кеш «что сейчас лежит в БД» — ключ: имя параметра, значение: сохранённая строка.</summary>
+    private Dictionary<string, string> _dynamicSavedParams = [];
     private HashSet<string> _dynamicForcedParamNames = [];
 
     /// <summary>
@@ -450,7 +451,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var saved = await ClayGridUserParamsData.LoadAsync(
             Db, _dynamicClid, paramNames, opt.UserParamsTable, opt.Schema);
 
-        _dynamicSavedParams = saved; // кешируем для G8/G9
+        _dynamicSavedParams = new Dictionary<string, string>(saved);
 
         // Видимость/порядок колонок
         var colsName = p(opt.ColumnsParamPrefix);
@@ -603,27 +604,28 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var opt = DynamicOpts.Value;
         var p   = (string prefix) => ClayGridUserParamsData.BuildParamName(prefix, _dynamicGridId);
 
-        var colsVal = GridStateSerializer.SerializeColumns(_columnOrder, _columnById, _hiddenSqlNames);
-        var srtVal  = GridStateSerializer.SerializeSort(_sortState);
-        var grpVal  = GridStateSerializer.SerializeGroups(_groupColumns);
-        var pgsVal  = GridStateSerializer.SerializePageSize(_pageSize);
-        // SerializeFilter отдаёт null для пустого дерева. Пропускать запись нельзя:
-        // снятый пользователем фильтр остался бы в БД и вернулся после перезагрузки.
-        var fltVal  = GridStateSerializer.SerializeFilter(_filterRoot) ?? string.Empty;
+        await SaveParamIfChanged(p(opt.ColumnsParamPrefix),
+            GridStateSerializer.SerializeColumns(_columnOrder, _columnById, _hiddenSqlNames), opt);
+        await SaveParamIfChanged(p(opt.SortingParamPrefix),
+            GridStateSerializer.SerializeSort(_sortState), opt);
+        await SaveParamIfChanged(p(opt.GroupingParamPrefix),
+            GridStateSerializer.SerializeGroups(_groupColumns), opt);
+        await SaveParamIfChanged(p(opt.PageSizeParamPrefix),
+            GridStateSerializer.SerializePageSize(_pageSize), opt);
+        await SaveParamIfChanged(p(opt.FilterParamPrefix),
+            GridStateSerializer.SerializeFilter(_filterRoot) ?? string.Empty, opt);
+    }
 
-        var t = opt.UserParamsTable;
-        var s = opt.Schema;
+    /// <summary>
+    /// Пишет параметр, только если значение отличается от того, что уже в БД
+    /// (по кешу <see cref="_dynamicSavedParams"/>). Forced-параметры (из URL) не сохраняются.
+    /// </summary>
+    private async Task SaveParamIfChanged(string name, string value, ClayGridDynamicOptions opt)
+    {
+        if (_dynamicForcedParamNames.Contains(name)) return;
+        if (_dynamicSavedParams.TryGetValue(name, out var current) && current == value) return;
 
-        // Сохраняем только НЕ-forced параметры (G9)
-        if (!_dynamicForcedParamNames.Contains(p(opt.ColumnsParamPrefix)))
-            await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.ColumnsParamPrefix),  colsVal, t, s);
-        if (!_dynamicForcedParamNames.Contains(p(opt.SortingParamPrefix)))
-            await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.SortingParamPrefix),   srtVal, t, s);
-        if (!_dynamicForcedParamNames.Contains(p(opt.GroupingParamPrefix)))
-            await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.GroupingParamPrefix),  grpVal, t, s);
-        if (!_dynamicForcedParamNames.Contains(p(opt.PageSizeParamPrefix)))
-            await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.PageSizeParamPrefix),  pgsVal, t, s);
-        if (!_dynamicForcedParamNames.Contains(p(opt.FilterParamPrefix)))
-            await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, p(opt.FilterParamPrefix), fltVal, t, s);
+        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, name, value, opt.UserParamsTable, opt.Schema);
+        _dynamicSavedParams[name] = value;   // кеш обновляем ТОЛЬКО после успешной записи
     }
 }

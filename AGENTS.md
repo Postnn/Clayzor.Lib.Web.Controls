@@ -105,6 +105,7 @@
 - GF9 — снятый фильтр затирается в БД: `SerializeFilter(...) ?? string.Empty` — пустая строка вместо `null`, `DeserializeFilter("")` корректно возвращает `null`
 - GF10 — `_dynamicError` + `MudAlert` в `ClayGrid.razor`: при отсутствии `?id=` или несуществующем запросе — предупреждение вместо пустой страницы
 - GF11 — `InitClientOffset()` + `clayGridTimeZone.js`: чтение часового пояса клиента через JS, Тип 10/13 отображают локальное время
+- GF12 — `SaveParamIfChanged`: запись в БД только изменившихся параметров (кеш `_dynamicSavedParams`), а не 5 `INSERT` на каждую загрузку
 
 ### Services
 
