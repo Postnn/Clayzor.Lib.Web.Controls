@@ -132,12 +132,19 @@ public partial class ClayGrid<TEntity> where TEntity : class
     }
 
     /// <summary>
-    /// Ленивая загрузка ID дочерних сущностей группы через DataLoader.
+    /// Ленивая загрузка ID дочерних сущностей группы.
+    /// Динамический режим — через LoadDynamicGroupChildIdsAsync, статический — через DataLoader.
     /// </summary>
     private async Task LoadChildIdsForGroupsAsync(List<string> fullKeys)
     {
-        if (DataLoader is null || fullKeys.Count == 0) return;
-        var batch = await DataLoader.LoadGroupChildIdsAsync(fullKeys, _lastQuery);
+        if (fullKeys.Count == 0) return;
+
+        var batch = Dynamic
+            ? await LoadDynamicGroupChildIdsAsync(fullKeys)
+            : DataLoader is not null
+                ? await DataLoader.LoadGroupChildIdsAsync(fullKeys, _lastQuery)
+                : [];
+
         foreach (var kv in batch)
             _groupChildIds[kv.Key] = kv.Value;
     }

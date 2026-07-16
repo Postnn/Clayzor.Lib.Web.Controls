@@ -464,6 +464,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         _dynamicGroupRoots       = null;
         _dynamicGroupKeysByDepth = null;
+        _dynamicGroupWhere       = null;
+        _dynamicGroupParams      = null;
+        _dynamicGroupExprs       = [];
 
         var orderBy = query.BuildOrderBy(DefaultOrder);
 

@@ -24,9 +24,22 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Кеш: глубина → FullKey всех групп на ней. Сбрасывается при каждой загрузке.</summary>
     private Dictionary<int, List<string>>? _dynamicGroupKeysByDepth;
 
+    /// <summary>WHERE последней групповой загрузки — для ленивой догрузки ID потомков групп.</summary>
+    private string? _dynamicGroupWhere;
+
+    /// <summary>Параметры последней групповой загрузки (@search + фильтр).</summary>
+    private DynamicParameters? _dynamicGroupParams;
+
+    /// <summary>Выражения группировки последней загрузки.</summary>
+    private List<string> _dynamicGroupExprs = [];
+
     private async Task LoadDynamicGroupedData(ClayDataQuery query, string? where, DynamicParameters dp)
     {
         var exprs = query.GroupColumns.ToList();
+
+        _dynamicGroupWhere  = where;
+        _dynamicGroupParams = dp;
+        _dynamicGroupExprs  = exprs;
 
         // ── 1. Агрегат: одна строка на листовую группу ──────────────────────────
         var groupSql  = ClayGroupingEngine.BuildGroupAggregateSql(SelectSql, exprs, where, query.SortColumns);
@@ -194,6 +207,68 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         _pageNumber = 1;
         await NotifyQueryChanged();
+    }
+
+    /// <summary>
+    /// Загружает ID всех строк указанных групп (динамический режим).
+    /// Аналог ClayGridPageBase.LoadGroupChildIdsAsync: тот же SQL, но SelectSql и колонка Id
+    /// берутся из определения грида, а запрос идёт через DynamicSql.
+    /// Строки, чей Id не приводится к int, пропускаются (см. TryGetSelectionId в GF13).
+    /// </summary>
+    private async Task<Dictionary<string, HashSet<int>>> LoadDynamicGroupChildIdsAsync(
+        IReadOnlyList<string> groupFullKeys)
+    {
+        var result = new Dictionary<string, HashSet<int>>();
+
+        var idColumn = _dynamicDef?.IdColumn;
+        if (groupFullKeys.Count == 0
+            || string.IsNullOrWhiteSpace(idColumn)
+            || _dynamicGroupParams is null
+            || _dynamicGroupExprs.Count == 0)
+            return result;
+
+        // Белый список: IdColumn приходит из справочника Запросы и подставляется в SQL текстом.
+        if (!_dynamicKnownColumns.Contains(idColumn))
+            return result;
+
+        foreach (var fullKey in groupFullKeys)
+        {
+            var keys     = fullKey.Split('');
+            var dp       = new DynamicParameters();
+            dp.AddDynamicParams(_dynamicGroupParams);
+            var keyParts = new List<string>();
+
+            for (int i = 0; i < keys.Length && i < _dynamicGroupExprs.Count; i++)
+            {
+                var pName = $"gk_{fullKey.GetHashCode() & 0x7FFFFFFF}_{i}";
+                dp.Add(pName, keys[i]);
+                keyParts.Add($"{_dynamicGroupExprs[i]} = @{pName}");
+            }
+
+            if (keyParts.Count == 0) continue;
+
+            var groupWhere    = string.Join(" AND ", keyParts);
+            var combinedWhere = ClayDataQuery.CombineWhere(_dynamicGroupWhere, groupWhere);
+
+            var sql = $"SELECT {idColumn} FROM ({SelectSql}) _src";
+            if (!string.IsNullOrWhiteSpace(combinedWhere))
+                sql += $" WHERE {combinedWhere}";
+
+            var rows = await DynamicSql.QueryRowsAsync(Db, sql, dp);
+
+            var ids = new HashSet<int>();
+            foreach (var row in rows)
+            {
+                var raw = row.GetValueOrDefault(idColumn);
+                if (raw is null or DBNull) continue;
+                if (int.TryParse(raw.ToString(), out var id))
+                    ids.Add(id);
+            }
+
+            result[fullKey] = ids;
+        }
+
+        return result;
     }
 
     /// <summary>

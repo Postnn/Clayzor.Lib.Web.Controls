@@ -233,7 +233,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _dotnetRef ??= DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("clayGridColumnDrag.init", Id, _dotnetRef);
 
-            if (_selectMode && DataLoader is not null && !_loadingChildIds)
+            if (_selectMode && (Dynamic || DataLoader is not null) && !_loadingChildIds)
             {
                 var missingKeys = new List<string>();
                 foreach (var row in Items ?? [])
