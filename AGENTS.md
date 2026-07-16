@@ -116,6 +116,7 @@
 - GG3 — `_dynamicExpandedGroups` + `ToggleDynamicGroup`: раскрытие/сворачивание групп с автопереходом страницы, `HandleGroupToggle` — единый диспетчер клика
 - GG4 — `GroupRowHostKey` учитывает `HasDynamicEdit`: условие выбора сервисной колонки совпадает с условием рендеринга в `ClayGrid.razor`
 - GG5 — чипы лотка: `IsLevelFullyExpanded`/`ToggleLevel` — диспетчер dynamic/static, `ToggleDynamicLevelExpanded` с каскадным раскрытием родителей
+- GG6 — `ResolveGroupDisplayValue`: заголовки групп Тип 5/9 показывают наименование вместо кода
 
 ### Services
 

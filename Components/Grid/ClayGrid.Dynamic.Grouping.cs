@@ -49,6 +49,17 @@ public partial class ClayGrid<TEntity> where TEntity : class
         int cur            = 1;
         ClayGroupingEngine.WalkTree(roots, query.ExpandedGroups, pageStart, pageEnd, ref cur, layout);
 
+        // Подмена кода на наименование в заголовках групп (Тип 5/9).
+        // Только DisplayValue: FullKey, KeyValues и RawKeys обязаны остаться кодами —
+        // на них построены ExpandedGroups и WHERE детального запроса.
+        foreach (var item in layout)
+        {
+            if (item.Header is null) continue;
+            var depth = item.Header.Depth;
+            if (depth < 0 || depth >= exprs.Count) continue;
+            item.Header.DisplayValue = ResolveGroupDisplayValue(exprs[depth], item.Header.DisplayValue);
+        }
+
         // ── 4. Строки: заголовки групп + детали раскрытых групп ────────────────
         var orderBy     = query.BuildOrderBy(DefaultOrder);
         var detailOrder = ClayGroupingEngine.BuildDetailOrder(orderBy, query.GroupColumns, DefaultOrder);
@@ -183,5 +194,26 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         _pageNumber = 1;
         await NotifyQueryChanged();
+    }
+
+    /// <summary>
+    /// Отображаемое значение группы. Группировка идёт по коду (значению колонки в SQL),
+    /// а показывать нужно наименование — как в ячейке.
+    /// Тип 5 (Список): _dynamicLookups[колонка][код] → наименование.
+    /// Тип 9 (Пиктограмма): _dynamicIconLookups[колонка][код].Tooltip — картинку в текстовом
+    /// заголовке группы не показать, тултип это человекочитаемая подпись значения.
+    /// Кода нет в справочнике → возвращаем код как есть (так же ведёт себя cell-шаблон).
+    /// </summary>
+    private string ResolveGroupDisplayValue(string groupSqlName, string rawValue)
+    {
+        if (_dynamicLookups.TryGetValue(groupSqlName, out var lookup)
+            && lookup.TryGetValue(rawValue, out var text))
+            return text;
+
+        if (_dynamicIconLookups.TryGetValue(groupSqlName, out var iconLookup)
+            && iconLookup.TryGetValue(rawValue, out var iconData))
+            return iconData.Tooltip;
+
+        return rawValue;
     }
 }
