@@ -17,7 +17,6 @@
         <div @ref="_container"
              class="d-flex flex-column"
              style="gap:4px">
-
             @* ── Заголовок ──────────────────────────────────── *@
             <div class="column-settings-chip clay-column-settings-header">
                 <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
@@ -27,6 +26,16 @@
                     <span class="chip-label-clickable" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Колонка</span>
                 </div>
                 <div style="display:flex;align-items:center;flex-shrink:0;gap:6px">
+                    @if (ShowGrouping)
+                    {
+                        <MudTooltip Text="Группировка" Placement="Placement.Top">
+                            <div style="width:38px;padding-right:50px;display:flex;justify-content:center">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountTree"
+                                         Size="Size.Small"
+                                         Style="opacity:0.55" />
+                            </div>
+                        </MudTooltip>
+                    }
                     <MudTooltip Text="Видимость" Placement="Placement.Top">
                         <div style="width:50px;display:flex;justify-content:flex-start;padding-left:6px">
                             <MudIcon Icon="@Icons.Material.Filled.Visibility"
@@ -74,20 +83,35 @@
                             <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@item.DisplayName</span>
                         </div>
                     }
-                    <div @onpointerdown:stopPropagation="true"
-                         style="display:flex;align-items:center;flex-shrink:0;gap:6px">
-                        <MudSwitch T="bool"
-                                   @bind-Value="item.IsVisible"
-                                   Disabled="@item.IsReadonly"
-                                   Color="Color.Primary" />
-                        @if (ShowSorting)
+                    <div style="display:flex;align-items:center;flex-shrink:0;gap:6px">
+                        @if (ShowGrouping)
                         {
-                            <MudTooltip Text="Фильтр по значению" Placement="Placement.Top">
-                                <MudSwitch T="bool"
-                                           @bind-Value="item.AllowValueFilter"
-                                           Color="Color.Primary" />
-                            </MudTooltip>
+                            <div style="display:flex;justify-content:center;align-items:center;gap:2px;min-width:38px">
+                                @if (item.Groupable)
+                                {
+                                    <MudSwitch T="bool"
+                                               Value="item.GroupPriority > 0"
+                                               ValueChanged="(v) => ToggleDialogGroup(item.SqlName)"
+                                               Color="Color.Primary" />
+                                    @GetDialogGroupBadge(item.SqlName)
+                                }
+                            </div>
                         }
+                        <div @onpointerdown:stopPropagation="true"
+                             style="display:flex;align-items:center;gap:6px">
+                            <MudSwitch T="bool"
+                                       @bind-Value="item.IsVisible"
+                                       Disabled="@item.IsReadonly"
+                                       Color="Color.Primary" />
+                            @if (ShowSorting)
+                            {
+                                <MudTooltip Text="Фильтр по значению" Placement="Placement.Top">
+                                    <MudSwitch T="bool"
+                                               @bind-Value="item.AllowValueFilter"
+                                               Color="Color.Primary" />
+                                </MudTooltip>
+                            }
+                        </div>
                     </div>
                 </div>
             }
@@ -101,6 +125,14 @@
                     <MudIconButton Icon="@Icons.Material.Filled.ClearAll"
                                    Size="Size.Small"
                                    OnClick="ResetSort" />
+                </MudTooltip>
+            }
+            @if (ShowGrouping)
+            {
+                <MudTooltip Text="Сбросить группировку" Placement="Placement.Top">
+                    <MudIconButton Icon="@Icons.Material.Filled.LayersClear"
+                                   Size="Size.Small"
+                                   OnClick="ResetGroup" />
                 </MudTooltip>
             }
             <MudTooltip Text="Восстановить порядок и видимость колонок по-умолчанию" Placement="Placement.Top">
@@ -124,6 +156,13 @@
     /// false — для печати/экспорта, где сортировка не имеет смысла.</summary>
     [Parameter] public bool ShowSorting { get; set; } = true;
 
+    /// <summary>
+    /// Показывать переключатели группировки. По умолчанию false — диалог используется
+    /// и для выбора колонок печати/экспорта, где группировка не настраивается.
+    /// Грид включает его явно в OpenColumnSettings.
+    /// </summary>
+    [Parameter] public bool ShowGrouping { get; set; }
+
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
 
     /// <summary>Рабочая копия списка — отображается и изменяется в диалоге.</summary>
@@ -141,6 +180,12 @@
     /// </summary>
     private readonly List<(string SqlName, bool Desc)> _dialogSortState = [];
 
+    /// <summary>
+    /// Состояние группировки в диалоге: SqlName в порядке уровней.
+    /// Первый элемент — внешний уровень.
+    /// </summary>
+    private readonly List<string> _dialogGroupState = [];
+
     /// <summary>Снапшот исходного состояния Items для кнопки «Восстановить по-умолчанию».</summary>
     private List<ColumnSettingsItem> _originalItems = [];
 
@@ -156,6 +201,8 @@
             IsReadonly   = i.IsReadonly,
             SortPriority = i.SortPriority,
             IsSortDesc   = i.IsSortDesc,
+            GroupPriority = i.GroupPriority,
+            Groupable     = i.Groupable,
             AllowValueFilter = i.AllowValueFilter,
         }).ToList();
         _dotnetRef = DotNetObjectReference.Create(this);
@@ -165,6 +212,12 @@
         {
             foreach (var item in _items.Where(i => i.SortPriority > 0).OrderBy(i => i.SortPriority))
                 _dialogSortState.Add((item.SqlName, item.IsSortDesc));
+        }
+
+        if (ShowGrouping)
+        {
+            foreach (var item in _items.Where(i => i.GroupPriority > 0).OrderBy(i => i.GroupPriority))
+                _dialogGroupState.Add(item.SqlName);
         }
     }
 
@@ -259,6 +312,59 @@
         builder.CloseElement();
     };
 
+    // ── Группировка ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Включает/выключает группировку по колонке. Два состояния (нет → есть → нет),
+    /// без ограничения на количество и БЕЗ направления.
+    /// Новая колонка добавляется в КОНЕЦ: первая выбранная — внешний уровень.
+    /// </summary>
+    private void ToggleDialogGroup(string sqlName)
+    {
+        var idx = _dialogGroupState.IndexOf(sqlName);
+        if (idx >= 0)
+            _dialogGroupState.RemoveAt(idx);
+        else
+            _dialogGroupState.Add(sqlName);
+
+        _syncGroupToItems();
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Синхронизирует GroupPriority и IsReadonly на всех элементах из _dialogGroupState.
+    /// Сгруппированная колонка не выводится в таблице, поэтому её переключатель
+    /// видимости блокируется.
+    /// </summary>
+    private void _syncGroupToItems()
+    {
+        foreach (var item in _items)
+        {
+            var idx = _dialogGroupState.IndexOf(item.SqlName);
+            item.GroupPriority = idx >= 0 ? idx + 1 : 0;
+            item.IsReadonly    = idx >= 0;
+        }
+    }
+
+    /// <summary>Бейдж с номером уровня группировки. Пусто — колонка не группируется.</summary>
+    private RenderFragment GetDialogGroupBadge(string sqlName) => builder =>
+    {
+        var idx = _dialogGroupState.IndexOf(sqlName);
+        if (idx < 0) return;
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "chip-group-badge");
+        builder.AddContent(2, (idx + 1).ToString());
+        builder.CloseElement();
+    };
+
+    /// <summary>Сбрасывает группировку (грид станет плоским).</summary>
+    private void ResetGroup()
+    {
+        _dialogGroupState.Clear();
+        _syncGroupToItems();
+        InvokeAsync(StateHasChanged);
+    }
+
     // ── Действия ─────────────────────────────────────────────────────────────────
 
     /// <summary>Сбрасывает пользовательскую сортировку, возвращая сортировку грида по-умолчанию.</summary>
@@ -279,14 +385,21 @@
             DisplayName  = i.DisplayName,
             IsVisible    = i.IsVisible,
             IsReadonly   = i.IsReadonly,
-            SortPriority = 0,
-            IsSortDesc   = false,
+            SortPriority  = 0,
+            IsSortDesc    = false,
+            GroupPriority = 0,
+            Groupable     = i.Groupable,
             AllowValueFilter = i.AllowValueFilter,
         }));
         if (ShowSorting)
         {
             _dialogSortState.Clear();
             _syncSortToItems();
+        }
+        if (ShowGrouping)
+        {
+            _dialogGroupState.Clear();
+            _syncGroupToItems();
         }
         InvokeAsync(StateHasChanged);
     }

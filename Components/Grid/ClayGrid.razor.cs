@@ -352,6 +352,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 DisplayName       = m.DisplayName,
                 IsVisible         = !_hiddenSqlNames.Contains(m.SqlName) && !IsGrouped(m.SqlName),
                 IsReadonly        = IsGrouped(m.SqlName),
+                Groupable         = m.Groupable,
                 AllowValueFilter  = !_valueFilterDisabledColumns.Contains(m.SqlName) && m.AllowValueFilter,
             })
             .ToList();
@@ -368,6 +369,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
             }
         }
 
+        for (int i = 0; i < _groupColumns.Count; i++)
+        {
+            var match = items.FirstOrDefault(it => it.SqlName == _groupColumns[i]);
+            if (match is not null)
+                match.GroupPriority = i + 1;
+        }
+
         return items;
     }
 
@@ -377,7 +385,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         var items = BuildColumnSettingsItems();
 
-        var parameters = new DialogParameters<ClayColumnSettingsDialog> { { x => x.Items, items } };
+        var parameters = new DialogParameters<ClayColumnSettingsDialog>
+        {
+            { x => x.Items,        items },
+            { x => x.ShowGrouping, _trayExpanded && _columnById.Values.Any(m => m.Groupable) },
+        };
         var options = new DialogOptionsEx
         {
             MaxWidth = MaxWidth.ExtraSmall,
@@ -388,11 +400,19 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var result = await dialog.Result;
         if (result is not null && !result.Canceled && result.Data is List<ColumnSettingsItem> updatedItems)
         {
+            // Невидимость сгруппированной колонки — следствие группировки, а не выбора
+            // пользователя. Записывать её в _hiddenSqlNames нельзя: снимут группировку —
+            // колонка обязана вернуться. Для таких колонок сохраняем прежний признак.
+            var hiddenBefore = new HashSet<string>(_hiddenSqlNames);
+
             _hiddenSqlNames.Clear();
             _columnOrder.Clear();
             foreach (var item in updatedItems)
             {
-                if (!item.IsVisible)
+                var hidden = item.GroupPriority > 0
+                    ? hiddenBefore.Contains(item.SqlName)
+                    : !item.IsVisible;
+                if (hidden)
                     _hiddenSqlNames.Add(item.SqlName);
                 if (_columnBySqlName.TryGetValue(item.SqlName, out var meta2))
                     _columnOrder.Add(meta2.ColumnId);
@@ -404,11 +424,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
             {
                 var meta = _columnBySqlName.GetValueOrDefault(item.SqlName);
                 if (meta is null) continue;
-                // Сохраняем в disabled-набор только если разработчик разрешил (meta.AllowValueFilter),
-                // а пользователь выключил (item.AllowValueFilter == false)
                 if (!item.AllowValueFilter && meta.AllowValueFilter)
                     _valueFilterDisabledColumns.Add(item.SqlName);
-                // Если нет активного ValueFilter для отключённой колонки — удаляем его
                 if (!item.AllowValueFilter)
                     await RemoveValueFilter(item.SqlName);
             }
@@ -419,6 +436,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 var sortName = _columnBySqlName.TryGetValue(item.SqlName, out var meta3) ? meta3.SortName : item.SqlName;
                 _sortState.Add(new SortColumn(sortName, item.IsSortDesc));
             }
+
+            _groupColumns.Clear();
+            foreach (var item in updatedItems.Where(i => i.GroupPriority > 0).OrderBy(i => i.GroupPriority))
+                _groupColumns.Add(item.SqlName);
+
+            if (Dynamic) ResetDynamicExpandedGroups();   // GG7: ключи старой группировки протухли
 
             _pageNumber = 1;
             await NotifyQueryChanged();

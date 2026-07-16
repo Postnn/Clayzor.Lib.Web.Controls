@@ -119,6 +119,7 @@
 - GG6 — `ResolveGroupDisplayValue`: заголовки групп Тип 5/9 показывают наименование вместо кода
 - GG7 — включение группировки: `ResetDynamicExpandedGroups` при смене состава/порядка `_groupColumns`, `Groupable = true` (уже было), `ApplySavedGroups` (уже был)
 - GG8 — tri-state чекбоксы групп: `LoadDynamicGroupChildIdsAsync`, диспетчер `LoadChildIdsForGroupsAsync`, расширен guard в `razor.cs`
+- GG9 — группировка в диалоге настройки колонок: секция Grouping (зеркало Sorting) с MudSwitch + бейджем, попутный фикс утечки `_hiddenSqlNames`, кнопка «+» в лотке
 
 ### Services
 

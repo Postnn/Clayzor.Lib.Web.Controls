@@ -30,6 +30,15 @@ public class ColumnSettingsItem
     public bool IsSortDesc { get; set; }
 
     /// <summary>
+    /// Приоритет группировки: 0 — не группируется, 1 — внешний уровень, 2 — следующий и т.д.
+    /// Ограничения на число уровней нет (см. план GN).
+    /// </summary>
+    public int GroupPriority { get; set; }
+
+    /// <summary>Разрешена ли группировка по колонке (ClayColumnMeta.Groupable).</summary>
+    public bool Groupable { get; init; }
+
+    /// <summary>
     /// Разрешён ли фильтр по уникальным значениям (Excel-style) для колонки.
     /// Заполняется из <see cref="ClayColumnMeta.AllowValueFilter"/>,
     /// пользователь может переключить в диалоге настройки.

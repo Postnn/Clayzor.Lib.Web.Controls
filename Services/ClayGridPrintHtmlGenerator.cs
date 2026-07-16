@@ -214,8 +214,8 @@ public static class ClayGridPrintHtmlGenerator
         sb.Append(".clay-grid-printing .mud-table-head .mud-table-cell:has(.mud-checkbox),");
         sb.Append(".clay-grid-printing .mud-table-body .mud-table-cell:has(.mud-checkbox){display:none!important}");
 
-        // Скрыть кнопки закрытия на чипах
-        sb.Append(".clay-grid-printing .chip-remove-btn{display:none!important}");
+        // Скрыть кнопки на чипах
+        sb.Append(".clay-grid-printing .chip-remove-btn,.clay-grid-printing .grouping-tray-add-btn{display:none!important}");
 
         // Треи скрыты, описания показаны
         sb.Append(".clay-grid-printing .grouping-tray,.clay-grid-printing .filter-tray,");

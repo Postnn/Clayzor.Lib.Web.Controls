@@ -227,9 +227,15 @@
                                    Style="width:18px;height:18px" />
                 </div>
             }
+            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                           Size="Size.Small"
+                           OnClick="OpenColumnSettings"
+                           Class="grouping-tray-add-btn pa-0"
+                           title="Выбрать колонки для группировки" />
+
             @if (_groupColumns.Count == 0)
             {
-                <span class="grouping-tray-hint">Перетащите заголовок колонки сюда для группировки</span>
+                <span class="grouping-tray-hint">Перетащите заголовок колонки сюда или нажмите «+»</span>
             }
         </div>
     }
