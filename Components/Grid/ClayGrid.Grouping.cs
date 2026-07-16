@@ -84,6 +84,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (_groupColumns.Contains(column))
             return;
         _groupColumns.Add(column);
+        if (Dynamic) ResetDynamicExpandedGroups();
         _pageNumber = 1;
         await NotifyQueryChanged();
     }
@@ -91,6 +92,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private async Task RemoveGroupColumn(string column)
     {
         _groupColumns.Remove(column);
+        if (Dynamic) ResetDynamicExpandedGroups();
         _pageNumber = 1;
         await NotifyQueryChanged();
     }

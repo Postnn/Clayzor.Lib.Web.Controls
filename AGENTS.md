@@ -117,6 +117,7 @@
 - GG4 — `GroupRowHostKey` учитывает `HasDynamicEdit`: условие выбора сервисной колонки совпадает с условием рендеринга в `ClayGrid.razor`
 - GG5 — чипы лотка: `IsLevelFullyExpanded`/`ToggleLevel` — диспетчер dynamic/static, `ToggleDynamicLevelExpanded` с каскадным раскрытием родителей
 - GG6 — `ResolveGroupDisplayValue`: заголовки групп Тип 5/9 показывают наименование вместо кода
+- GG7 — включение группировки: `ResetDynamicExpandedGroups` при смене состава/порядка `_groupColumns`, `Groupable = true` (уже было), `ApplySavedGroups` (уже был)
 
 ### Services
 

@@ -21,6 +21,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (!_trayExpanded)
         {
             _groupColumns.Clear();
+            if (Dynamic) ResetDynamicExpandedGroups();
             _pageNumber = 1;
             await NotifyQueryChanged();
         }
@@ -58,6 +59,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             && !_groupColumns.Contains(draggedData))
         {
             _groupColumns.Add(draggedData);
+            if (Dynamic) ResetDynamicExpandedGroups();
             _dragSourceIndex = -1;
             _pageNumber = 1;
             StateHasChanged();
@@ -79,6 +81,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _groupColumns.Insert(targetIndex, item);
 
         _dragSourceIndex = -1;
+        if (Dynamic) ResetDynamicExpandedGroups();
         _pageNumber = 1;
         StateHasChanged();
         await NotifyQueryChanged();
