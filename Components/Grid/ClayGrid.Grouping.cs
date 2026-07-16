@@ -26,14 +26,18 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     /// <summary>
     /// SqlName колонки, которая должна отображать заголовок группы (шеврон + подпись + счётчик).
-    /// "__edit__" — колонка редактирования. Никогда не совпадает с колонкой, скрытой текущей
-    /// группировкой или пользовательскими настройками — вычисляется заново на каждый рендер.
+    /// "__edit__" — сервисная колонка. Условие должно совпадать с условием рендеринга
+    /// сервисной колонки в ClayGrid.razor (EditDialogType is not null || HasDynamicEdit),
+    /// иначе заголовок группы уедет в другую колонку, а CellClassFunc сервисной колонки
+    /// не проставит group-header-cell.
+    /// Никогда не совпадает с колонкой, скрытой текущей группировкой или пользовательскими
+    /// настройками — вычисляется заново на каждый рендер.
     /// </summary>
     private string GroupRowHostKey
     {
         get
         {
-            if (EditDialogType is not null) return "__edit__";
+            if (EditDialogType is not null || HasDynamicEdit) return "__edit__";
             foreach (var colId in _columnOrder)
             {
                 if (!_columnById.TryGetValue(colId, out var meta)) continue;
