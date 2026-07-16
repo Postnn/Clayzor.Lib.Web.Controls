@@ -122,4 +122,66 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         await InvokeAsync(StateHasChanged);
     }
+
+    /// <summary>
+    /// Словарь глубина → FullKey всех групп на этой глубине. Строится лениво по дереву
+    /// последней загрузки; кеш сбрасывается в LoadDynamicGroupedData / LoadDynamicFlatData.
+    /// </summary>
+    private Dictionary<int, List<string>> GetDynamicGroupKeysByDepth()
+    {
+        if (_dynamicGroupKeysByDepth is not null) return _dynamicGroupKeysByDepth;
+        _dynamicGroupKeysByDepth = new Dictionary<int, List<string>>();
+        if (_dynamicGroupRoots is not null)
+            CollectDynamicKeysByDepth(_dynamicGroupRoots, _dynamicGroupKeysByDepth);
+        return _dynamicGroupKeysByDepth;
+    }
+
+    /// <summary>Рекурсивно собирает FullKey групп из дерева, раскладывая по глубине.</summary>
+    private static void CollectDynamicKeysByDepth(
+        List<GridGroupNode> nodes, Dictionary<int, List<string>> result)
+    {
+        foreach (var node in nodes)
+        {
+            var d = node.Aggregate.Depth;
+            if (!result.ContainsKey(d)) result[d] = [];
+            result[d].Add(node.Aggregate.FullKey);
+            CollectDynamicKeysByDepth(node.Children, result);
+        }
+    }
+
+    /// <summary>Развёрнуты ли ВСЕ группы на указанной глубине (динамический режим).</summary>
+    private bool IsDynamicLevelFullyExpanded(int depth)
+    {
+        var map = GetDynamicGroupKeysByDepth();
+        return map.TryGetValue(depth, out var keys) && keys.Count > 0
+            && keys.All(k => _dynamicExpandedGroups.Contains(k));
+    }
+
+    /// <summary>
+    /// Переключает ВСЕ группы на указанной глубине (динамический режим).
+    /// Разворачивание каскадно раскрывает родительские уровни 0..depth-1, иначе
+    /// раскрытые внутренние группы просто не будут видны под свёрнутым родителем.
+    /// Сворачивание трогает только этот уровень.
+    /// </summary>
+    private async Task ToggleDynamicLevelExpanded(int depth)
+    {
+        var map = GetDynamicGroupKeysByDepth();
+        if (!map.TryGetValue(depth, out var keys) || keys.Count == 0) return;
+
+        bool allExpanded = keys.All(k => _dynamicExpandedGroups.Contains(k));
+
+        if (allExpanded)
+        {
+            foreach (var k in keys) _dynamicExpandedGroups.Remove(k);
+        }
+        else
+        {
+            for (int d = 0; d <= depth; d++)
+                if (map.TryGetValue(d, out var levelKeys))
+                    foreach (var k in levelKeys) _dynamicExpandedGroups.Add(k);
+        }
+
+        _pageNumber = 1;
+        await NotifyQueryChanged();
+    }
 }

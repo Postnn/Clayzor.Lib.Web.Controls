@@ -198,10 +198,10 @@
                     <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
                              Size="Size.Small"
                              Style="margin-right:6px;opacity:0.45;flex-shrink:0;cursor:grab" />
-                    @if (DataLoader is not null)
+                    @if (Dynamic || DataLoader is not null)
                     {
                         var depth = idx;
-                        var isExpanded = DataLoader.IsLevelFullyExpanded(depth);
+                        var isExpanded = IsLevelFullyExpanded(depth);
                         <MudIconButton
                             Icon="@(isExpanded ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)"
                             Size="Size.Small"

@@ -96,16 +96,28 @@ public partial class ClayGrid<TEntity> where TEntity : class
     }
 
     /// <summary>
-    /// Переключает развёрнутость всех групп на заданной глубине через DataLoader.
+    /// Переключает развёрнутость всех групп на заданной глубине.
+    /// Динамический режим обрабатывает сам, статический — через DataLoader.
     /// </summary>
     private async Task ToggleLevel(int depth)
     {
-        if (DataLoader is not null)
+        if (Dynamic)
+        {
+            await ToggleDynamicLevelExpanded(depth);
+            StateHasChanged();
+        }
+        else if (DataLoader is not null)
         {
             await DataLoader.ToggleLevelExpandedAsync(depth);
             StateHasChanged();
         }
     }
+
+    /// <summary>Развёрнуты ли все группы уровня — для иконки кнопки на чипе лотка.</summary>
+    private bool IsLevelFullyExpanded(int depth)
+        => Dynamic
+            ? IsDynamicLevelFullyExpanded(depth)
+            : DataLoader?.IsLevelFullyExpanded(depth) ?? false;
 
     /// <summary>
     /// Возвращает ID всех дочерних сущностей группы (из кеша или null).

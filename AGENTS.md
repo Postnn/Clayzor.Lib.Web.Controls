@@ -115,6 +115,7 @@
 - GG2 — `LoadDynamicGroupedData`: конвейер группировки (агрегат→дерево→layout→детали), `LoadDynamicData` → диспетчер + `LoadDynamicFlatData`
 - GG3 — `_dynamicExpandedGroups` + `ToggleDynamicGroup`: раскрытие/сворачивание групп с автопереходом страницы, `HandleGroupToggle` — единый диспетчер клика
 - GG4 — `GroupRowHostKey` учитывает `HasDynamicEdit`: условие выбора сервисной колонки совпадает с условием рендеринга в `ClayGrid.razor`
+- GG5 — чипы лотка: `IsLevelFullyExpanded`/`ToggleLevel` — диспетчер dynamic/static, `ToggleDynamicLevelExpanded` с каскадным раскрытием родителей
 
 ### Services
 
