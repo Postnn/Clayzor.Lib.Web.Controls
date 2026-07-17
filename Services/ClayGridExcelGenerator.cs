@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Reflection;
 using ClosedXML.Excel;
 using Clayzor.Lib.Entities;
 using Clayzor.Lib.Web.Controls.Components.Grid;
@@ -22,11 +20,12 @@ public static class ClayGridExcelGenerator
 
     /// <summary>
     /// Генерирует .xlsx файл и возвращает его как массив байт.
+    /// Значения ячеек достаёт <paramref name="cellReader"/>.
     /// </summary>
     /// <param name="title">Заголовок грида (первая строка Excel).</param>
     /// <param name="columns">Видимые колонки в порядке отображения.</param>
     /// <param name="rows">Строки данных (заголовки групп + строки детализации).</param>
-    /// <param name="entityType">Тип сущности для маппинга SqlName → свойство.</param>
+    /// <param name="cellReader">Читатель значений ячеек из строк детализации.</param>
     /// <param name="expandedGroups">FullKey развёрнутых групп. Группы, которых нет в наборе, будут свёрнуты в Excel Outline.</param>
     /// <param name="filterDescription">Текстовое описание активных фильтров (или null).</param>
     /// <param name="groupDescription">Текстовое описание колонок группировки (или null).</param>
@@ -34,7 +33,7 @@ public static class ClayGridExcelGenerator
         string title,
         IReadOnlyList<ClayColumnMeta> columns,
         IReadOnlyList<IClayGridRow> rows,
-        Type entityType,
+        IClayGridCellReader cellReader,
         HashSet<string>? expandedGroups = null,
         string? filterDescription = null,
         string? groupDescription = null)
@@ -47,9 +46,6 @@ public static class ClayGridExcelGenerator
 
         int colCount = columns.Count;
         if (colCount == 0) return Array.Empty<byte>();
-
-        // Кеш маппинга SqlName → PropertyInfo
-        var propMap = BuildPropertyMap(entityType);
 
         // ── Строка 1: Заголовок ────────────────────────────────────────
         WriteTitleRow(ws, 1, title, colCount);
@@ -117,7 +113,7 @@ public static class ClayGridExcelGenerator
                         top.DataStart = currentRow;
                     groupStack.Push(top);
                 }
-                WriteDetailRow(ws, currentRow, detailRow, columns, propMap);
+                WriteDetailRow(ws, currentRow, detailRow, columns, cellReader);
             }
             currentRow++;
         }
@@ -142,6 +138,20 @@ public static class ClayGridExcelGenerator
         workbook.SaveAs(ms);
         return ms.ToArray();
     }
+
+    /// <summary>
+    /// Перегрузка для статического режима: читает ячейки рефлексией по <paramref name="entityType"/>.
+    /// </summary>
+    public static byte[] ExportToExcel(
+        string title,
+        IReadOnlyList<ClayColumnMeta> columns,
+        IReadOnlyList<IClayGridRow> rows,
+        Type entityType,
+        HashSet<string>? expandedGroups = null,
+        string? filterDescription = null,
+        string? groupDescription = null)
+        => ExportToExcel(title, columns, rows, new ClayReflectionCellReader(entityType),
+                        expandedGroups, filterDescription, groupDescription);
 
     // ── Строка заголовка ────────────────────────────────────────────────────
 
@@ -272,10 +282,9 @@ public static class ClayGridExcelGenerator
     private static void WriteDetailRow(
         IXLWorksheet ws, int rowNum, IDetailRow detailRow,
         IReadOnlyList<ClayColumnMeta> columns,
-        Dictionary<string, PropertyInfo> propMap)
+        IClayGridCellReader cellReader)
     {
-        var entity = detailRow.Item;
-        if (entity is null) return;
+        if (detailRow.Item is null) return;
 
         var row = ws.Row(rowNum);
         row.Height = 20;
@@ -284,15 +293,10 @@ public static class ClayGridExcelGenerator
 
         for (int c = 0; c < columns.Count; c++)
         {
-            var cell    = ws.Cell(rowNum, c + 1);
-            var sqlName = columns[c].SqlName;
+            var cell = ws.Cell(rowNum, c + 1);
 
-            // Получить значение свойства по SqlName
-            if (propMap.TryGetValue(sqlName, out var prop))
-            {
-                var value = prop.GetValue(entity);
-                SetCellValue(cell, value, prop.PropertyType);
-            }
+            if (cellReader.TryGetCellValue(detailRow, columns[c], out var value, out var valueType))
+                SetCellValue(cell, value, valueType);
 
             // Стиль ячейки
             cell.Style.Font.FontSize = 9;
@@ -347,19 +351,5 @@ public static class ClayGridExcelGenerator
             cell.Value = value.ToString() ?? "";
             cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
         }
-    }
-
-    // ── Маппинг SqlName → PropertyInfo через [Column] атрибуты ───────────────
-
-    private static Dictionary<string, PropertyInfo> BuildPropertyMap(Type entityType)
-    {
-        var map = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
-        foreach (var prop in entityType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
-        {
-            var colAttr = prop.GetCustomAttribute<ColumnAttribute>();
-            var sqlName = colAttr?.Name ?? prop.Name;
-            map[sqlName] = prop;
-        }
-        return map;
     }
 }

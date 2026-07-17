@@ -47,6 +47,7 @@
 | **IClayGrid** — контракт ClayGrid: `SelectSql`, `SearchColumns`, `DefaultOrder`, `EditDialogType`, `ColumnMenuMode`, `IsGrouped`, `ToggleSort`, `GetSortBadge`, `GetColumnMeta`, `AddGroupAsync`, `AddFilterAsync`, `IsValueFilterAvailable`, `IsValueFilterActive`, `OpenValueFilterDialog` (V7), регистрация колонок | [docs/clay-grid.md](docs/clay-grid.md) |
 | **IClayGridDataLoader** — контракт обратного вызова: `OnQueryChangedAsync(ClayDataQuery)`, `ExcelExportAsync(ExcelExportRequest)`, `BuildPrintHtmlAsync(columns, title, filterDescription, groupDescription)`, `BuildPrintHtmlForCurrentPageAsync(columns, title, filterDescription, groupDescription)`, `BuildPrintHtmlForSelectedAsync(...)`, `LoadDistinctValuesAsync(sqlName, query, limit)` — загрузка уникальных значений колонки для Excel-style фильтра. Реализуется ClayGridPageBase, передаётся через `DataLoader="this"` | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayColumnMeta** — метаданные зарегистрированной колонки: `ColumnId`, `SqlName`, `DisplayName`, `SortName`, `Groupable`, `Filterable`, `AllowValueFilter`, `BoolTrueLabel`, `BoolFalseLabel`, `Type` | [docs/clay-grid.md](docs/clay-grid.md) |
+| **IClayGridCellReader** — абстракция чтения ячейки для генераторов печати и Excel. `TryGetCellValue(IDetailRow, ClayColumnMeta, out value, out valueType)`. Реализации: `ClayReflectionCellReader` (статика), `ClayDynamicCellReader` (динамика, GE2) | — |
 
 ### DynamicGrid — динамический режим ClayGrid
 
@@ -123,7 +124,13 @@
 
 **Выполненные шаги снятия потолка уровней (GN1+):**
 - GN1 — `GridGroupRow.Keys` вместо `K0/K1/K2`, `BuildGroupAggregateSql` без потолка (N уровней), `ClayGroupRowMapper` (общий маппер, заменил `ClayDynamicGroupMapper`), перевод 5 статических `Db.QueryAsync<GridGroupRow>` на словари + маппер, временный мост в `BuildAggregates`
+- GN2 — `BuildAggregates` на N уровней: `depth = Keys.Count - 1`, `NULL` — законный ключ, `FullKey` без дубликатов при 3+ уровнях, `EmptyGroupDisplay` + `ToDisplay`
+- GN3 — `BuildGroupKeyWhere`: детальный `WHERE` с `IS NULL` для null-ключей, замена копипасты `dk{i}` в 4 местах, `LoadDynamicGroupChildIdsAsync` с `FullKey.Split` → `rawKeys`
 - Оркестратор: `promts/GN0_README_grouping_levels.md`, промты `GN1`–`GN4`
+
+**Выполненные шаги печати и Excel (GE1+):**
+- GE1 — `IClayGridCellReader` + `ClayReflectionCellReader`: вынос чтения ячейки из генераторов в абстракцию. Старая сигнатура с `Type entityType` → обёртка над `new ClayReflectionCellReader`. Поведение статики не изменилось
+- Оркестратор: `promts/GE0_README_dynamic_export.md`, промты `GE1`–`GE6`
 
 ### Services
 
@@ -131,6 +138,7 @@
 |---|---|
 | **ClayErrorService** (Scoped) — хранит состояние последней ошибки SQL, реализует `ISqlErrorHandler`. Используется `ClayErrorBar` |
 | **ISqlErrorHandler** (DALC) — интерфейс, вызываемый `DbManager` при `SqlException`. Регистрируется в DI |
+| **ClayReflectionCellReader** — читает значение ячейки через рефлексию по `[Column]`-атрибутам. Реализует `IClayGridCellReader`. Используется генераторами печати и Excel в статическом режиме (GE1) |
 
 ### Codebehind-структура ClayGrid
 

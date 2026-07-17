@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Reflection;
 using System.Text;
 using Clayzor.Lib.Entities;
 using Clayzor.Lib.Web.Controls.Components.Grid;
@@ -14,11 +12,14 @@ namespace Clayzor.Lib.Web.Controls.Services;
 /// </summary>
 public static class ClayGridPrintHtmlGenerator
 {
+    /// <summary>
+    /// Строит HTML печатной формы. Значения ячеек достаёт <paramref name="cellReader"/>.
+    /// </summary>
     public static string Build(
         string title,
         IReadOnlyList<ClayColumnMeta> columns,
         IReadOnlyList<IClayGridRow> rows,
-        Type entityType,
+        IClayGridCellReader cellReader,
         HashSet<string>? expandedGroups = null,
         string? filterDescription = null,
         string? groupDescription = null)
@@ -26,8 +27,7 @@ public static class ClayGridPrintHtmlGenerator
         int colCount = columns.Count;
         if (colCount == 0) return "<html><body></body></html>";
 
-        var propMap = BuildPropertyMap(entityType);
-        var sb      = new StringBuilder();
+        var sb = new StringBuilder();
 
         sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\">");
         sb.Append("<style>");
@@ -81,7 +81,7 @@ public static class ClayGridPrintHtmlGenerator
             if (row is GroupHeaderRow gh)
                 AppendGroupRow(sb, gh, colCount);
             else if (row is IDetailRow detailRow)
-                AppendDetailRow(sb, detailRow, columns, propMap);
+                AppendDetailRow(sb, detailRow, columns, cellReader);
         }
         sb.Append("</tbody>");
 
@@ -94,6 +94,20 @@ public static class ClayGridPrintHtmlGenerator
 
         return sb.ToString();
     }
+
+    /// <summary>
+    /// Перегрузка для статического режима: читает ячейки рефлексией по <paramref name="entityType"/>.
+    /// </summary>
+    public static string Build(
+        string title,
+        IReadOnlyList<ClayColumnMeta> columns,
+        IReadOnlyList<IClayGridRow> rows,
+        Type entityType,
+        HashSet<string>? expandedGroups = null,
+        string? filterDescription = null,
+        string? groupDescription = null)
+        => Build(title, columns, rows, new ClayReflectionCellReader(entityType),
+                 expandedGroups, filterDescription, groupDescription);
 
     // ── Групповая строка ────────────────────────────────────────────────
 
@@ -114,22 +128,16 @@ public static class ClayGridPrintHtmlGenerator
     private static void AppendDetailRow(
         StringBuilder sb, IDetailRow detailRow,
         IReadOnlyList<ClayColumnMeta> columns,
-        Dictionary<string, PropertyInfo> propMap)
+        IClayGridCellReader cellReader)
     {
-        var entity = detailRow.Item;
-        if (entity is null) return;
+        if (detailRow.Item is null) return;
 
         sb.Append("<tr class=\"mud-table-row\" style=\"page-break-inside:avoid\">");
         for (int c = 0; c < columns.Count; c++)
         {
-            var sqlName = columns[c].SqlName;
             string cellValue = "";
-
-            if (propMap.TryGetValue(sqlName, out var prop))
-            {
-                var value = prop.GetValue(entity);
-                cellValue = FormatCellValue(value, prop.PropertyType);
-            }
+            if (cellReader.TryGetCellValue(detailRow, columns[c], out var value, out var valueType))
+                cellValue = FormatCellValue(value, valueType);
 
             sb.Append("<td class=\"mud-table-cell\">")
               .Append(EscapeHtml(cellValue))
@@ -275,18 +283,5 @@ public static class ClayGridPrintHtmlGenerator
     {
         if (string.IsNullOrEmpty(text)) return "";
         return System.Net.WebUtility.HtmlEncode(text);
-    }
-
-    // ── Маппинг SqlName → PropertyInfo ──────────────────────────────────
-
-    private static Dictionary<string, PropertyInfo> BuildPropertyMap(Type entityType)
-    {
-        var map = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
-        foreach (var prop in entityType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
-        {
-            var colAttr = prop.GetCustomAttribute<ColumnAttribute>();
-            map[colAttr?.Name ?? prop.Name] = prop;
-        }
-        return map;
     }
 }
