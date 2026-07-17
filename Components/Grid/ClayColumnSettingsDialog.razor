@@ -99,32 +99,28 @@
         </div>
     </DialogContent>
     <DialogActions>
-        <div style="flex:1;display:flex;gap:4px">
-            @if (ShowSorting)
-            {
-                <MudTooltip Text="Сбросить сортировку" Placement="Placement.Top">
-                    <MudIconButton Icon="@Icons.Material.Filled.ClearAll"
-                                   Size="Size.Small"
-                                   OnClick="ResetSort" />
+        <div class="clay-column-settings-actions">
+            <div class="clay-column-settings-actions__reset">
+                @if (ShowSorting)
+                {
+                    <MudTooltip Text="Сбросить сортировку" Placement="Placement.Top">
+                        <MudIconButton Icon="@Icons.Material.Filled.ClearAll" Size="Size.Small" OnClick="ResetSort" />
+                    </MudTooltip>
+                }
+                @if (ShowGrouping)
+                {
+                    <MudTooltip Text="Сбросить группировку" Placement="Placement.Top">
+                        <MudIconButton Icon="@Icons.Material.Filled.LayersClear" Size="Size.Small" OnClick="ResetGroup" />
+                    </MudTooltip>
+                }
+                <MudTooltip Text="Восстановить порядок и видимость колонок по-умолчанию" Placement="Placement.Top">
+                    <MudIconButton Icon="@Icons.Material.Filled.RestartAlt" Size="Size.Small" OnClick="ResetAll" />
                 </MudTooltip>
-            }
-            @if (ShowGrouping)
-            {
-                <MudTooltip Text="Сбросить группировку" Placement="Placement.Top">
-                    <MudIconButton Icon="@Icons.Material.Filled.LayersClear"
-                                   Size="Size.Small"
-                                   OnClick="ResetGroup" />
-                </MudTooltip>
-            }
-            <MudTooltip Text="Восстановить порядок и видимость колонок по-умолчанию" Placement="Placement.Top">
-                <MudIconButton Icon="@Icons.Material.Filled.RestartAlt"
-                               Size="Size.Small"
-                               OnClick="ResetAll" />
-            </MudTooltip>
-        </div>
-        <div style="display:flex;gap:4px">
-            <MudButton OnClick="Cancel">Отмена</MudButton>
-            <MudButton Color="Color.Primary" OnClick="Apply">Применить</MudButton>
+            </div>
+            <div class="clay-column-settings-actions__main">
+                <MudButton OnClick="Cancel">Отмена</MudButton>
+                <MudButton Color="Color.Primary" OnClick="Apply">Применить</MudButton>
+            </div>
         </div>
     </DialogActions>
 </MudDialog>
