@@ -12,45 +12,32 @@
     — Blazor получает только финальный результат через [JSInvokable] OnJsDrop
 *@
 
-<MudDialog>
+<MudDialog ContentClass="clay-column-settings-content pa-0">
     <DialogContent>
         <div @ref="_container"
-             class="d-flex flex-column"
-             style="gap:4px">
-            @* ── Заголовок ──────────────────────────────────── *@
+             class="@ListClass">
+            @* ── Заголовок (та же 5-колоночная сетка) ────── *@
             <div class="column-settings-chip clay-column-settings-header">
-                <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
-                         Size="Size.Small"
-                         Style="margin-right:6px;opacity:0;flex-shrink:0;visibility:hidden" />
-                <div style="flex:1;display:flex;align-items:center;min-width:0">
-                    <span class="chip-label-clickable" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Колонка</span>
-                </div>
-                <div style="display:flex;align-items:center;flex-shrink:0;gap:6px">
+                <div class="clay-cs-cell clay-cs-cell--handle"></div>
+                <div class="clay-cs-cell clay-cs-cell--label"><span>Колонка</span></div>
+                <div class="clay-cs-cell">
                     @if (ShowGrouping)
                     {
                         <MudTooltip Text="Группировка" Placement="Placement.Top">
-                            <div style="width:38px;padding-right:50px;display:flex;justify-content:center">
-                                <MudIcon Icon="@Icons.Material.Filled.AccountTree"
-                                         Size="Size.Small"
-                                         Style="opacity:0.55" />
-                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" />
                         </MudTooltip>
                     }
+                </div>
+                <div class="clay-cs-cell">
                     <MudTooltip Text="Видимость" Placement="Placement.Top">
-                        <div style="width:50px;display:flex;justify-content:flex-start;padding-left:6px">
-                            <MudIcon Icon="@Icons.Material.Filled.Visibility"
-                                     Size="Size.Small"
-                                     Style="opacity:0.55" />
-                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" />
                     </MudTooltip>
+                </div>
+                <div class="clay-cs-cell">
                     @if (ShowSorting)
                     {
                         <MudTooltip Text="Фильтр по значению" Placement="Placement.Top">
-                            <div style="width:38px;display:flex;justify-content:center">
-                                <MudIcon Icon="@Icons.Material.Filled.Checklist"
-                                         Size="Size.Small"
-                                         Style="opacity:0.55" />
-                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.Checklist" Size="Size.Small" />
                         </MudTooltip>
                     }
                 </div>
@@ -63,55 +50,49 @@
 
                 <div class="column-settings-chip"
                      data-col-idx="@idx">
-                    <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
-                             Size="Size.Small"
-                             Style="margin-right:6px;opacity:0.45;flex-shrink:0;cursor:grab" />
-                    @if (ShowSorting)
-                    {
-                        <div class="sort-toggle-area"
-                             style="flex:1;display:flex;align-items:center;gap:3px;min-width:0;cursor:pointer"
-                             @onclick="() => ToggleDialogSort(item.SqlName)"
-                             @onclick:stopPropagation="true">
-                            <span class="chip-label-clickable"
-                                  style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@item.DisplayName</span>
-                            @GetDialogSortBadge(item.SqlName)
-                        </div>
-                    }
-                    else
-                    {
-                        <div style="flex:1;display:flex;align-items:center;min-width:0">
-                            <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@item.DisplayName</span>
-                        </div>
-                    }
-                    <div style="display:flex;align-items:center;flex-shrink:0;gap:6px">
-                        @if (ShowGrouping)
+                    <div class="clay-cs-cell clay-cs-cell--handle">
+                        <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
+                                 Size="Size.Small" />
+                    </div>
+                    <div class="clay-cs-cell clay-cs-cell--label">
+                        @if (ShowSorting)
                         {
-                            <div style="display:flex;justify-content:center;align-items:center;gap:2px;min-width:38px">
-                                @if (item.Groupable)
-                                {
-                                    <MudSwitch T="bool"
-                                               Value="item.GroupPriority > 0"
-                                               ValueChanged="(v) => ToggleDialogGroup(item.SqlName)"
-                                               Color="Color.Primary" />
-                                    @GetDialogGroupBadge(item.SqlName)
-                                }
-                            </div>
+                            <span class="sort-toggle-area"
+                                  style="display:flex;align-items:center;gap:3px;min-width:0;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+                                  @onclick="() => ToggleDialogSort(item.SqlName)"
+                                  @onclick:stopPropagation="true">
+                                @item.DisplayName
+                            </span>
+                            @GetDialogSortBadge(item.SqlName)
                         }
-                        <div @onpointerdown:stopPropagation="true"
-                             style="display:flex;align-items:center;gap:6px">
+                        else
+                        {
+                            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@item.DisplayName</span>
+                        }
+                    </div>
+                    <div class="clay-cs-cell" @onpointerdown:stopPropagation="true">
+                        @if (ShowGrouping && item.Groupable)
+                        {
                             <MudSwitch T="bool"
-                                       @bind-Value="item.IsVisible"
-                                       Disabled="@item.IsReadonly"
+                                       Value="item.GroupPriority > 0"
+                                       ValueChanged="(v) => ToggleDialogGroup(item.SqlName)"
                                        Color="Color.Primary" />
-                            @if (ShowSorting)
-                            {
-                                <MudTooltip Text="Фильтр по значению" Placement="Placement.Top">
-                                    <MudSwitch T="bool"
-                                               @bind-Value="item.AllowValueFilter"
-                                               Color="Color.Primary" />
-                                </MudTooltip>
-                            }
-                        </div>
+                            @GetDialogGroupBadge(item.SqlName)
+                        }
+                    </div>
+                    <div class="clay-cs-cell" @onpointerdown:stopPropagation="true">
+                        <MudSwitch T="bool"
+                                   @bind-Value="item.IsVisible"
+                                   Disabled="@item.IsReadonly"
+                                   Color="Color.Primary" />
+                    </div>
+                    <div class="clay-cs-cell" @onpointerdown:stopPropagation="true">
+                        @if (ShowSorting)
+                        {
+                            <MudSwitch T="bool"
+                                       @bind-Value="item.AllowValueFilter"
+                                       Color="Color.Primary" />
+                        }
                     </div>
                 </div>
             }
@@ -188,6 +169,15 @@
 
     /// <summary>Снапшот исходного состояния Items для кнопки «Восстановить по-умолчанию».</summary>
     private List<ColumnSettingsItem> _originalItems = [];
+
+    /// <summary>
+    /// Классы контейнера списка. Модификаторы включают колонки сетки под группировку
+    /// и фильтр по значению — ширины задаются в clay.css через --clay-cs-*.
+    /// </summary>
+    private string ListClass =>
+        "clay-column-settings-list"
+        + (ShowGrouping ? " clay-column-settings-list--grouping" : "")
+        + (ShowSorting  ? " clay-column-settings-list--filter"   : "");
 
     /// <inheritdoc/>
     protected override void OnInitialized()
@@ -304,7 +294,7 @@
     {
         var idx = _dialogSortState.FindIndex(s => s.SqlName == sqlName);
         if (idx < 0) return;
-        var arrow = _dialogSortState[idx].Desc ? "\u2193" : "\u2191";
+        var arrow = _dialogSortState[idx].Desc ? "↓" : "↑";
         var label = (idx + 1).ToString() + arrow;
         builder.OpenElement(0, "span");
         builder.AddAttribute(1, "class", "chip-sort-badge");

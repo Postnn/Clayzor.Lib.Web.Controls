@@ -50,6 +50,9 @@ window.clayColumnSettings = (function () {
                 g.style.zIndex   = '9999';
                 g.style.pointerEvents = 'none';
                 g.style.margin   = '0';
+                var cs = getComputedStyle(container);
+                g.style.setProperty('--clay-cs-group-w',  cs.getPropertyValue('--clay-cs-group-w'));
+                g.style.setProperty('--clay-cs-filter-w', cs.getPropertyValue('--clay-cs-filter-w'));
                 document.body.appendChild(g);
                 return g;
             }

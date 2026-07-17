@@ -403,7 +403,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         };
         var options = new DialogOptionsEx
         {
-            MaxWidth = MaxWidth.ExtraSmall,
+            MaxWidth = MaxWidth.Small,
             FullWidth = true,
             DragMode = MudDialogDragMode.Simple,
         };

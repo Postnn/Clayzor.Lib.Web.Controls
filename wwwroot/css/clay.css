@@ -1192,6 +1192,73 @@ body {
 }
 
 /* ── Column settings dialog ── */
+
+/* Контент без паддинга — иначе sticky-шапка прилипает к границе padding-box
+   и над ней остаётся прозрачная полоса, сквозь которую видно проезжающие чипы */
+.clay-column-settings-content {
+    padding: 0 !important;
+}
+
+/* Список чипов. Без gap: разделитель — border-bottom самого чипа,
+   иначе между шапкой и первым чипом просвет. */
+.clay-column-settings-list {
+    display: flex;
+    flex-direction: column;
+    --clay-cs-group-w: 0px;
+    --clay-cs-filter-w: 0px;
+}
+.clay-column-settings-list--grouping { --clay-cs-group-w: 88px; }
+.clay-column-settings-list--filter   { --clay-cs-filter-w: 64px; }
+
+/* Сетка чипа — одна и та же для шапки и строк, выравнивание по построению */
+.column-settings-chip {
+    display: grid;
+    grid-template-columns:
+        24px
+        minmax(0, 1fr)
+        var(--clay-cs-group-w)
+        64px
+        var(--clay-cs-filter-w);
+    align-items: center;
+    background: var(--lh-navy);
+    color: var(--lh-white);
+    min-height: 38px;
+    padding: 0 10px;
+    border-radius: 0;
+    font-size: var(--clay-font-size);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    cursor: grab;
+    user-select: none;
+    border-left: 3px solid transparent;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    transition: background 0.15s, border-left-color 0.15s, opacity 0.15s;
+}
+
+.column-settings-chip:active {
+    cursor: grabbing;
+}
+
+.clay-cs-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+}
+.clay-cs-cell--label {
+    justify-content: flex-start;
+    gap: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.clay-cs-cell--handle { justify-content: flex-start; }
+
+/* MudSwitch несёт собственные отступы — в ячейке фиксированной ширины они режут трек */
+.column-settings-chip .mud-switch { margin: 0; }
+
 .clay-column-settings-header {
     position: sticky;
     top: 0;
@@ -1200,23 +1267,11 @@ body {
     color: var(--mud-palette-text-primary);
     font-weight: bold;
     border-bottom: 2px solid var(--clay-gold);
-    margin-bottom: -4px;
     cursor: default;
 }
 .clay-column-settings-header:hover {
     background: var(--mud-palette-background-gray);
     cursor: default;
-}
-.clay-column-settings-row {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    min-width: 0;
-}
-.clay-column-settings-label {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* ── Filter common ── */
