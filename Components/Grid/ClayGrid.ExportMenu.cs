@@ -7,11 +7,40 @@ namespace Clayzor.Lib.Web.Controls.Components.Grid;
 
 public partial class ClayGrid<TEntity> where TEntity : class
 {
-    /// <summary>Флаг выполнения операции экспорта/печати (показывает спиннер).</summary>
+    /// <summary>Флаг выполнения операции экспорта/печати (показывает оверлей).</summary>
     private bool _isExporting;
+
+    /// <summary>Подпись текущей долгой операции. null — операция не идёт.</summary>
+    private string? _busyLabel;
 
     /// <summary>Состояние раскрытия подгрупп меню групповых операций: label → isOpen.</summary>
     private Dictionary<string, bool> _openSubGroups = [];
+
+    /// <summary>
+    /// Выполняет долгую операцию (печать/экспорт) с видимой блокирующей индикацией.
+    /// StateHasChanged ставит рендер в очередь, но батч уедет клиенту только когда метод
+    /// уступит поток — поэтому Task.Yield() перед работой обязателен: генерация книги
+    /// синхронна и до первого await может пройти секунды.
+    /// </summary>
+    /// <param name="label">Подпись под индикатором, напр. «Выгрузка в Excel…».</param>
+    /// <param name="work">Тело операции.</param>
+    private async Task RunBusyAsync(string label, Func<Task> work)
+    {
+        _busyLabel   = label;
+        _isExporting = true;
+        StateHasChanged();
+        await Task.Yield();
+        try
+        {
+            await work();
+        }
+        finally
+        {
+            _isExporting = false;
+            _busyLabel   = null;
+            StateHasChanged();
+        }
+    }
 
     private void ToggleSubGroup(string label)
     {
@@ -106,21 +135,23 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var columns = await ResolveExportColumnsAsync("печати (текущая страница)");
         if (columns is null) return;
 
-        var spinnerId = Id + "-print-spinner";
-        _ = JS.InvokeVoidAsync("clayGridPrint.showSpinner", spinnerId);
-        try
+        string? html = null;
+        await RunBusyAsync("Подготовка печатной формы…", async () =>
         {
-            var html = Dynamic
+            html = Dynamic
                 ? await BuildDynamicPrintHtmlForCurrentPage(
                       columns, BuildFilterDescription(), BuildGroupDescription())
                 : await DataLoader!.BuildPrintHtmlForCurrentPageAsync(
                       columns, Title, BuildFilterDescription(), BuildGroupDescription());
-            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
+        });
+
+        if (html is null) return;
+        try
+        {
             await JS.InvokeAsync<object>("clayGridPrint.printHtml", html);
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
             Snackbar.Add($"Ошибка печати: {ex.Message}", Severity.Error);
         }
     }
@@ -131,21 +162,23 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var columns = await ResolveExportColumnsAsync("печати (все данные)");
         if (columns is null) return;
 
-        var spinnerId = Id + "-print-spinner";
-        _ = JS.InvokeVoidAsync("clayGridPrint.showSpinner", spinnerId);
-        try
+        string? html = null;
+        await RunBusyAsync("Подготовка печатной формы…", async () =>
         {
-            var html = Dynamic
+            html = Dynamic
                 ? await BuildDynamicPrintHtmlForAll(
                       columns, BuildFilterDescription(), BuildGroupDescription())
                 : await DataLoader!.BuildPrintHtmlAsync(
                       columns, Title, BuildFilterDescription(), BuildGroupDescription());
-            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
+        });
+
+        if (html is null) return;
+        try
+        {
             await JS.InvokeAsync<object>("clayGridPrint.printHtml", html);
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
             Snackbar.Add($"Ошибка печати: {ex.Message}", Severity.Error);
         }
     }
@@ -157,22 +190,24 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var columns = await ResolveExportColumnsAsync("печати (выбранные записи)");
         if (columns is null) return;
 
-        var spinnerId = Id + "-print-spinner";
-        _ = JS.InvokeVoidAsync("clayGridPrint.showSpinner", spinnerId);
-        try
+        string? html = null;
+        await RunBusyAsync("Подготовка печатной формы…", async () =>
         {
-            var html = Dynamic
+            html = Dynamic
                 ? await BuildDynamicPrintHtmlForSelected(
                       columns, _selectedIds.ToList(), BuildFilterDescription(), BuildGroupDescription())
                 : await DataLoader!.BuildPrintHtmlForSelectedAsync(
                       columns, Title, _selectedIds.ToList(),
                       BuildFilterDescription(), BuildGroupDescription());
-            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
+        });
+
+        if (html is null) return;
+        try
+        {
             await JS.InvokeAsync<object>("clayGridPrint.printHtml", html);
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
             Snackbar.Add($"Ошибка печати: {ex.Message}", Severity.Error);
         }
     }
@@ -185,9 +220,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var columns = await ResolveExportColumnsAsync("выгрузки в Excel (текущая страница)");
         if (columns is null) return;
 
-        _isExporting = true;
-        StateHasChanged();
-        try
+        await RunBusyAsync("Выгрузка в Excel…", async () =>
         {
             var request = new ExcelExportRequest
             {
@@ -202,12 +235,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 await DynamicExcelExportAsync(request);
             else
                 await DataLoader!.ExcelExportAsync(request);
-        }
-        finally
-        {
-            _isExporting = false;
-            StateHasChanged();
-        }
+        });
     }
 
     private async Task ExcelAllInternal()
@@ -216,9 +244,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var columns = await ResolveExportColumnsAsync("выгрузки в Excel (все данные)");
         if (columns is null) return;
 
-        _isExporting = true;
-        StateHasChanged();
-        try
+        await RunBusyAsync("Выгрузка в Excel…", async () =>
         {
             var request = new ExcelExportRequest
             {
@@ -233,12 +259,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 await DynamicExcelExportAsync(request);
             else
                 await DataLoader!.ExcelExportAsync(request);
-        }
-        finally
-        {
-            _isExporting = false;
-            StateHasChanged();
-        }
+        });
     }
 
     private async Task ExcelSelectedInternal()
@@ -248,9 +269,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var columns = await ResolveExportColumnsAsync("выгрузки в Excel (выбранные записи)");
         if (columns is null) return;
 
-        _isExporting = true;
-        StateHasChanged();
-        try
+        await RunBusyAsync("Выгрузка в Excel…", async () =>
         {
             var request = new ExcelExportRequest
             {
@@ -266,11 +285,6 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 await DynamicExcelExportAsync(request);
             else
                 await DataLoader!.ExcelExportAsync(request);
-        }
-        finally
-        {
-            _isExporting = false;
-            StateHasChanged();
-        }
+        });
     }
 }

@@ -958,25 +958,17 @@ body {
     }
 }
 
-/* ═══════════════════════════════════════════════════
-   Print spinner — ClayGrid
-   Pure CSS spinner, toggled via JS (no Blazor re-render).
-   ═══════════════════════════════════════════════════ */
-
-.clay-print-spinner {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--mud-palette-primary);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: clay-print-spin 0.6s linear infinite;
-    vertical-align: middle;
-    margin-left: 8px;
-}
-
-@keyframes clay-print-spin {
-    to { transform: rotate(360deg); }
+/* ── Индикатор долгой операции грида (печать/экспорт) ── */
+.clay-grid-busy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 28px;
+    background: var(--mud-palette-surface);
+    border-left: 3px solid var(--clay-gold);
+    color: var(--mud-palette-text-primary);
+    font-size: var(--clay-font-size);
 }
 
 /* ═══════════════════════════════════════════════════

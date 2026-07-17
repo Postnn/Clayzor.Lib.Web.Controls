@@ -1,31 +1,11 @@
 // ── Clay Grid — Print ───────────────────────────────────────────────────
 //
-// printHtml:         renders a server-generated HTML string in a hidden iframe,
-//                    prints it, and cleans up after the dialog closes.
-// showSpinner / hideSpinner:  toggle a CSS spinner next to the grid title
-//                             without triggering Blazor re-renders.
+// printHtml: renders a server-generated HTML string in a hidden iframe,
+//            prints it, and cleans up after the dialog closes.
 //
 // Follows the same IIFE pattern as clayGridColumnDrag.js.
 
 window.clayGridPrint = (function () {
-
-    /**
-     * Shows a CSS spinner by its DOM id (display:inline-block).
-     * @param {string} spinnerId — id of the spinner <span> element
-     */
-    function showSpinner(spinnerId) {
-        var el = document.getElementById(spinnerId);
-        if (el) el.style.display = 'inline-block';
-    }
-
-    /**
-     * Hides a CSS spinner by its DOM id (display:none).
-     * @param {string} spinnerId — id of the spinner <span> element
-     */
-    function hideSpinner(spinnerId) {
-        var el = document.getElementById(spinnerId);
-        if (el) el.style.display = 'none';
-    }
 
     /**
      * Prints an HTML string in a hidden iframe. The iframe is created,
@@ -59,8 +39,6 @@ window.clayGridPrint = (function () {
     }
 
     return {
-        showSpinner: showSpinner,
-        hideSpinner: hideSpinner,
         printHtml: printHtml
     };
 

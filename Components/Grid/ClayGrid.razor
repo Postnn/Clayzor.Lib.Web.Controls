@@ -22,11 +22,6 @@
     <div class="d-flex flex-wrap justify-space-between gap-2 mb-4" style="align-items:center">
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.h5">@Title</MudText>
-            @if (_isExporting)
-            {
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
-            }
-            <span id="@(Id + "-print-spinner")" class="clay-print-spinner" style="display:none"></span>
         </MudStack>
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
             <MudTextField T="string"
@@ -505,6 +500,12 @@
         </div>
     }
     }
+    <MudOverlay Visible="@_isExporting" Absolute="true" DarkBackground="true">
+        <div class="clay-grid-busy">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+            <span>@_busyLabel</span>
+        </div>
+    </MudOverlay>
 </MudPaper>
 </CascadingValue>
 
