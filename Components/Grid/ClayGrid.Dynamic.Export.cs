@@ -40,11 +40,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
     }
 
     /// <summary>
-    /// Строки текущей страницы. Без группировки — то, что уже в Items.
+    /// Строки для Excel «Текущая страница». Без группировки — то, что уже в Items.
     /// С группировкой — для каждого заголовка группы на странице догружаются ВСЕ строки её
-    /// поддерева, независимо от пагинации и от того, раскрыта группа или свёрнута:
-    /// раскрытость — состояние экрана, а не признак «этих данных не надо». Свёрнутость
-    /// доезжает до Excel отдельно — через expandedGroups и Excel Outline.
+    /// поддерева, независимо от пагинации и раскрытости: раскрытость — состояние экрана,
+    /// а не признак «этих данных не надо». Свёрнутость доезжает до Excel через expandedGroups
+    /// и Excel Outline. Печать текущей страницы использует Items напрямую (без догрузки).
     /// Заголовок, поддерево которого уже выгружено вместе с его предком, пропускается —
     /// иначе строки задвоятся.
     /// </summary>
@@ -242,24 +242,27 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private ClayDynamicCellReader CreateDynamicCellReader()
         => new(_dynamicCols, _dynamicLookups, _dynamicIconLookups, _clientOffset);
 
-    /// <summary>Раскрытые группы для печати. Пусто, если группировки нет.</summary>
+    /// <summary>Раскрытые группы для Excel Outline. Печать их не использует.</summary>
     private HashSet<string> DynamicExpandedGroups => _dynamicExpandedGroups;
 
-    private async Task<string> BuildDynamicPrintHtmlForCurrentPage(
+    /// <summary>
+    /// Печатная форма текущей страницы. Строки — ровно те, что на экране (Items):
+    /// свёрнутая группа печатается одной строкой-заголовком, раскрытая — тем куском,
+    /// который виден на странице. Догрузки нет: печать обязана совпадать с экраном
+    /// (для Excel действует другое правило — см. BuildDynamicExportRowsForCurrentPage).
+    /// </summary>
+    private Task<string> BuildDynamicPrintHtmlForCurrentPage(
         IReadOnlyList<ClayColumnMeta> columns, string? filterDescription, string? groupDescription)
-    {
-        var rows = await BuildDynamicExportRowsForCurrentPage();
-        return ClayGridPrintHtmlGenerator.Build(
-            Title, columns, rows, CreateDynamicCellReader(), DynamicExpandedGroups,
-            filterDescription, groupDescription);
-    }
+        => Task.FromResult(ClayGridPrintHtmlGenerator.Build(
+            Title, columns, (Items ?? []).OfType<IClayGridRow>().ToList(), CreateDynamicCellReader(),
+            filterDescription, groupDescription));
 
     private async Task<string> BuildDynamicPrintHtmlForAll(
         IReadOnlyList<ClayColumnMeta> columns, string? filterDescription, string? groupDescription)
     {
         var rows = await BuildDynamicExportRowsForAll();
         return ClayGridPrintHtmlGenerator.Build(
-            Title, columns, rows, CreateDynamicCellReader(), DynamicExpandedGroups,
+            Title, columns, rows, CreateDynamicCellReader(),
             filterDescription, groupDescription);
     }
 
@@ -269,7 +272,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         var rows = await BuildDynamicExportRowsForSelected(selectedIds);
         return ClayGridPrintHtmlGenerator.Build(
-            Title, columns, rows, CreateDynamicCellReader(), DynamicExpandedGroups,
+            Title, columns, rows, CreateDynamicCellReader(),
             filterDescription, groupDescription);
     }
 

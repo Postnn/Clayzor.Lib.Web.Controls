@@ -14,7 +14,7 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
     {
         var rows = await BuildAllRowsForSelected(new HashSet<int>(selectedIds));
         return ClayGridPrintHtmlGenerator.Build(
-            title, columns, rows, typeof(T), _query.ExpandedGroups,
+            title, columns, rows, typeof(T),
             filterDescription, groupDescription);
     }
 

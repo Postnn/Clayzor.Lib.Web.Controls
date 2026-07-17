@@ -206,9 +206,9 @@ public abstract partial class ClayGridPageBase<T> : ComponentBase, IClayGridData
         IReadOnlyList<ClayColumnMeta> columns, string title,
         string? filterDescription, string? groupDescription)
     {
-        var rows = await BuildAllRowsForPrint();
+        var rows = await BuildAllRowsForExport();
         return ClayGridPrintHtmlGenerator.Build(
-            title, columns, rows, typeof(T), _query.ExpandedGroups,
+            title, columns, rows, typeof(T),
             filterDescription, groupDescription);
     }
 

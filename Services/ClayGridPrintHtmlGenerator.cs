@@ -20,7 +20,6 @@ public static class ClayGridPrintHtmlGenerator
         IReadOnlyList<ClayColumnMeta> columns,
         IReadOnlyList<IClayGridRow> rows,
         IClayGridCellReader cellReader,
-        HashSet<string>? expandedGroups = null,
         string? filterDescription = null,
         string? groupDescription = null)
     {
@@ -103,11 +102,10 @@ public static class ClayGridPrintHtmlGenerator
         IReadOnlyList<ClayColumnMeta> columns,
         IReadOnlyList<IClayGridRow> rows,
         Type entityType,
-        HashSet<string>? expandedGroups = null,
         string? filterDescription = null,
         string? groupDescription = null)
         => Build(title, columns, rows, new ClayReflectionCellReader(entityType),
-                 expandedGroups, filterDescription, groupDescription);
+                 filterDescription, groupDescription);
 
     // ── Групповая строка ────────────────────────────────────────────────
 

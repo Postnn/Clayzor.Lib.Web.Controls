@@ -25,7 +25,7 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
                     rowsToExport = await BuildAllRowsForSelected(new HashSet<int>(request.SelectedIds));
                     break;
                 case ExcelExportMode.All:
-                    rowsToExport = await BuildAllRowsForExcel();
+                    rowsToExport = await BuildAllRowsForExport();
                     break;
                 default:
                     rowsToExport = _rows;
@@ -60,11 +60,11 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
     /// Группировка — запрос агрегатов (GROUP BY) + один запрос всех строк,
     /// групповая структура строится в C# по отсортированным данным.
     /// </summary>
-    private async Task<List<IClayGridRow>> BuildAllRowsForExcel()
+    private async Task<List<IClayGridRow>> BuildAllRowsForExport()
     {
         if (_query.GroupEnabled && _query.GroupColumns.Count > 0)
-            return await BuildAllGroupedRowsForExcel();
-        return await BuildAllFlatRowsForPrint();
+            return await BuildAllGroupedRowsForExport();
+        return await BuildAllFlatRowsForExport();
     }
 
     /// <summary>
@@ -74,10 +74,10 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
     /// 2. SELECT * без пагинации, отсортированный по групповым колонкам + детальный порядок.
     /// Групповые заголовки (<see cref="GroupHeaderRow"/>) строятся в C# путём
     /// однопроходного детектирования смены группового ключа.
-    /// В отличие от <see cref="BuildAllGroupedRowsForPrint"/> не делает N запросов
-    /// на каждую листовую группу.
+    /// В отличие от печатной версии (удалена в GB10) не делает N запросов
+    /// на каждую листовую группу — два запроса + C#-interleaving.
     /// </summary>
-    private async Task<List<IClayGridRow>> BuildAllGroupedRowsForExcel()
+    private async Task<List<IClayGridRow>> BuildAllGroupedRowsForExport()
     {
         var selectSql     = Grid?.SelectSql     ?? string.Empty;
         var searchColumns = Grid?.SearchColumns ?? [];
@@ -153,12 +153,13 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
         }
     }
 
+    /// <summary>Печатная форма текущей страницы: строки — ровно экран (_rows), без догрузки.</summary>
     Task<string> IClayGridDataLoader.BuildPrintHtmlForCurrentPageAsync(
         IReadOnlyList<ClayColumnMeta> columns, string title,
         string? filterDescription, string? groupDescription)
     {
         return Task.FromResult(ClayGridPrintHtmlGenerator.Build(
-            title, columns, _rows, typeof(T), _query.ExpandedGroups,
+            title, columns, _rows, typeof(T),
             filterDescription, groupDescription));
     }
 
@@ -168,9 +169,9 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
     /// (игнорируя пагинацию). На грид это не влияет — данные загружаются отдельным запросом.
     /// </summary>
     /// <summary>
-    /// Строит список строк для экспорта текущей страницы. Если активна группировка —
+    /// Строки для Excel «Текущая страница». Если активна группировка —
     /// для каждого заголовка группы на странице загружает ВСЕ строки её поддерева
-    /// (игнорируя пагинацию и раскрытость). Заголовок, поддерево которого уже выгружено
+    /// (игнорируя пагинацию и раскрытость). Печать текущей страницы берёт _rows напрямую. Заголовок, поддерево которого уже выгружено
     /// вместе с его предком, пропускается — иначе строки задваиваются.
     /// На грид не влияет: данные грузятся отдельным запросом.
     /// </summary>
