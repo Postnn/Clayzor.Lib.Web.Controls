@@ -1,6 +1,7 @@
 using Clayzor.Lib.Entities.DynamicGrid;
 using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 using Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+using Clayzor.Lib.Web.Controls.Services;
 using Dapper;
 
 namespace Clayzor.Lib.Web.Controls.Components.Grid;
@@ -203,6 +204,46 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
 
         return result;
+    }
+
+    // ── Печать ──────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Читатель ячеек динамического грида. Создаётся на каждый экспорт: _clientOffset
+    /// может измениться (GF11), справочники — нет, но они передаются по ссылке.
+    /// </summary>
+    private ClayDynamicCellReader CreateDynamicCellReader()
+        => new(_dynamicCols, _dynamicLookups, _dynamicIconLookups, _clientOffset);
+
+    /// <summary>Раскрытые группы для печати. Пусто, если группировки нет.</summary>
+    private HashSet<string> DynamicExpandedGroups => _dynamicExpandedGroups;
+
+    private async Task<string> BuildDynamicPrintHtmlForCurrentPage(
+        IReadOnlyList<ClayColumnMeta> columns, string? filterDescription, string? groupDescription)
+    {
+        var rows = await BuildDynamicExportRowsForCurrentPage();
+        return ClayGridPrintHtmlGenerator.Build(
+            Title, columns, rows, CreateDynamicCellReader(), DynamicExpandedGroups,
+            filterDescription, groupDescription);
+    }
+
+    private async Task<string> BuildDynamicPrintHtmlForAll(
+        IReadOnlyList<ClayColumnMeta> columns, string? filterDescription, string? groupDescription)
+    {
+        var rows = await BuildDynamicExportRowsForAll();
+        return ClayGridPrintHtmlGenerator.Build(
+            Title, columns, rows, CreateDynamicCellReader(), DynamicExpandedGroups,
+            filterDescription, groupDescription);
+    }
+
+    private async Task<string> BuildDynamicPrintHtmlForSelected(
+        IReadOnlyList<ClayColumnMeta> columns, IReadOnlyCollection<int> selectedIds,
+        string? filterDescription, string? groupDescription)
+    {
+        var rows = await BuildDynamicExportRowsForSelected(selectedIds);
+        return ClayGridPrintHtmlGenerator.Build(
+            Title, columns, rows, CreateDynamicCellReader(), DynamicExpandedGroups,
+            filterDescription, groupDescription);
     }
 
     /// <summary>Рекурсивно собирает FullKey → ItemCount из дерева групп.</summary>

@@ -102,7 +102,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task PrintCurrentPageInternal()
     {
-        if (DataLoader is null) return;
+        if (!Dynamic && DataLoader is null) return;
         var columns = await ResolveExportColumnsAsync("печати (текущая страница)");
         if (columns is null) return;
 
@@ -110,8 +110,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _ = JS.InvokeVoidAsync("clayGridPrint.showSpinner", spinnerId);
         try
         {
-            var html = await DataLoader.BuildPrintHtmlForCurrentPageAsync(
-                columns, Title, BuildFilterDescription(), BuildGroupDescription());
+            var html = Dynamic
+                ? await BuildDynamicPrintHtmlForCurrentPage(
+                      columns, BuildFilterDescription(), BuildGroupDescription())
+                : await DataLoader!.BuildPrintHtmlForCurrentPageAsync(
+                      columns, Title, BuildFilterDescription(), BuildGroupDescription());
             await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
             await JS.InvokeAsync<object>("clayGridPrint.printHtml", html);
         }
@@ -124,7 +127,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task PrintAllInternal()
     {
-        if (DataLoader is null) return;
+        if (!Dynamic && DataLoader is null) return;
         var columns = await ResolveExportColumnsAsync("печати (все данные)");
         if (columns is null) return;
 
@@ -132,8 +135,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _ = JS.InvokeVoidAsync("clayGridPrint.showSpinner", spinnerId);
         try
         {
-            var html = await DataLoader.BuildPrintHtmlAsync(
-                columns, Title, BuildFilterDescription(), BuildGroupDescription());
+            var html = Dynamic
+                ? await BuildDynamicPrintHtmlForAll(
+                      columns, BuildFilterDescription(), BuildGroupDescription())
+                : await DataLoader!.BuildPrintHtmlAsync(
+                      columns, Title, BuildFilterDescription(), BuildGroupDescription());
             await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
             await JS.InvokeAsync<object>("clayGridPrint.printHtml", html);
         }
@@ -146,7 +152,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task PrintSelectedInternal()
     {
-        if (DataLoader is null || _selectedIds.Count == 0) return;
+        if (!Dynamic && DataLoader is null) return;
+        if (_selectedIds.Count == 0) return;
         var columns = await ResolveExportColumnsAsync("печати (выбранные записи)");
         if (columns is null) return;
 
@@ -154,9 +161,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _ = JS.InvokeVoidAsync("clayGridPrint.showSpinner", spinnerId);
         try
         {
-            var html = await DataLoader.BuildPrintHtmlForSelectedAsync(
-                columns, Title, _selectedIds.ToList(),
-                BuildFilterDescription(), BuildGroupDescription());
+            var html = Dynamic
+                ? await BuildDynamicPrintHtmlForSelected(
+                      columns, _selectedIds.ToList(), BuildFilterDescription(), BuildGroupDescription())
+                : await DataLoader!.BuildPrintHtmlForSelectedAsync(
+                      columns, Title, _selectedIds.ToList(),
+                      BuildFilterDescription(), BuildGroupDescription());
             await JS.InvokeVoidAsync("clayGridPrint.hideSpinner", spinnerId);
             await JS.InvokeAsync<object>("clayGridPrint.printHtml", html);
         }

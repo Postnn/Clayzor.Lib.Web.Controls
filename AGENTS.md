@@ -133,6 +133,7 @@
 - GE1 — `IClayGridCellReader` + `ClayReflectionCellReader`: вынос чтения ячейки из генераторов в абстракцию. Старая сигнатура с `Type entityType` → обёртка над `new ClayReflectionCellReader`. Поведение статики не изменилось
 - GE2 — `ClayDynamicCellReader`: динамическая реализация `IClayGridCellReader`. Тип 1/2/3/7 сырыми для Excel, Тип 5/9 через справочники, Тип 10/13 со смещением, Тип 8 StripHtml, Тип 12 полный текст. Без БД, всё через конструктор
 - GE3 — `ClayGrid.Dynamic.Export.cs`: загрузка строк для экспорта (текущая страница / все / выбранные), плоско и с группировкой (C# interleaving). Агрегат через `ClayGroupRowMapper`, детальный WHERE через `BuildGroupKeyWhere`, белый список `IdColumn`
+- GE4 — печать в динрежиме: `CreateDynamicCellReader`, 3 метода `BuildDynamicPrintHtml*`, диспетчер `if (Dynamic) ... else ...` в `Print*Internal` (ExportMenu.cs)
 - Оркестратор: `promts/GE0_README_dynamic_export.md`, промты `GE1`–`GE6`
 
 ### Services
