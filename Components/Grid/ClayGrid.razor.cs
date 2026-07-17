@@ -179,6 +179,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Показывать группу «Выгрузка в Excel» в меню групповых операций.</summary>
     [Parameter] public bool ShowExcel { get; set; }
 
+    /// <summary>Есть ли что показать в меню групповых операций.</summary>
+    private bool HasBatchOperations => ShowPrint || ShowExcel || (CustomBatchGroups?.Count > 0);
+
     /// <summary>
     /// Глобальное включение фильтра по значению (Excel-style) для всех колонок.
     /// При <c>false</c> значки фильтра по значению не отображаются, даже если

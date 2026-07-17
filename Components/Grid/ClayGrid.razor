@@ -77,6 +77,9 @@
                              Icon="@Icons.Material.Filled.CheckBox"
                              Class="@(_selectMode ? "toolbar-select-btn toolbar-select-btn--active" : "toolbar-select-btn")"
                              OnClick="ToggleSelectMode" />
+            }
+            @if (HasBatchOperations)
+            {
                 <ClayMenu Icon="@Icons.Material.Filled.PlaylistAddCheck"
                            Tooltip="Групповые операции"
                            Class="toolbar-batch-btn"
@@ -198,7 +201,7 @@
                     <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
                              Size="Size.Small"
                              Style="margin-right:6px;opacity:0.45;flex-shrink:0;cursor:grab" />
-                    @if (Dynamic || DataLoader is not null)
+                    @if (HasBatchOperations)
                     {
                         var depth = idx;
                         var isExpanded = IsLevelFullyExpanded(depth);

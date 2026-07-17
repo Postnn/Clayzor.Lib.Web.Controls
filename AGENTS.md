@@ -136,6 +136,7 @@
 - GE3 — `ClayGrid.Dynamic.Export.cs`: загрузка строк для экспорта (текущая страница / все / выбранные), плоско и с группировкой (C# interleaving). Агрегат через `ClayGroupRowMapper`, детальный WHERE через `BuildGroupKeyWhere`, белый список `IdColumn`
 - GE4 — печать в динрежиме: `CreateDynamicCellReader`, 3 метода `BuildDynamicPrintHtml*`, диспетчер `Dynamic/static` в `Print*Internal` (ExportMenu.cs)
 - GE5 — Excel в динрежиме: `DynamicExcelExportAsync` (switch по режиму, генератор + base64 + JS-скачивание), `ClayGridExportFileName.Sanitize` (вынос из `ClayGridPageBase`), диспетчер в `Excel*Internal`
+- GE6 — включение: `HasBatchOperations`, меню групповых операций вынесено из `@if (SelectVisible)` в `@if (HasBatchOperations)`, откат GF15
 - Оркестратор: `promts/GE0_README_dynamic_export.md`, промты `GE1`–`GE6`
 
 ### Services
