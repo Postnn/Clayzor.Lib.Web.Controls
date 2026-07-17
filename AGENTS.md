@@ -127,6 +127,7 @@
 - GN1 — `GridGroupRow.Keys` вместо `K0/K1/K2`, `BuildGroupAggregateSql` без потолка (N уровней), `ClayGroupRowMapper` (общий маппер, заменил `ClayDynamicGroupMapper`), перевод 5 статических `Db.QueryAsync<GridGroupRow>` на словари + маппер, временный мост в `BuildAggregates`
 - GN2 — `BuildAggregates` на N уровней: `depth = Keys.Count - 1`, `NULL` — законный ключ, `FullKey` без дубликатов при 3+ уровнях, `EmptyGroupDisplay` + `ToDisplay`
 - GN3 — `BuildGroupKeyWhere`: детальный `WHERE` с `IS NULL` для null-ключей, замена копипасты `dk{i}` в 4 местах, `LoadDynamicGroupChildIdsAsync` с `FullKey.Split` → `rawKeys`
+- GN4 — `BuildInterleavedHeaders`: C#-interleaving экспорта на N уровней, единый метод в `ClayGroupingEngine`, замена копипасты в `Export.Excel` (основной + subtree), `Export.Selected`, `Dynamic.Export`. Согласование `FullKey`/`DisplayValue` с движком (`EmptyGroupDisplay`), нормализация `null` → `""`
 - Оркестратор: `promts/GN0_README_grouping_levels.md`, промты `GN1`–`GN4`
 
 **Выполненные шаги печати и Excel (GE1+):**

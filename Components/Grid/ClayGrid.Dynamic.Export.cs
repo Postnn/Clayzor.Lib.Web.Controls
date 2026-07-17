@@ -169,7 +169,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var rowsWhere = idFilter is null ? where : ClayDataQuery.CombineWhere(where, idFilter);
         var rawRows   = await DynamicSql.QueryRowsAsync(Db, BuildDynamicSelectAllSql(rowsWhere, orderBy), dp);
 
-        // C# interleaving (до GN4 — как в BuildAllGroupedRowsForExcel)
+        // C# interleaving (GN4 — ClayGroupingEngine.BuildInterleavedHeaders)
         var result = new List<IClayGridRow>();
         string?[]? previousKeys = null;
 
@@ -179,26 +179,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 .Select(c => raw.TryGetValue(c, out var v) && v is not DBNull ? v?.ToString() : null)
                 .ToArray();
 
-            int firstDiff = 0;
-            if (previousKeys is not null)
-                while (firstDiff < previousKeys.Length
-                       && firstDiff < currentKeys.Length
-                       && string.Equals(previousKeys[firstDiff], currentKeys[firstDiff]))
-                    firstDiff++;
-
-            for (int depth = firstDiff; depth < exprs.Count; depth++)
+            foreach (var header in ClayGroupingEngine.BuildInterleavedHeaders(currentKeys, previousKeys, countLookup))
             {
-                var keys    = currentKeys.Take(depth + 1).ToList();
-                var fullKey = string.Join("", keys);
-
-                result.Add(new GroupHeaderRow
-                {
-                    DisplayValue = ResolveGroupDisplayValue(exprs[depth], keys[depth] ?? ""),
-                    FullKey      = fullKey,
-                    ItemCount    = countLookup.GetValueOrDefault(fullKey),
-                    Depth        = depth,
-                    GroupKeys    = keys!,
-                });
+                // Тип 5/9: в ключе код, показать надо наименование (GG6)
+                header.DisplayValue = ResolveGroupDisplayValue(exprs[header.Depth], header.DisplayValue);
+                result.Add(header);
             }
 
             result.Add(new ClayDynamicRow(raw));

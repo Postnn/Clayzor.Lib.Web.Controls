@@ -27,7 +27,7 @@ public class GridGroupRow
 /// </summary>
 public class GridGroupAgg
 {
-    /// <summary>Полный ключ группы — уровни через .</summary>
+    /// <summary>Полный ключ группы — уровни через \u001F.</summary>
     public string FullKey { get; set; } = "";
 
     /// <summary>Отображаемое значение группы (значение последнего уровня).</summary>
@@ -204,7 +204,7 @@ public static class ClayGroupingEngine
             for (int d = 0; d < depth; d++)
             {
                 var parentKeys    = keys.Take(d + 1).ToList();
-                var parentFullKey = string.Join("", parentKeys);
+                var parentFullKey = string.Join("\u001F", parentKeys);
                 if (!seenKeys.Add(parentFullKey)) continue;
 
                 aggregates.Add(new GridGroupAgg
@@ -213,14 +213,14 @@ public static class ClayGroupingEngine
                     DisplayValue = ToDisplay(parentKeys[d]),
                     ItemCount    = 0,                       // посчитает ComputeParentCounts
                     Depth        = d,
-                    ParentKey    = d > 0 ? string.Join("", parentKeys.Take(d)) : "",
+                    ParentKey    = d > 0 ? string.Join("\u001F", parentKeys.Take(d)) : "",
                     KeyValues    = parentKeys,
                     RawKeys      = gr.Keys.Take(d + 1).ToList(),
                 });
             }
 
-            var fullKey   = string.Join("", keys);
-            var parentKey = depth > 0 ? string.Join("", keys.Take(depth)) : "";
+            var fullKey   = string.Join("\u001F", keys);
+            var parentKey = depth > 0 ? string.Join("\u001F", keys.Take(depth)) : "";
 
             aggregates.Add(new GridGroupAgg
             {
@@ -239,6 +239,49 @@ public static class ClayGroupingEngine
 
     /// <summary>Строковый ключ → подпись группы. Пустой ключ (NULL в данных) → «(пусто)».</summary>
     private static string ToDisplay(string key) => key.Length > 0 ? key : EmptyGroupDisplay;
+
+    /// <summary>
+    /// Строит заголовки групп, которые нужно вставить перед строкой с ключами
+    /// <paramref name="currentKeys"/>, при однопроходном обходе отсортированных строк
+    /// (C#-interleaving в экспорте). Число уровней не ограничено.
+    /// Формат FullKey и подписи «(пусто)» совпадает с <see cref="BuildAggregates"/> —
+    /// от этого зависит поиск в countLookup.
+    /// </summary>
+    /// <param name="currentKeys">Строковые ключи текущей строки по уровням (null → «нет значения»).</param>
+    /// <param name="previousKeys">Ключи предыдущей строки или null для первой строки.</param>
+    /// <param name="countLookup">FullKey → ItemCount из дерева агрегатов.</param>
+    /// <returns>Заголовки от самого внешнего сменившегося уровня до самого глубокого.</returns>
+    public static List<GroupHeaderRow> BuildInterleavedHeaders(
+        IReadOnlyList<string?> currentKeys,
+        IReadOnlyList<string?>? previousKeys,
+        IReadOnlyDictionary<string, int> countLookup)
+    {
+        var headers = new List<GroupHeaderRow>();
+
+        int firstDiff = 0;
+        if (previousKeys is not null)
+            while (firstDiff < previousKeys.Count
+                   && firstDiff < currentKeys.Count
+                   && string.Equals(previousKeys[firstDiff] ?? "", currentKeys[firstDiff] ?? ""))
+                firstDiff++;
+
+        for (int depth = firstDiff; depth < currentKeys.Count; depth++)
+        {
+            var keys    = currentKeys.Take(depth + 1).Select(k => k ?? "").ToList();
+            var fullKey = string.Join("\u001F", keys);
+
+            headers.Add(new GroupHeaderRow
+            {
+                DisplayValue = keys[depth].Length > 0 ? keys[depth] : EmptyGroupDisplay,
+                FullKey      = fullKey,
+                ItemCount    = countLookup.GetValueOrDefault(fullKey),
+                Depth        = depth,
+                GroupKeys    = keys,
+            });
+        }
+
+        return headers;
+    }
 
     /// <summary>
     /// Строит WHERE-фрагмент, отбирающий строки одной группы по её ключам.

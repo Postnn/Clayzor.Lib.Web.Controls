@@ -132,31 +132,7 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
                     : null)
                 .ToArray();
 
-            int firstDiff = 0;
-            if (previousKeys is not null)
-            {
-                while (firstDiff < previousKeys.Length
-                       && firstDiff < currentKeys.Length
-                       && string.Equals(previousKeys[firstDiff], currentKeys[firstDiff]))
-                    firstDiff++;
-            }
-
-            for (int depth = firstDiff; depth < groupCols.Count; depth++)
-            {
-                var keys         = currentKeys.Take(depth + 1).ToList();
-                var displayValue = keys[depth] ?? "(пусто)";
-                var fullKey      = string.Join("\u001F", keys);
-
-                result.Add(new GroupHeaderRow
-                {
-                    DisplayValue = displayValue,
-                    FullKey      = fullKey,
-                    ItemCount    = countLookup.TryGetValue(fullKey, out var cnt) ? cnt : 0,
-                    Depth        = depth,
-                    GroupKeys    = keys!,
-                });
-            }
-
+            result.AddRange(ClayGroupingEngine.BuildInterleavedHeaders(currentKeys, previousKeys, countLookup));
             result.Add(new DetailRow<T> { Item = item });
             previousKeys = currentKeys;
         }
@@ -299,31 +275,7 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
                                 : null)
                             .ToArray();
 
-                        int firstDiff = 0;
-                        if (previousKeys is not null)
-                        {
-                            while (firstDiff < previousKeys.Length
-                                   && firstDiff < currentKeys.Length
-                                   && string.Equals(previousKeys[firstDiff], currentKeys[firstDiff]))
-                                firstDiff++;
-                        }
-
-                        for (int depth = firstDiff; depth < groupCols.Count; depth++)
-                        {
-                            var keys         = currentKeys.Take(depth + 1).ToList();
-                            var displayValue = keys[depth] ?? "(пусто)";
-                            var fullKey      = string.Join("", keys);
-
-                            result.Add(new GroupHeaderRow
-                            {
-                                DisplayValue = displayValue,
-                                FullKey      = fullKey,
-                                ItemCount    = countLookup.TryGetValue(fullKey, out var cnt) ? cnt : 0,
-                                Depth        = depth,
-                                GroupKeys    = keys!,
-                            });
-                        }
-
+                        result.AddRange(ClayGroupingEngine.BuildInterleavedHeaders(currentKeys, previousKeys, countLookup));
                         result.Add(new DetailRow<T> { Item = item });
                         previousKeys = currentKeys;
                     }
