@@ -3,6 +3,8 @@ using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 using Clayzor.Lib.Web.Controls.Components.Grid.Filter;
 using Clayzor.Lib.Web.Controls.Services;
 using Dapper;
+using Microsoft.JSInterop;
+using MudBlazor;
 
 namespace Clayzor.Lib.Web.Controls.Components.Grid;
 
@@ -244,6 +246,50 @@ public partial class ClayGrid<TEntity> where TEntity : class
         return ClayGridPrintHtmlGenerator.Build(
             Title, columns, rows, CreateDynamicCellReader(), DynamicExpandedGroups,
             filterDescription, groupDescription);
+    }
+
+    // ── Excel ──────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Выгрузка в Excel в динамическом режиме. Аналог ClayGridPageBase.ExcelExportAsync:
+    /// тот же генератор, те же снекбары и имя файла, но строки грузятся через
+    /// ClayGrid.Dynamic.Export, а ячейки читаются ClayDynamicCellReader.
+    /// </summary>
+    private async Task DynamicExcelExportAsync(ExcelExportRequest request)
+    {
+        try
+        {
+            var columns = request.VisibleColumns;
+            if (columns.Count == 0) return;
+
+            var rowsToExport = request.Mode switch
+            {
+                ExcelExportMode.CurrentPage => await BuildDynamicExportRowsForCurrentPage(),
+                ExcelExportMode.Selected    => await BuildDynamicExportRowsForSelected(request.SelectedIds),
+                ExcelExportMode.All         => await BuildDynamicExportRowsForAll(),
+                _                           => await BuildDynamicExportRowsForCurrentPage(),
+            };
+
+            if (rowsToExport.Count == 0)
+            {
+                Snackbar.Add("Нет данных для выгрузки", Severity.Warning);
+                return;
+            }
+
+            var bytes = ClayGridExcelGenerator.ExportToExcel(
+                request.Title, columns, rowsToExport, CreateDynamicCellReader(),
+                DynamicExpandedGroups, request.FilterDescription, request.GroupDescription);
+
+            var base64   = Convert.ToBase64String(bytes);
+            var fileName = $"{ClayGridExportFileName.Sanitize(request.Title)}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+            await JS.InvokeVoidAsync("clayGridExcel.downloadFile", fileName, base64);
+            Snackbar.Add($"Файл «{fileName}» выгружен", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка выгрузки: {ex.Message}", Severity.Error);
+        }
     }
 
     /// <summary>Рекурсивно собирает FullKey → ItemCount из дерева групп.</summary>

@@ -181,7 +181,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task ExcelCurrentPageInternal()
     {
-        if (DataLoader is null) return;
+        if (!Dynamic && DataLoader is null) return;
         var columns = await ResolveExportColumnsAsync("выгрузки в Excel (текущая страница)");
         if (columns is null) return;
 
@@ -189,14 +189,19 @@ public partial class ClayGrid<TEntity> where TEntity : class
         StateHasChanged();
         try
         {
-            await DataLoader.ExcelExportAsync(new ExcelExportRequest
+            var request = new ExcelExportRequest
             {
                 Mode = ExcelExportMode.CurrentPage,
                 Title = Title,
                 VisibleColumns = columns,
                 FilterDescription = BuildFilterDescription(),
                 GroupDescription = BuildGroupDescription(),
-            });
+            };
+
+            if (Dynamic)
+                await DynamicExcelExportAsync(request);
+            else
+                await DataLoader!.ExcelExportAsync(request);
         }
         finally
         {
@@ -207,7 +212,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task ExcelAllInternal()
     {
-        if (DataLoader is null) return;
+        if (!Dynamic && DataLoader is null) return;
         var columns = await ResolveExportColumnsAsync("выгрузки в Excel (все данные)");
         if (columns is null) return;
 
@@ -215,14 +220,19 @@ public partial class ClayGrid<TEntity> where TEntity : class
         StateHasChanged();
         try
         {
-            await DataLoader.ExcelExportAsync(new ExcelExportRequest
+            var request = new ExcelExportRequest
             {
                 Mode = ExcelExportMode.All,
                 Title = Title,
                 VisibleColumns = columns,
                 FilterDescription = BuildFilterDescription(),
                 GroupDescription = BuildGroupDescription(),
-            });
+            };
+
+            if (Dynamic)
+                await DynamicExcelExportAsync(request);
+            else
+                await DataLoader!.ExcelExportAsync(request);
         }
         finally
         {
@@ -233,7 +243,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task ExcelSelectedInternal()
     {
-        if (DataLoader is null || _selectedIds.Count == 0) return;
+        if (!Dynamic && DataLoader is null) return;
+        if (_selectedIds.Count == 0) return;
         var columns = await ResolveExportColumnsAsync("выгрузки в Excel (выбранные записи)");
         if (columns is null) return;
 
@@ -241,7 +252,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         StateHasChanged();
         try
         {
-            await DataLoader.ExcelExportAsync(new ExcelExportRequest
+            var request = new ExcelExportRequest
             {
                 Mode = ExcelExportMode.Selected,
                 Title = Title,
@@ -249,7 +260,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 SelectedIds = _selectedIds.ToList(),
                 FilterDescription = BuildFilterDescription(),
                 GroupDescription = BuildGroupDescription(),
-            });
+            };
+
+            if (Dynamic)
+                await DynamicExcelExportAsync(request);
+            else
+                await DataLoader!.ExcelExportAsync(request);
         }
         finally
         {

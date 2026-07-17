@@ -43,7 +43,7 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
                 request.FilterDescription, request.GroupDescription);
 
             var base64   = Convert.ToBase64String(bytes);
-            var fileName = $"{SanitizeFileName(request.Title)}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            var fileName = $"{ClayGridExportFileName.Sanitize(request.Title)}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
 
             await JS.InvokeVoidAsync("clayGridExcel.downloadFile", fileName, base64);
             Snackbar.Add($"Файл «{fileName}» выгружен", Severity.Success);
@@ -332,12 +332,5 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
         }
 
         return result;
-    }
-
-    private static string SanitizeFileName(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        return string.Join("_", name.Split(invalid, StringSplitOptions.RemoveEmptyEntries))
-            .TrimEnd('.');
     }
 }
