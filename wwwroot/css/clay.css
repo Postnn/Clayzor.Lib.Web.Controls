@@ -1,0 +1,1312 @@
+/* ═══════════════════════════════════════════════════
+   Clayzor — Lufthansa-inspired corporate style
+   Deep navy, gold accents, clean whites, sharp edges
+   ═══════════════════════════════════════════════════ */
+
+:root {
+    /* Legacy aliases — keep for backward compatibility, don't introduce new --lh-* */
+    --lh-navy:        var(--clay-navy);
+    --lh-navy-light:  var(--clay-navy-2);
+    --lh-gold:        var(--clay-gold);
+    --lh-gold-dark:   var(--clay-gold-dark);
+    --lh-white:       var(--clay-white);
+    --lh-offwhite:    var(--clay-offwhite);
+    --lh-grey-light:  var(--clay-grey-light);
+    --lh-grey-mid:    var(--clay-grey-mid);
+    --lh-grey-dark:   var(--clay-grey-dark);
+
+    /* Цвета — алиасы на палитру MudBlazor (источник — ClayColors / ClayTheme).
+       MudThemeProvider эмитит --mud-palette-* в DOM — они адаптируются к dark mode. */
+    --clay-navy:       var(--mud-palette-primary);
+    --clay-navy-dark:  var(--mud-palette-primary-darken);
+    --clay-navy-light: var(--mud-palette-primary-lighten);
+    --clay-navy-2:     var(--mud-palette-drawer-background);
+    --clay-blue-mid:   var(--mud-palette-tertiary);
+    --clay-gold:       var(--mud-palette-secondary);
+    --clay-gold-dark:  var(--mud-palette-secondary-darken);
+    --clay-offwhite:   var(--mud-palette-background);
+    --clay-grey-light: var(--mud-palette-lines-default);
+    --clay-grey-mid:   var(--mud-palette-text-disabled);
+    --clay-grey-dark:  var(--mud-palette-text-secondary);
+    --clay-text:       var(--mud-palette-text-primary);
+    --clay-error:      var(--mud-palette-error);
+    --clay-warning:    var(--mud-palette-warning);
+    --clay-info:       var(--mud-palette-info);
+    --clay-success:    var(--mud-palette-success);
+
+    /* Не-цветовые константы — единственные литералы в :root */
+    --clay-font-family: Verdana, Arial, sans-serif;
+    --clay-font-size:   0.8rem;
+    --clay-radius:      2px;
+    --clay-accent:      3px;        /* Gold underline accent */
+    --clay-white:       #FFFFFF;
+}
+
+html {
+    font-family: var(--clay-font-family);
+}
+
+body {
+    font-family: var(--clay-font-family);
+    font-size: var(--clay-font-size);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.mud-input-control input,
+.mud-input-control textarea,
+.mud-input-control .mud-input-slot,
+.mud-input-control .mud-input-slot input {
+    font-size: var(--clay-font-size) !important;
+    font-weight: normal;
+}
+/* Базовый размер лейбла */
+.mud-input-control .mud-input-label-outlined {
+    font-size: var(--clay-font-size) !important;
+}
+/* Лейбл в покое (пустое поле без фокуса) — тот же размер, без уменьшения */
+.mud-input:not(.mud-shrink) ~ .mud-input-label-outlined {
+    font-size: var(--clay-font-size) !important;
+}
+/* Всплывший лейбл: mud-shrink на .mud-input (сосед), лейбл идёт ПОСЛЕ → цепляем через ~.
+   Второй селектор перекрывает focused-состояние: в фокусе MudBlazor заново вешает
+   scale(0.75) правилом с большей специфичностью, :focus-within его перебивает. */
+.mud-input.mud-shrink ~ .mud-input-label-outlined,
+.mud-input-control:focus-within .mud-input-label-outlined {
+    transform: translate(14px, -9px) scale(1) !important;   /* -9px подстроить ±2px */
+    font-size: var(--clay-font-size) !important;
+    line-height: 1 !important;
+}
+/* Вырез рамки (notch) под полный размер — в обоих случаях всплытия */
+.mud-input.mud-shrink .mud-input-outlined-border legend,
+.mud-input-control:focus-within .mud-input-outlined-border legend {
+    font-size: var(--clay-font-size) !important;
+}
+/* Сброс subtitle1 на полях ввода — убрать раздувание рамки */
+.mud-input.mud-typography-subtitle1 {
+    line-height: 1.5 !important;
+    letter-spacing: 0.01em !important;
+}
+
+#blazor-error-ui {
+    display: none;
+}
+
+/* ── App Bar ── */
+.mud-appbar {
+    border-bottom: 3px solid var(--lh-gold) !important;
+    letter-spacing: 0.02em;
+}
+
+/* ── Drawer / Sidebar ── */
+.mud-drawer {
+    border-right: none !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   Mobile (< 960px): temporary overlay drawer
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 959px) {
+
+    /* Hamburger always on top */
+    .mud-appbar {
+        z-index: 1301 !important;
+    }
+
+    /* Overlay: start below AppBar + gold underline (48 + 3 = 51px), below hamburger */
+    .mud-drawer-overlay.mud-drawer-overlay--open,
+    .mud-overlay.mud-overlay-drawer {
+        top: 51px !important;
+        bottom: 0 !important;
+        z-index: 1200 !important;
+        --mud-zindex-drawer: 1200;
+    }
+
+    /* Drawer content: slides out below AppBar */
+    .mud-drawer--open.mud-drawer-temporary,
+    .mud-drawer-responsive.mud-drawer--open {
+        top: 51px !important;
+        height: calc(100vh - 51px) !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════
+   Desktop (≥ 960px): persistent drawer, pushes content
+   ═══════════════════════════════════════════════════ */
+@media (min-width: 960px) {
+
+    /* AppBar normal z-index, above persistent drawer */
+    .mud-appbar {
+        z-index: 1100 !important;
+    }
+
+    /* Persistent drawer visible, full height below AppBar */
+    .mud-drawer--open.mud-drawer-responsive {
+        top: 0 !important;
+        height: 100vh !important;
+    }
+}
+
+.mud-nav-link {
+    border-radius: 0 !important;
+    margin: 0 !important;
+    border-left: 3px solid transparent;
+    transition: all 0.15s ease;
+}
+
+.mud-nav-link:hover {
+    background-color: rgba(255, 173, 0, 0.08) !important;
+    border-left-color: var(--lh-gold) !important;
+}
+
+.mud-nav-link.active {
+    background-color: rgba(255, 173, 0, 0.12) !important;
+    border-left-color: var(--lh-gold) !important;
+    color: var(--lh-gold) !important;
+}
+
+/* ── Buttons ── */
+.mud-button-filled.mud-button-filled-primary {
+    background-color: var(--lh-navy) !important;
+    transition: background-color 0.15s ease;
+}
+
+.mud-button-filled.mud-button-filled-primary:hover {
+    background-color: #0A1D6B !important;
+}
+
+.mud-button-filled.mud-button-filled-secondary {
+    background-color: var(--lh-gold) !important;
+    color: var(--lh-navy) !important;
+    font-weight: 700;
+}
+
+.mud-button-filled.mud-button-filled-secondary:hover {
+    background-color: var(--lh-gold-dark) !important;
+}
+
+/* ── Data Grid & Tables ── */
+.mud-table-row {
+    cursor: pointer;
+}
+
+.mud-table .mud-table-head .mud-table-cell {
+    background-color: var(--lh-navy) !important;
+    color: var(--lh-white) !important;
+    font-weight: 600;
+    font-size: var(--clay-font-size);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--lh-gold) !important;
+}
+
+.mud-table .mud-table-body .mud-table-row:hover {
+    background-color: rgba(5, 22, 77, 0.04) !important;
+}
+
+/* ── Paper / Cards ── */
+.mud-paper {
+    border-radius: 2px !important;
+    border: 1px solid var(--lh-grey-light);
+}
+
+/* ── Inputs ── */
+.mud-input-outlined .mud-input-outlined-border {
+    border-radius: 2px !important;
+}
+
+.mud-input.mud-input-underline:after {
+    border-bottom-color: var(--lh-navy) !important;
+}
+
+/* ── Dialog ── */
+.mud-dialog .mud-dialog-title {
+    background-color: var(--lh-navy);
+    color: var(--lh-white);
+    padding: 16px 24px;
+}
+
+.mud-dialog {
+    border-radius: 2px !important;
+    overflow: hidden;
+}
+
+/* ── Chips & Badges ── */
+.mud-chip.mud-chip-filled.mud-primary {
+    background-color: var(--lh-navy) !important;
+}
+
+/* ── Scrollbar (webkit) ── */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--lh-offwhite);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--lh-grey-mid);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--lh-grey-dark);
+}
+
+/* ── Main content offset for fixed AppBar ── */
+.mud-main-content {
+    padding-top: 68px !important;
+}
+
+/* ── Fast drawer transition ── */
+.drawer-fast {
+    transition-duration: 0.2s !important;
+}
+
+.drawer-fast * {
+    transition-duration: 0.15s !important;
+}
+
+/* ── Gold accent underline on page titles ── */
+.page-title-accent {
+    display: inline-block;
+    padding-bottom: 8px;
+    border-bottom: 3px solid var(--lh-gold);
+}
+
+/* ── Grouping Toggle Button ── */
+.grouping-toggle-btn {
+    color: var(--lh-grey-mid) !important;
+    border-radius: 2px !important;
+    transition: color 0.15s, background 0.15s;
+}
+
+.grouping-toggle-btn:hover {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 94%, var(--mud-palette-primary) 6%) !important;
+}
+
+.grouping-toggle-btn--active {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
+    box-shadow: inset 0 -2px 0 var(--lh-gold);
+}
+
+.grouping-toggle-btn--active:hover {
+    background: color-mix(in srgb, transparent 88%, var(--mud-palette-primary) 12%) !important;
+}
+
+.toolbar-add-btn {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
+    border-radius: 2px !important;
+    box-shadow: inset 0 -2px 0 var(--lh-gold);
+    transition: background 0.15s;
+}
+
+.toolbar-add-btn:hover {
+    background: color-mix(in srgb, transparent 86%, var(--mud-palette-primary) 14%) !important;
+}
+
+.toolbar-columns-btn {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
+    border-radius: 2px !important;
+    box-shadow: inset 0 -2px 0 var(--lh-gold);
+    transition: background 0.15s;
+}
+
+.toolbar-columns-btn:hover {
+    background: color-mix(in srgb, transparent 86%, var(--mud-palette-primary) 14%) !important;
+}
+
+.toolbar-select-btn {
+    color: var(--lh-grey-mid) !important;
+    border-radius: 2px !important;
+    transition: color 0.15s, background 0.15s;
+}
+
+.toolbar-select-btn:hover {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 94%, var(--mud-palette-primary) 6%) !important;
+}
+
+.toolbar-select-btn--active {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
+    box-shadow: inset 0 -2px 0 var(--lh-gold);
+}
+
+.toolbar-select-btn--active:hover {
+    background: color-mix(in srgb, transparent 88%, var(--mud-palette-primary) 12%) !important;
+}
+
+.toolbar-batch-btn .mud-icon-button {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
+    border-radius: 2px !important;
+    box-shadow: inset 0 -2px 0 var(--lh-gold);
+    transition: background 0.15s;
+}
+
+.toolbar-batch-btn .mud-icon-button:hover {
+    background: color-mix(in srgb, transparent 86%, var(--mud-palette-primary) 14%) !important;
+}
+
+.batch-menu-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 4px;
+}
+
+.batch-menu-header span {
+    flex: 1;
+}
+
+/* ── Grouping Tray (ClayGrid drag‑and‑drop) ── */
+.grouping-tray {
+    min-height: 34px;
+    padding: 4px 10px;
+    background: var(--mud-palette-background-gray);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-left: 3px solid var(--mud-palette-primary);
+    border-bottom: 2px solid var(--lh-gold);
+    border-radius: 0;
+    transition: border-left-color 0.15s, background 0.15s;
+}
+
+.grouping-tray:has(.grouping-chip:hover),
+.grouping-tray.drag-over {
+    background: var(--mud-palette-surface);
+    border-left-color: var(--lh-gold);
+}
+
+.grouping-tray-icon {
+    color: var(--mud-palette-text-secondary) !important;
+    opacity: 0.45;
+    flex-shrink: 0;
+    margin-right: 4px;
+}
+
+.grouping-tray:has(.grouping-chip) .grouping-tray-icon {
+    color: var(--mud-palette-primary) !important;
+    opacity: 1;
+}
+
+.grouping-tray-hint {
+    font-size: var(--clay-font-size);
+    color: var(--mud-palette-text-disabled);
+    font-style: italic;
+    letter-spacing: 0.02em;
+    line-height: 26px;
+}
+
+.grouping-tray-add-btn {
+    color: var(--mud-palette-text-secondary) !important;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.grouping-tray-add-btn:hover {
+    color: var(--mud-palette-primary) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.grouping-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 2px 0 8px;
+    height: 24px;
+    background: var(--lh-navy);
+    color: var(--lh-white);
+    border-radius: 0;
+    font-size: var(--clay-font-size);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    cursor: grab;
+    user-select: none;
+    transition: background 0.15s, box-shadow 0.15s;
+    border-bottom: 2px solid transparent;
+}
+
+.grouping-chip:hover {
+    background: #0A1D6B;
+    border-bottom-color: var(--lh-gold);
+}
+
+.grouping-chip:active {
+    cursor: grabbing;
+}
+
+.column-settings-chip {
+    display: flex;
+    align-items: center;
+    background: var(--lh-navy);
+    color: var(--lh-white);
+    min-height: 38px;
+    padding: 0 10px;
+    border-radius: 0;
+    font-size: var(--clay-font-size);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    cursor: grab;
+    user-select: none;
+    border-left: 3px solid transparent;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    transition: background 0.15s, border-left-color 0.15s, opacity 0.15s;
+}
+
+.column-settings-chip:hover {
+    background: #0A1D6B;
+    border-left-color: var(--lh-gold);
+}
+
+.column-settings-chip:hover .mud-icon-root {
+    opacity: 0.8 !important;
+}
+
+/* Выключен: трек — белый полупрозрачный */
+.column-settings-chip .mud-switch-track {
+    background-color: rgba(255, 255, 255, 0.35) !important;
+    opacity: 1 !important;
+}
+
+/* Включён: thumb — золотой */
+.column-settings-chip .mud-switch-base.mud-checked {
+    color: var(--lh-gold) !important;
+}
+
+/* Включён: трек — золотой полупрозрачный */
+.column-settings-chip .mud-switch-base.mud-checked + .mud-switch-track {
+    background-color: var(--lh-gold) !important;
+    opacity: 0.5 !important;
+}
+
+/* Выключен: thumb — белый */
+.column-settings-chip .mud-switch-base:not(.mud-checked) {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Неактивен (колонка в группировке) */
+.column-settings-chip .mud-switch.mud-disabled .mud-switch-track {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    opacity: 1 !important;
+}
+
+.column-settings-chip .mud-switch.mud-disabled .mud-switch-thumb {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.column-settings-chip .mud-switch.mud-disabled .mud-switch-base {
+    color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.column-settings-chip:active {
+    cursor: grabbing;
+}
+
+/* Ghost — клон чипа, следует за курсором */
+.column-settings-ghost {
+    opacity: 0.88;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+    border-left-color: var(--lh-gold) !important;
+    pointer-events: none;
+}
+
+/* Placeholder — пустое место куда встанет чип */
+.column-settings-placeholder {
+    background: color-mix(in srgb, var(--lh-gold) 12%, transparent);
+    border: 2px dashed var(--lh-gold);
+    border-radius: 0;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.grouping-chip.drag-over {
+    box-shadow: 2px 0 0 0 var(--lh-gold), -2px 0 0 0 var(--lh-gold);
+}
+
+.chip-label {
+    pointer-events: none;
+}
+
+.chip-label-clickable {
+    pointer-events: auto;
+    cursor: pointer;
+    padding: 0 6px 0 0;
+}
+
+.chip-label-clickable:hover {
+    opacity: 0.85;
+}
+
+/* Бейдж сортировки — в стиле header-ячеек таблицы (sharp, gold accent) */
+.chip-sort-badge {
+    display: inline-block;
+    background: var(--lh-gold);
+    color: var(--lh-navy);
+    border-radius: 0;
+    padding: 0 4px;
+    margin-left: 3px;
+    font-size: var(--clay-font-size);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 16px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+
+/* Бейдж группировки — зеркало chip-sort-badge, без стрелки */
+.chip-group-badge {
+    display: inline-block;
+    background: var(--lh-gold);
+    color: var(--lh-navy);
+    border-radius: 0;
+    padding: 0 4px;
+    margin-left: 3px;
+    font-size: var(--clay-font-size);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 16px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+
+.clay-group-toggle {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.chip-remove-btn {
+    color: var(--lh-white) !important;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
+
+.chip-remove-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ── Filter Toggle Button ── */
+.filter-toggle-btn {
+    color: var(--lh-grey-mid) !important;
+    border-radius: 2px !important;
+    transition: color 0.15s, background 0.15s;
+}
+
+.filter-toggle-btn:hover {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 94%, var(--mud-palette-primary) 6%) !important;
+}
+
+.filter-toggle-btn--active {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
+    box-shadow: inset 0 -2px 0 var(--lh-gold);
+}
+
+.filter-toggle-btn--active:hover {
+    background: color-mix(in srgb, transparent 88%, var(--mud-palette-primary) 12%) !important;
+}
+
+/* ── Filter Tray (drag‑and‑drop column filter panel) ── */
+.filter-tray {
+    min-height: 34px;
+    padding: 4px 10px;
+    background: var(--mud-palette-background-gray);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-left: 3px solid var(--mud-palette-primary);
+    border-bottom: 2px solid var(--lh-gold);
+    border-radius: 0;
+    transition: border-left-color 0.15s, background 0.15s;
+}
+
+.filter-tray:has(.filter-chip:hover),
+.filter-tray.drag-over {
+    background: var(--mud-palette-surface);
+    border-left-color: var(--lh-gold);
+}
+
+.filter-tray-icon {
+    color: var(--mud-palette-text-secondary) !important;
+    opacity: 0.45;
+    flex-shrink: 0;
+    margin-right: 4px;
+    padding: 0 !important;
+}
+
+.filter-tray:has(.filter-chip) .filter-tray-icon {
+    color: var(--mud-palette-primary) !important;
+    opacity: 1;
+}
+
+.filter-tray-hint {
+    font-size: var(--clay-font-size);
+    color: var(--mud-palette-text-disabled);
+    font-style: italic;
+    letter-spacing: 0.02em;
+    line-height: 26px;
+}
+
+/* ── Filter Chips ── */
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 2px 0 8px;
+    height: 24px;
+    background: var(--lh-navy);
+    color: var(--lh-white);
+    border-radius: 0;
+    font-size: var(--clay-font-size);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    cursor: default;
+    user-select: none;
+    transition: background 0.15s, box-shadow 0.15s;
+    border-bottom: 2px solid transparent;
+}
+
+.filter-chip:hover {
+    background: #0A1D6B;
+    border-bottom-color: var(--lh-gold);
+}
+
+/* ── Group Header Rows: полная ширина в интерактивном гриде ──
+   width:0 вместо position:absolute (см. G4/G5) — обёртка остаётся в
+   нормальном потоке, поэтому по-прежнему задаёт высоту строки, но явная
+   width:0 перекрывает intrinsic-ширину переполняющих потомков при расчёте
+   ширины колонки. position:relative + z-index поднимают её в порядке
+   отрисовки над последующими (пустыми) ячейками той же строки. */
+
+.mud-table-row:has(.group-header-cell) {
+    background-color: rgba(5, 22, 77, 0.04) !important;
+    border-top: 2px solid var(--lh-navy) !important;
+    cursor: pointer;
+}
+
+.mud-table-row:has(.group-header-cell):hover {
+    background-color: rgba(5, 22, 77, 0.08) !important;
+}
+
+.group-header-cell {
+    font-weight: 600;
+    color: var(--lh-navy);
+}
+
+.mud-table-row:has(.group-header-cell) > .mud-table-cell {
+    background-color: transparent !important;
+    border-right: none !important;
+}
+
+.mud-table-row:has(.group-header-cell) .group-header-cell {
+    overflow: visible;
+}
+
+.mud-table-row:has(.group-header-cell) .group-header-cell > div {
+    width: 0;
+    overflow: visible;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Column header menu (mobile) ── */
+@media (min-width: 961px) {
+    .column-menu-mobile { display: none !important; }
+}
+
+/* ── Clay column menu button ── */
+/* Кнопка ⋮ находится внутри HeaderTemplate (не внутри .column-options).
+   Заголовок таблицы имеет color:white !important, поэтому SVG наследует белый цвет.
+   Явно задаём цвет иконке через fill на SVG-уровне. */
+.clay-column-menu {
+    flex-shrink: 0;
+}
+
+.clay-column-menu .mud-icon-button {
+    opacity: 0.55;
+    transition: opacity 0.15s;
+}
+
+.clay-column-menu:hover .mud-icon-button,
+.mud-table-cell:hover .clay-column-menu .mud-icon-button {
+    opacity: 1;
+}
+
+/* SVG-иконка: золотой цвет поверх белого фона заголовка */
+.clay-column-menu .mud-svg-icon path:not([fill="none"]) {
+    fill: var(--lh-gold) !important;
+}
+
+/* ── Clay value-filter icon (FilterList в заголовке колонки) ── */
+/* Иконка должна быть видна на тёмном фоне шапки (--lh-navy).
+   Color.Default даёт тёмную иконку на тёмном фоне — невидима.
+   Поэтому используем CSS-класс с явным fill вместо Color= атрибута. */
+.clay-vf-icon .mud-svg-icon path:not([fill="none"]) {
+    fill: var(--lh-white) !important;
+    opacity: .55;
+}
+.mud-table-cell:hover .clay-vf-icon .mud-svg-icon path:not([fill="none"]) {
+    opacity: 1;
+}
+.clay-vf-icon--active .mud-svg-icon path:not([fill="none"]) {
+    fill: var(--lh-gold) !important;
+    opacity: 1;
+}
+
+/* ── ClayGrid cell borders ── */
+.mud-table-cell {
+    border-bottom: 1px solid var(--lh-grey-light) !important;
+    border-right: 1px solid var(--lh-grey-light) !important;
+}
+
+.mud-table-cell:last-child {
+    border-right: none;
+}
+
+/* ── Индикатор вставки колонки (insert drag) ── */
+.clay-grid-drop-indicator {
+    position: fixed;
+    width: 3px;
+    pointer-events: none;
+    z-index: 9999;
+    background: var(--lh-gold);
+    border-radius: 2px;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--lh-gold) 60%, transparent);
+    display: none;
+}
+
+/* ═══════════════════════════════════════════════════
+   Print styles — ClayGrid current page
+   Временный класс .clay-grid-printing добавляется JS
+   на целевой грид перед window.print().
+   Только грид с этим классом отображается при печати.
+   ═══════════════════════════════════════════════════ */
+@media print {
+    /* ── Скрыть layout chrome ── */
+    .mud-appbar,
+    .mud-drawer,
+    .mud-drawer-responsive,
+    .mud-overlay,
+    .mud-popover,
+    .mud-snackbar {
+        display: none !important;
+    }
+
+    /* ── Показать только печатаемый грид ── */
+    .mud-main-content > *:not(.clay-grid-printing) {
+        display: none !important;
+    }
+
+    .mud-main-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    body {
+        background: #fff !important;
+    }
+
+    /* ── Скрыть тулбар: кнопки, поиск ── */
+    .clay-grid-printing .clay-grid-search,
+    .clay-grid-printing .toolbar-columns-btn,
+    .clay-grid-printing .toolbar-add-btn,
+    .clay-grid-printing .toolbar-select-btn,
+    .clay-grid-printing .toolbar-batch-btn,
+    .clay-grid-printing .grouping-toggle-btn,
+    .clay-grid-printing .filter-toggle-btn {
+        display: none !important;
+    }
+
+    /* ── Скрыть пагинатор ── */
+    .clay-grid-printing .clay-grid-paginator {
+        display: none !important;
+    }
+
+    /* ── Скрыть колонку с чекбоксами (multiselection) ── */
+    .clay-grid-printing .mud-table-head .mud-table-cell:has(.mud-checkbox),
+    .clay-grid-printing .mud-table-body .mud-table-cell:has(.mud-checkbox) {
+        display: none !important;
+    }
+
+    /* ── Скрыть кнопки на чипах треев ── */
+    .clay-grid-printing .chip-remove-btn,
+    .clay-grid-printing .grouping-tray-add-btn {
+        display: none !important;
+    }
+
+    /* ── Треи: скрыть в печати (вместо них — текстовые описания) ── */
+    .clay-grid-printing .grouping-tray,
+    .clay-grid-printing .filter-tray,
+    .clay-grid-printing .grouping-tray--active,
+    .clay-grid-printing .filter-tray--active {
+        display: none !important;
+    }
+
+    /* ── Текстовые описания группировки и фильтрации (аналог Print All) ── */
+    .clay-grid-print-descriptions { display: none; }
+
+    .clay-grid-printing .clay-grid-print-descriptions {
+        display: block !important;
+        margin-bottom: 8px !important;
+    }
+
+    .clay-grid-printing .clay-grid-print-group-desc,
+    .clay-grid-printing .clay-grid-print-filter-desc {
+        font-size: 8pt !important;
+        color: #555 !important;
+        margin-bottom: 4px !important;
+    }
+
+    /* ── Заголовок грида ── */
+    .clay-grid-printing .mud-typography-h5 {
+        display: block !important;
+        font-size: 16pt !important;
+        font-weight: bold !important;
+        color: #000 !important;
+        margin-bottom: 12px !important;
+    }
+
+    /* ── MudPaper — убрать оформление карточки ── */
+    .clay-grid-printing.mud-paper {
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 8px !important;
+    }
+
+    /* ── Контейнер таблицы — убрать скролл ── */
+    .clay-grid-printing .mud-table-container {
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+    }
+
+    /* ── Таблица — базовые стили ── */
+    .clay-grid-printing .mud-table {
+        background: #fff !important;
+        width: 100% !important;
+    }
+
+    /* ── Хедер таблицы — тёмный для Ч/Б контраста ── */
+    .clay-grid-printing .mud-table-head .mud-table-cell {
+        background: #222 !important;
+        color: #fff !important;
+        font-weight: bold !important;
+        border-bottom: 2px solid #000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* ── Ячейки данных ── */
+    .clay-grid-printing .mud-table-body .mud-table-cell {
+        border-bottom: 1px solid #ccc !important;
+        border-right: 1px solid #eee !important;
+        color: #000 !important;
+        background: #fff !important;
+    }
+
+    /* ── Убрать hover/striped эффекты ── */
+    .clay-grid-printing .mud-table-body .mud-table-row:hover {
+        background: transparent !important;
+    }
+
+    .clay-grid-printing .mud-table-body .mud-table-row:hover .mud-table-cell {
+        background: #fff !important;
+    }
+
+    .clay-grid-printing .mud-table-striped .mud-table-row:nth-child(even) .mud-table-cell {
+        background: #fff !important;
+    }
+
+    /* ── Group header rows — Ч/Б ── */
+    .clay-grid-printing .mud-table-row:has(.group-header-cell) {
+        background: #fff !important;
+        border-top: 2px solid #000 !important;
+    }
+
+    .clay-grid-printing .group-header-cell {
+        color: #000 !important;
+        font-weight: bold !important;
+    }
+
+    /* ── Thead повторяется на каждой странице ── */
+    .clay-grid-printing .mud-table-head {
+        display: table-header-group;
+    }
+
+    /* ── Не разрывать строки ── */
+    .clay-grid-printing .mud-table-row {
+        page-break-inside: avoid;
+    }
+
+    /* ── Параметры страницы ── */
+    @page {
+        size: landscape;
+        margin: 15mm;
+    }
+}
+
+/* ═══════════════════════════════════════════════════
+   Print spinner — ClayGrid
+   Pure CSS spinner, toggled via JS (no Blazor re-render).
+   ═══════════════════════════════════════════════════ */
+
+.clay-print-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--mud-palette-primary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: clay-print-spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-left: 8px;
+}
+
+@keyframes clay-print-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════
+   Clay component classes — visual style lives here,
+   not in .razor or .cs. See STYLE_RULES.md §4.
+   ═══════════════════════════════════════════════════ */
+
+/* ── Error bar (ClayErrorBar) ── */
+.clay-error-bar {
+    background: var(--mud-palette-error);
+    color: #fff;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+.clay-error-bar__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.clay-error-bar__message {
+    font-weight: 600;
+    word-break: break-word;
+    flex: 1;
+}
+.clay-error-bar__close {
+    cursor: pointer;
+    font-size: var(--clay-font-size);
+    padding: 0 4px;
+}
+
+.clay-error-details {
+    cursor: pointer;
+    margin-top: 6px;
+    opacity: 0.85;
+    font-size: var(--clay-font-size);
+}
+.clay-error-details-wrapper {
+    margin-top: 8px;
+    font-size: var(--clay-font-size);
+    opacity: 0.9;
+}
+
+.clay-error-sql {
+    white-space: pre-wrap;
+    word-break: break-all;
+    background: var(--mud-palette-error-darken);
+    color: var(--mud-palette-error-lighten);
+    padding: 8px;
+    margin: 0;
+    max-height: 300px;
+    overflow: auto;
+}
+.clay-error-sql-summary {
+    cursor: pointer;
+    padding: 4px 8px;
+    background: var(--mud-palette-error-darken);
+    border-radius: var(--clay-radius);
+}
+
+.clay-error-param-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--mud-palette-error-darken);
+    border-radius: var(--clay-radius);
+    overflow: hidden;
+}
+.clay-error-param-table th {
+    padding: 4px 8px;
+    text-align: left;
+    color: var(--mud-palette-error-lighten);
+    background: var(--mud-palette-error-darken);
+}
+.clay-error-param-table td {
+    padding: 3px 8px;
+    color: var(--mud-palette-error-lighten);
+}
+.clay-error-param-table .clay-error-param-value {
+    color: var(--mud-palette-error-lighten);
+    opacity: 0.85;
+}
+
+/* ── Cards (Home page) ── */
+.clay-card {
+    border-left: 3px solid var(--clay-grey-light);
+    min-height: 120px;
+}
+.clay-card--accent {
+    border-left: 3px solid var(--clay-gold);
+    min-height: 120px;
+}
+.clay-text-secondary {
+    color: var(--mud-palette-text-secondary);
+}
+.clay-icon-primary {
+    color: var(--mud-palette-primary);
+}
+.clay-icon-default {
+    color: var(--mud-palette-text-secondary);
+}
+
+/* ── AppBar (MainLayout) ── */
+.clay-appbar-title {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+.clay-appbar-divider {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Drawer (MainLayout) ── */
+.clay-drawer-username {
+    opacity: 0.85;
+}
+.clay-drawer-footer {
+    opacity: 0.4;
+}
+.clay-drawer-version {
+    color: var(--clay-grey-mid);
+    font-size: var(--clay-font-size);
+}
+
+/* ── Checkbox (ClayCheckbox) ── */
+.clay-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+}
+.clay-checkbox--clickable {
+    cursor: pointer;
+}
+.clay-checkbox--disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+.clay-checkbox-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--clay-radius);
+    background: var(--clay-white);
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+.clay-checkbox-box--checked {
+    border: 2px solid var(--mud-palette-text-primary);
+}
+.clay-checkbox-box--unchecked {
+    border: 2px solid var(--mud-palette-text-disabled);
+}
+.clay-checkbox-indeterminate {
+    display: block;
+    width: 8px;
+    height: 8px;
+    background: var(--mud-palette-text-primary);
+}
+.clay-checkbox-checkmark {
+    display: block;
+    width: 4px;
+    height: 7px;
+    border: solid var(--mud-palette-text-primary);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-top: -1px;
+}
+.clay-checkbox-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* ── Grid common ── */
+.clay-grid-chip-btn {
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+}
+.clay-grid-chip-btn--gold {
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+    color: var(--clay-gold);
+}
+.clay-grid-column-btn {
+    padding: 0;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    margin-right: 2px;
+}
+.clay-grid-column-menu-btn {
+    padding: 0;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+}
+.clay-grid-header-cell {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+.clay-grid-header-sort {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    cursor: grab;
+}
+.clay-grid-header-text {
+    flex: 1;
+    text-align: center;
+}
+.clay-group-header-text {
+    font-weight: 600;
+    font-size: var(--clay-font-size);
+}
+.clay-filter-chip-clickable {
+    cursor: pointer;
+}
+
+/* ── Column settings dialog ── */
+.clay-column-settings-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--mud-palette-background-gray);
+    color: var(--mud-palette-text-primary);
+    font-weight: bold;
+    border-bottom: 2px solid var(--clay-gold);
+    margin-bottom: -4px;
+    cursor: default;
+}
+.clay-column-settings-header:hover {
+    background: var(--mud-palette-background-gray);
+    cursor: default;
+}
+.clay-column-settings-row {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+.clay-column-settings-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Filter common ── */
+.clay-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 0;
+}
+.clay-filter-group--root {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 0;
+}
+.clay-filter-group--indented {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 0 6px 12px;
+    border-left: 2px solid var(--mud-palette-primary);
+}
+.clay-filter-group__header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.clay-filter-leaf {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: var(--clay-radius);
+    color: var(--mud-palette-text-secondary);
+    font-size: var(--clay-font-size);
+}
+.clay-filter-expression {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    padding: 6px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: var(--clay-radius);
+}
+.clay-filter-dialog__panel {
+    flex: 0 0 auto;
+    background: var(--mud-palette-background-grey);
+}
+
+/* ── Text transform override ── */
+.clay-text-normal {
+    text-transform: none;
+}
+
+/* ── Font-size references from component <style> blocks (source of truth: :root tokens) ── */
+.clay-vf-dialog {
+    font-size: var(--clay-font-size);
+}
+.clay-combo-popover {
+    overflow-y: hidden !important;
+}
+.clay-combo-popover .mud-list {
+    overflow-y: auto;
+    max-height: 300px;
+}
+.clay-combo-popover .mud-list-item {
+    font-size: var(--clay-font-size);
+    line-height: 1.5;
+}
+
+.clay-grid-error {
+    margin-top: 8px;
+}
+
+/* ── Dense form (MedicalTestEditDialog) ── */
+.clay-form-dense .mud-input-control-helper-container {
+    min-height: 0;
+}
+.clay-form-dense .mud-input-control-helper-text {
+    margin-top: 2px;
+    line-height: 1.2;
+}

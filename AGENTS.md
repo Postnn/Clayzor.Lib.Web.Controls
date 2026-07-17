@@ -146,7 +146,10 @@
 - GB2 — `BuildDynamicExportRowsForCurrentPage`: `covered`-список вместо `continue` на `_dynamicExpandedGroups`/`GroupKeys.Count`, свёрнутые и промежуточные группы с данными, счётчики из `_dynamicGroupRoots`
 - GB6 — `BuildExportRows` (статика): тот же алгоритм, что GB2 — `covered`, `BuildGroupKeyWhere`, `BuildInterleavedHeaders`, счётчики из `_groupTreeRoots`, убраны per-header агрегаты и `pk{i}`
 - GB10 — печать «Текущая» = строго экран (`Items`/`_rows` без БД), печать «Все» = весь список раскрытым, `expandedGroups` убран из `ClayGridPrintHtmlGenerator`, переименованы `BuildAllRowsFor*` → `BuildAllRowsForExport`, удалены `BuildAllRowsForPrint`/`BuildAllGroupedRowsForPrint`
+- GB7 — общие стили: `clay.css` в RCL (`wwwroot/css/`) вместо двух копий `app.css`, `App.razor` подключает `_content/Clayzor.Lib.Web.Controls/css/clay.css`
 - Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB10`
+
+**Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
 
 ### Services
 
