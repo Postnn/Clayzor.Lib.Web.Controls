@@ -183,6 +183,14 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private bool HasBatchOperations => ShowPrint || ShowExcel || (CustomBatchGroups?.Count > 0);
 
     /// <summary>
+    /// Показывать кнопку «Выбрать записи». В динамическом режиме — только если известна
+    /// колонка первичного ключа (<c>Запросы.ID</c>): без неё TryGetSelectionId всегда даёт
+    /// false, чекбоксов у строк не будет и режим выбора окажется пустышкой.
+    /// </summary>
+    private bool SelectAvailable
+        => SelectVisible && (!Dynamic || !string.IsNullOrWhiteSpace(_dynamicDef?.IdColumn));
+
+    /// <summary>
     /// Глобальное включение фильтра по значению (Excel-style) для всех колонок.
     /// При <c>false</c> значки фильтра по значению не отображаются, даже если
     /// на отдельных колонках установлен <c>AllowValueFilter</c>=<c>true</c>.

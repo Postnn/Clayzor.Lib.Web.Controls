@@ -71,7 +71,7 @@
                              Class="toolbar-add-btn"
                              OnClick="async () => await HandleRowAddClick()" />
             }
-            @if (SelectVisible)
+            @if (SelectAvailable)
             {
                 <ClayButton Text="@(_selectMode ? "Скрыть выбор" : "Выбрать записи")"
                              Icon="@Icons.Material.Filled.CheckBox"

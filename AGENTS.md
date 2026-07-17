@@ -139,6 +139,12 @@
 - GE6 — включение: `HasBatchOperations`, меню групповых операций вынесено из `@if (SelectVisible)` в `@if (HasBatchOperations)`, откат GF15
 - Оркестратор: `promts/GE0_README_dynamic_export.md`, промты `GE1`–`GE6`
 
+**Выполненные багфиксы (GB1+):**
+- GB1 — кнопка «Выбрать записи» в динамическом гриде: `SelectVisible="true"` в `Home.razor`, `SelectAvailable` (только при `IdColumn`)
+- GB8 — шлюз `SemaphoreSlim` на `SqlConnection` (`RunAsync<T>`), `DynamicSql` через `RunAsync`, MARS выключен
+- GB9 — `OnHeaderTriToggle`: `dr.Item is Entity` → `TryGetSelectionId(dr.Item, out var eid)`, орфан `using Clayzor.Lib.Entities`
+- Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB9`
+
 ### Services
 
 | Сервис | Назначение |
@@ -161,7 +167,7 @@
 | `ClayGrid.Grouping.cs` | ~250 | `OnGroupToggle` (параметр-событие), `GroupRowHostKey` (авто-выбор хост-колонки для заголовка группы), `IsGroupRowHost`, `_groupColumns`, `_trayExpanded`, `AddGroupColumn`, `RemoveGroupColumn`, `OnChipDragStart/End`, `OnTrayDragOver/Drop`, `GroupColumns`, `OnGroupTriToggle`, `OnHeaderTriToggle`, `_groupChildIds` |
 | `ClayGrid.Filtering.cs` | ~420 | `_filterRoot`, `HasComposite`, `ValueFilterLeaves` (V12), `_valueFilterDisabledColumns` (V8), `OpenFilterDialog` (+`initialOperator`), `OpenValueFilterDialog` (V7), `ApplyValueFilter`, `RemoveValueFilter`, `DescribeValueFilter` (V8), `BuildCurrentQuery`, `OpenCompositeFilterDialog`, чипы, фильтр-трей |
 | `ClayGrid.DragDrop.cs` | 86 | `_dragSourceIndex`, drag-and-drop чипов группировки (перемещение/перестановка в трее) |
-| `ClayGrid.Selection.cs` | 113 | `_selectMode`, `_selectAllChecked`, `_selectedIds`, `OnRowSelectAsync`, `SelectAllAsync`, `DeselectAllAsync`, `ToggleSelectMode`, персистентность выделения |
+| `ClayGrid.Selection.cs` | 113 | `_selectMode`, `_selectAllChecked`, `_selectedIds`, `OnRowSelectAsync`, `SelectAllAsync`, `DeselectAllAsync`, `ToggleSelectMode`, персистентность выделения. В динрежиме кнопка выбора появляется только при заполненном `Запросы.ID` (GB1) |
 | `ClayGrid.ExportMenu.cs` | ~240 | `_isExporting`, `_openSubGroups`, `ToggleSubGroup`, `ResolveExportColumnsAsync` (prompt → настройка/как на странице/null), `Print{CurrentPage,Selected,All}Internal` (через `BuildPrintHtmlForCurrentPageAsync` / `BuildPrintHtmlAsync` / `BuildPrintHtmlForSelectedAsync`), `Excel{CurrentPage,Selected,All}Internal` |
 | `ClayGrid.Paging.cs` | 59 | `_pageSize`, `OnPageSizeChanged`, `PrevPage`, `NextPage`, `LastPage` |
 | `ClayGrid.Dynamic.cs` | ~120 | Динамический режим: инжекты (`DbManager`, `IOptions<ClayGridDynamicOptions>`, `NavigationManager`), параметры (`Dynamic`, `DynamicGridId`), `InitDynamicMode` (загрузка определения + колонок из БД, регистрация `ClayColumnMeta`, CellTemplate из словаря, первая загрузка через `NotifyQueryChanged`), `LoadDynamicData` (WHERE из композитного фильтра через `ClayCompositeSqlBuilder.Build` + поиск через `BuildWhereClause`, оборачивание строк в `ClayDynamicRow`, выполнение через `DynamicSql`), `ResolveDynamicGridId` (из параметра или query-строки) |

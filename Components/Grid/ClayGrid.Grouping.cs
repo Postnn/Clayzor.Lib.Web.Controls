@@ -1,4 +1,3 @@
-using Clayzor.Lib.Entities;
 using Microsoft.AspNetCore.Components;
 
 namespace Clayzor.Lib.Web.Controls.Components.Grid;
@@ -198,10 +197,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         foreach (var row in Items ?? [])
         {
-            if (row is IDetailRow dr && dr.Item is Entity entity)
+            if (row is IDetailRow dr && TryGetSelectionId(dr.Item, out var eid))
             {
-                if (!anySelected) _selectedIds.Add(entity.Id);
-                else _selectedIds.Remove(entity.Id);
+                if (!anySelected) _selectedIds.Add(eid);
+                else _selectedIds.Remove(eid);
             }
             else if (row is GroupHeaderRow gh)
             {
