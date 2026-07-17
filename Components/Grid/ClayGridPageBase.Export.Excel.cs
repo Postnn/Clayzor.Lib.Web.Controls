@@ -167,12 +167,17 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
     /// для каждой группы (листовой или промежуточной) загружает ВСЕ детальные строки
     /// (игнорируя пагинацию). На грид это не влияет — данные загружаются отдельным запросом.
     /// </summary>
+    /// <summary>
+    /// Строит список строк для экспорта текущей страницы. Если активна группировка —
+    /// для каждого заголовка группы на странице загружает ВСЕ строки её поддерева
+    /// (игнорируя пагинацию и раскрытость). Заголовок, поддерево которого уже выгружено
+    /// вместе с его предком, пропускается — иначе строки задваиваются.
+    /// На грид не влияет: данные грузятся отдельным запросом.
+    /// </summary>
     private async Task<List<IClayGridRow>> BuildExportRows()
     {
         if (!_query.GroupEnabled || _query.GroupColumns.Count == 0)
             return _rows;
-
-        var result      = new List<IClayGridRow>();
 
         var selectSql     = Grid?.SelectSql     ?? "";
         var defaultOrder  = Grid?.DefaultOrder  ?? "";
@@ -183,103 +188,61 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
         dp.Add("search", $"%{_query.SearchText}%");
         var compositeWhere = BuildCompositeFilterClause(_query.CompositeFilter, dp);
         var where          = ClayDataQuery.CombineWhere(searchWhere, compositeWhere);
-        var detailOrder    = ClayGroupingEngine.BuildDetailOrder(
-            _query.BuildOrderBy(defaultOrder), _query.GroupColumns, defaultOrder);
 
-        var groupCols = _query.GroupColumns;
+        var groupCols = _query.GroupColumns.ToList();
+        // BuildOrderBy при группировке начинается с группировочных колонок — интерливинг
+        // вложенных заголовков требует именно такого порядка (НЕ BuildDetailOrder).
+        var orderBy = _query.BuildOrderBy(defaultOrder);
+
+        // Счётчики — из дерева последней загрузки. Агрегатные запросы на каждый заголовок не нужны.
+        var countLookup = new Dictionary<string, int>();
+        if (_groupTreeRoots is not null)
+            CollectCounts(_groupTreeRoots, countLookup);
+
+        var result  = new List<IClayGridRow>();
+        var covered = new List<string>();
 
         foreach (var row in _rows)
         {
-            if (row is GroupHeaderRow header)
+            if (row is not GroupHeaderRow header) continue;
+            if (covered.Any(k => header.FullKey == k || header.FullKey.StartsWith(k + ''))) continue;
+
+            result.Add(header);
+            covered.Add(header.FullKey);
+
+            var detailParams = new DynamicParameters();
+            detailParams.AddDynamicParams(dp);
+
+            // GroupKeys — строки; после GN2 "" означает NULL-ключ → null для IS NULL (GN3).
+            // Ключей может быть меньше числа уровней: тогда это WHERE по поддереву.
+            var rawKeys  = header.GroupKeys.Select(k => k.Length == 0 ? null : (object?)k).ToList();
+            var keyWhere = ClayGroupingEngine.BuildGroupKeyWhere(groupCols, rawKeys, "dk", out var keyParams);
+            foreach (var (name, value) in keyParams)
+                detailParams.Add(name, value);
+
+            var detailWhere = keyWhere.Length > 0
+                ? ClayDataQuery.CombineWhere(where, keyWhere)
+                : where;
+
+            var sql = $"SELECT * FROM ({selectSql}) _src";
+            if (!string.IsNullOrWhiteSpace(detailWhere)) sql += $" WHERE {detailWhere}";
+            if (!string.IsNullOrWhiteSpace(orderBy))     sql += $" ORDER BY {orderBy}";
+
+            var items = await Db.QueryAsync<T>(sql, detailParams);
+
+            // previousKeys стартует с ключей заголовка — сам заголовок не продублируется,
+            // вставятся только уровни ниже.
+            IReadOnlyList<string?>? previousKeys = header.GroupKeys;
+
+            foreach (var item in items)
             {
-                if (header.GroupKeys.Count == groupCols.Count)
-                {
-                    // ── Листовая группа: один запрос детальных строк ──
-                    result.Add(header);
+                var currentKeys = groupCols
+                    .Select(c => _propertyMap.TryGetValue(c, out var p) ? p.GetValue(item)?.ToString() : null)
+                    .ToArray();
 
-                    var detailParams = new DynamicParameters();
-                    detailParams.AddDynamicParams(dp);
-
-                    // GroupKeys — строки; после GN2 "" означает NULL-ключ → null для IS NULL
-                    var rawKeys = header.GroupKeys
-                        .Select(k => k.Length == 0 ? null : (object?)k).ToList();
-                    var keyWhere = ClayGroupingEngine.BuildGroupKeyWhere(groupCols, rawKeys, "dk", out var keyParams);
-                    foreach (var (name, value) in keyParams)
-                        detailParams.Add(name, value);
-
-                    var detailWhere = keyWhere.Length > 0
-                        ? ClayDataQuery.CombineWhere(where, keyWhere)
-                        : where;
-
-                    var sql = $"SELECT * FROM ({selectSql}) _src";
-                    if (!string.IsNullOrWhiteSpace(detailWhere))
-                        sql += $" WHERE {detailWhere}";
-                    if (!string.IsNullOrWhiteSpace(detailOrder))
-                        sql += $" ORDER BY {detailOrder}";
-
-                    var items = await Db.QueryAsync<T>(sql, detailParams);
-                    result.AddRange(items.Select(item => new DetailRow<T>
-                    {
-                        Item  = item,
-                        Depth = header.Depth
-                    }));
-                }
-                else
-                {
-                    // ── Не-листовая (промежуточная) группа: загружаем ВСЕ строки
-                    //     под частичным ключом, с GROUP BY для ItemCount ──
-                    var partialKeyWhere = new List<string>();
-                    for (int i = 0; i < header.GroupKeys.Count && i < groupCols.Count; i++)
-                        partialKeyWhere.Add($"{groupCols[i]} = @pk{i}");
-
-                    var pkWhere = string.Join(" AND ", partialKeyWhere);
-                    var subtreeWhere = ClayDataQuery.CombineWhere(where, pkWhere);
-
-                    // GROUP BY для поддерева → ItemCount
-                    var subtreeGroupSql = ClayGroupingEngine.BuildGroupAggregateSql(
-                        selectSql, groupCols.ToList(), subtreeWhere, _query.SortColumns);
-
-                    var subtreeParams = new DynamicParameters();
-                    subtreeParams.AddDynamicParams(dp);
-                    for (int i = 0; i < header.GroupKeys.Count && i < groupCols.Count; i++)
-                        subtreeParams.Add($"pk{i}", header.GroupKeys[i]);
-
-                    var subtreeGroupRowsRaw = await Db.QueryAsync<dynamic>(subtreeGroupSql, subtreeParams);
-                    var subtreeGroupRows = ClayGroupRowMapper.MapRows(
-                        subtreeGroupRowsRaw.Cast<IDictionary<string, object?>>()
-                                           .Select(d => (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?>(d)),
-                        groupCols.Count);
-                    var subtreeAggregates = ClayGroupingEngine.BuildAggregates(subtreeGroupRows);
-                    var subtreeRoots      = ClayGroupingEngine.BuildTree(subtreeAggregates);
-                    ClayGroupingEngine.ComputeParentCounts(subtreeRoots);
-
-                    var countLookup = new Dictionary<string, int>();
-                    CollectCounts(subtreeRoots, countLookup);
-
-                    // SELECT * для поддерева → C# interleaving
-                    var orderBy = _query.BuildOrderBy(defaultOrder);
-                    var subtreeItemsSql = $"SELECT * FROM ({selectSql}) _src";
-                    if (!string.IsNullOrWhiteSpace(subtreeWhere))
-                        subtreeItemsSql += $" WHERE {subtreeWhere}";
-                    if (!string.IsNullOrWhiteSpace(orderBy))
-                        subtreeItemsSql += $" ORDER BY {orderBy}";
-
-                    var subtreeItems = await Db.QueryAsync<T>(subtreeItemsSql, subtreeParams);
-
-                    string?[]? previousKeys = null;
-                    foreach (var item in subtreeItems)
-                    {
-                        var currentKeys = groupCols
-                            .Select(c => _propertyMap.TryGetValue(c, out var p)
-                                ? p.GetValue(item)?.ToString()
-                                : null)
-                            .ToArray();
-
-                        result.AddRange(ClayGroupingEngine.BuildInterleavedHeaders(currentKeys, previousKeys, countLookup));
-                        result.Add(new DetailRow<T> { Item = item });
-                        previousKeys = currentKeys;
-                    }
-                }
+                result.AddRange(ClayGroupingEngine.BuildInterleavedHeaders(currentKeys, previousKeys, countLookup));
+                result.Add(new DetailRow<T> { Item = item });
+                previousKeys = currentKeys;
             }
         }
 
