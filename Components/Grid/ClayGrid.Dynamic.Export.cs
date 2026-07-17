@@ -41,8 +41,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     /// <summary>
     /// Строки текущей страницы. Без группировки — то, что уже в Items.
-    /// С группировкой — для каждой группы на странице догружаются ВСЕ детальные строки,
-    /// игнорируя пагинацию (как BuildExportRows в статике): печатать половину группы бессмысленно.
+    /// С группировкой — для каждого заголовка группы на странице догружаются ВСЕ строки её
+    /// поддерева, независимо от пагинации и от того, раскрыта группа или свёрнута:
+    /// раскрытость — состояние экрана, а не признак «этих данных не надо». Свёрнутость
+    /// доезжает до Excel отдельно — через expandedGroups и Excel Outline.
+    /// Заголовок, поддерево которого уже выгружено вместе с его предком, пропускается —
+    /// иначе строки задвоятся.
     /// </summary>
     public async Task<List<IClayGridRow>> BuildDynamicExportRowsForCurrentPage()
     {
@@ -52,27 +56,35 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         var (where, dp) = BuildDynamicExportWhere();
         var exprs       = query.GroupColumns.ToList();
-        var orderBy     = query.BuildOrderBy(DefaultOrder);
-        var detailOrder = ClayGroupingEngine.BuildDetailOrder(orderBy, exprs, DefaultOrder);
+        // ORDER BY с группировкой начинается с группировочных колонок (ClayDataQuery.BuildOrderBy),
+        // а BuildInterleavedHeaders требует строки, отсортированные по уровням. Поэтому здесь
+        // полный orderBy, а НЕ BuildDetailOrder (тот выбрасывает группировочные колонки).
+        var orderBy = query.BuildOrderBy(DefaultOrder);
 
-        var result = new List<IClayGridRow>();
+        // Счётчики групп — из дерева последней загрузки (ComputeParentCounts уже вызван
+        // в LoadDynamicGroupedData). Второй агрегатный запрос не нужен.
+        var countLookup = new Dictionary<string, int>();
+        if (_dynamicGroupRoots is not null)
+            CollectDynamicGroupCounts(_dynamicGroupRoots, countLookup);
+
+        var result  = new List<IClayGridRow>();
+        var covered = new List<string>();   // FullKey заголовков, поддеревья которых уже выгружены
 
         foreach (var row in Items ?? [])
         {
-            if (row is not GroupHeaderRow gh)
-                continue;                       // детали текущей страницы перезагрузим целиком
+            if (row is not GroupHeaderRow gh) continue;
+            if (IsCoveredByExportedSubtree(gh.FullKey, covered)) continue;
 
             result.Add(gh);
-
-            if (!_dynamicExpandedGroups.Contains(gh.FullKey)) continue;
-            if (gh.GroupKeys.Count != exprs.Count) continue;   // промежуточный уровень — детали ниже
+            covered.Add(gh.FullKey);
 
             var detailParams = new DynamicParameters();
             detailParams.AddDynamicParams(dp);
 
-            // GroupKeys — строки; после GN2 "" означает NULL-ключ → null для IS NULL (GN3)
-            var rawKeys = gh.GroupKeys
-                .Select(k => k.Length == 0 ? null : (object?)k).ToList();
+            // GroupKeys — строки; после GN2 "" означает NULL-ключ → null для IS NULL (GN3).
+            // Ключей может быть меньше, чем уровней: у промежуточного заголовка это даёт
+            // WHERE по поддереву, а не по листовой группе.
+            var rawKeys  = gh.GroupKeys.Select(k => k.Length == 0 ? null : (object?)k).ToList();
             var keyWhere = ClayGroupingEngine.BuildGroupKeyWhere(exprs, rawKeys, "dk", out var keyParams);
             foreach (var (name, value) in keyParams)
                 detailParams.Add(name, value);
@@ -81,13 +93,41 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 ? ClayDataQuery.CombineWhere(where, keyWhere)
                 : where;
 
-            var sql  = BuildDynamicSelectAllSql(detailWhere, detailOrder);
+            var sql  = BuildDynamicSelectAllSql(detailWhere, orderBy);
             var rows = await DynamicSql.QueryRowsAsync(Db, sql, detailParams);
-            result.AddRange(rows.Select(r => (IClayGridRow)new ClayDynamicRow(r)));
+
+            // previousKeys стартует с ключей самого заголовка: BuildInterleavedHeaders сравнивает
+            // поуровнево, поэтому уровни 0..gh.Depth совпадут и заголовок не продублируется —
+            // вставятся только заголовки уровней ниже.
+            IReadOnlyList<string?>? previousKeys = gh.GroupKeys;
+
+            foreach (var raw in rows)
+            {
+                var currentKeys = exprs
+                    .Select(c => raw.TryGetValue(c, out var v) && v is not DBNull ? v?.ToString() : null)
+                    .ToArray();
+
+                foreach (var header in ClayGroupingEngine.BuildInterleavedHeaders(currentKeys, previousKeys, countLookup))
+                {
+                    // Тип 5/9: в ключе код, показать надо наименование (GG6)
+                    header.DisplayValue = ResolveGroupDisplayValue(exprs[header.Depth], header.DisplayValue);
+                    result.Add(header);
+                }
+
+                result.Add(new ClayDynamicRow(raw));
+                previousKeys = currentKeys;
+            }
         }
 
         return result;
     }
+
+    /// <summary>
+    /// true — поддерево этого заголовка уже выгружено вместе с одним из его предков.
+    /// Сегменты FullKey разделены  (см. ClayGroupingEngine).
+    /// </summary>
+    private static bool IsCoveredByExportedSubtree(string fullKey, List<string> covered)
+        => covered.Any(k => fullKey == k || fullKey.StartsWith(k + ''));
 
     /// <summary>Все строки по текущему запросу, без пагинации.</summary>
     public async Task<List<IClayGridRow>> BuildDynamicExportRowsForAll()

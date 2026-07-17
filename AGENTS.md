@@ -143,6 +143,7 @@
 - GB1 — кнопка «Выбрать записи» в динамическом гриде: `SelectVisible="true"` в `Home.razor`, `SelectAvailable` (только при `IdColumn`)
 - GB8 — шлюз `SemaphoreSlim` на `SqlConnection` (`RunAsync<T>`), `DynamicSql` через `RunAsync`, MARS выключен
 - GB9 — `OnHeaderTriToggle`: `dr.Item is Entity` → `TryGetSelectionId(dr.Item, out var eid)`, орфан `using Clayzor.Lib.Entities`
+- GB2 — `BuildDynamicExportRowsForCurrentPage`: `covered`-список вместо `continue` на `_dynamicExpandedGroups`/`GroupKeys.Count`, свёрнутые и промежуточные группы с данными, счётчики из `_dynamicGroupRoots`
 - Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB9`
 
 ### Services
