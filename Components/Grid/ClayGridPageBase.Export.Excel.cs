@@ -224,15 +224,16 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
                     var detailParams = new DynamicParameters();
                     detailParams.AddDynamicParams(dp);
 
-                    for (int i = 0; i < header.GroupKeys.Count && i < groupCols.Count; i++)
-                        detailParams.Add($"dk{i}", header.GroupKeys[i]);
+                    // GroupKeys — строки; после GN2 "" означает NULL-ключ → null для IS NULL
+                    var rawKeys = header.GroupKeys
+                        .Select(k => k.Length == 0 ? null : (object?)k).ToList();
+                    var keyWhere = ClayGroupingEngine.BuildGroupKeyWhere(groupCols, rawKeys, "dk", out var keyParams);
+                    foreach (var (name, value) in keyParams)
+                        detailParams.Add(name, value);
 
-                    var keyParts = new List<string>();
-                    for (int i = 0; i < header.GroupKeys.Count && i < groupCols.Count; i++)
-                        keyParts.Add($"{groupCols[i]} = @dk{i}");
-
-                    var detailWhere = ClayDataQuery.CombineWhere(where,
-                        string.Join(" AND ", keyParts));
+                    var detailWhere = keyWhere.Length > 0
+                        ? ClayDataQuery.CombineWhere(where, keyWhere)
+                        : where;
 
                     var sql = $"SELECT * FROM ({selectSql}) _src";
                     if (!string.IsNullOrWhiteSpace(detailWhere))

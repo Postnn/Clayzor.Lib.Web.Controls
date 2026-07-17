@@ -241,6 +241,45 @@ public static class ClayGroupingEngine
     private static string ToDisplay(string key) => key.Length > 0 ? key : EmptyGroupDisplay;
 
     /// <summary>
+    /// Строит WHERE-фрагмент, отбирающий строки одной группы по её ключам.
+    /// NULL-ключ превращается в <c>IS NULL</c>: <c>col = @p</c> при NULL-значении параметра
+    /// не истинно никогда, и группа «(пусто)» раскрывалась бы пустой.
+    /// Число уровней не ограничено — берётся из <paramref name="rawKeys"/>.
+    /// Значения ключей уходят ПАРАМЕТРАМИ; в текст SQL подставляются только выражения колонок
+    /// из <paramref name="groupExprs"/> (они обязаны быть провалидированы вызывающим).
+    /// </summary>
+    /// <param name="groupExprs">Выражения колонок группировки по уровням.</param>
+    /// <param name="rawKeys">Сырые значения ключей группы (<see cref="GridGroupAgg.RawKeys"/>).</param>
+    /// <param name="paramPrefix">Префикс имён параметров, напр. "dk". Должен быть уникален в пределах одного набора параметров.</param>
+    /// <param name="parameters">Пары имя-значение для добавления в DynamicParameters. Для NULL-ключей параметр не создаётся.</param>
+    /// <returns>Фрагмент вида <c>a = @dk0 AND b IS NULL</c>. Пустая строка, если ключей нет.</returns>
+    public static string BuildGroupKeyWhere(
+        IReadOnlyList<string> groupExprs,
+        IReadOnlyList<object?> rawKeys,
+        string paramPrefix,
+        out List<(string Name, object? Value)> parameters)
+    {
+        parameters = [];
+        if (rawKeys.Count == 0) return "";
+
+        var parts = new List<string>(rawKeys.Count);
+        for (int i = 0; i < rawKeys.Count && i < groupExprs.Count; i++)
+        {
+            if (rawKeys[i] is null)
+            {
+                parts.Add($"{groupExprs[i]} IS NULL");
+                continue;
+            }
+
+            var name = $"{paramPrefix}{i}";
+            parameters.Add((name, rawKeys[i]));
+            parts.Add($"{groupExprs[i]} = @{name}");
+        }
+
+        return string.Join(" AND ", parts);
+    }
+
+    /// <summary>
     /// Строит дерево <see cref="GridGroupNode"/> из плоского списка агрегатов.
     /// Предполагает, что родительский агрегат в списке всегда предшествует дочернему.
     /// </summary>

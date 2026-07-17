@@ -89,10 +89,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
             var detailParams = new DynamicParameters();
             detailParams.AddDynamicParams(dp);
 
-            var keyParts = ag.RawKeys
-                .Select((k, i) => { detailParams.Add($"dk{i}", k); return $"{exprs[i]} = @dk{i}"; })
-                .ToList();
-            var detailWhere = ClayDataQuery.CombineWhere(where, string.Join(" AND ", keyParts));
+            var keyWhere = ClayGroupingEngine.BuildGroupKeyWhere(exprs, ag.RawKeys, "dk", out var keyParams);
+            foreach (var (name, value) in keyParams)
+                detailParams.Add(name, value);
+
+            var detailWhere = keyWhere.Length > 0
+                ? ClayDataQuery.CombineWhere(where, keyWhere)
+                : where;
 
             detailParams.Add("__start", item.DetailStart);
             detailParams.Add("__end",   item.DetailEnd);
@@ -233,22 +236,23 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         foreach (var fullKey in groupFullKeys)
         {
-            var keys     = fullKey.Split('');
-            var dp       = new DynamicParameters();
+            var keys = fullKey.Split('');
+            // Пустой сегмент FullKey — это NULL-ключ (GN2). Восстанавливаем его как null,
+            // чтобы BuildGroupKeyWhere дал IS NULL, а не сравнение с пустой строкой.
+            var rawKeys = keys.Select(k => k.Length == 0 ? null : (object?)k).ToList();
+
+            var prefix   = $"gk_{fullKey.GetHashCode() & 0x7FFFFFFF}_";
+            var keyWhere = ClayGroupingEngine.BuildGroupKeyWhere(
+                _dynamicGroupExprs, rawKeys, prefix, out var keyParams);
+
+            if (keyWhere.Length == 0) continue;   // без условий выбрались бы ID всей таблицы
+
+            var dp = new DynamicParameters();
             dp.AddDynamicParams(_dynamicGroupParams);
-            var keyParts = new List<string>();
+            foreach (var (name, value) in keyParams)
+                dp.Add(name, value);
 
-            for (int i = 0; i < keys.Length && i < _dynamicGroupExprs.Count; i++)
-            {
-                var pName = $"gk_{fullKey.GetHashCode() & 0x7FFFFFFF}_{i}";
-                dp.Add(pName, keys[i]);
-                keyParts.Add($"{_dynamicGroupExprs[i]} = @{pName}");
-            }
-
-            if (keyParts.Count == 0) continue;
-
-            var groupWhere    = string.Join(" AND ", keyParts);
-            var combinedWhere = ClayDataQuery.CombineWhere(_dynamicGroupWhere, groupWhere);
+            var combinedWhere = ClayDataQuery.CombineWhere(_dynamicGroupWhere, keyWhere);
 
             var sql = $"SELECT {idColumn} FROM ({SelectSql}) _src";
             if (!string.IsNullOrWhiteSpace(combinedWhere))

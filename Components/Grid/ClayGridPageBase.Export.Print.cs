@@ -96,10 +96,13 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
                 var detailParams = new DynamicParameters();
                 detailParams.AddDynamicParams(dp);
 
-                var keyParts = ag.RawKeys
-                    .Select((k, i) => { detailParams.Add($"dk{i}", k); return $"{exprs[i]} = @dk{i}"; })
-                    .ToList();
-                var detailWhere = ClayDataQuery.CombineWhere(where, string.Join(" AND ", keyParts));
+                var keyWhere = ClayGroupingEngine.BuildGroupKeyWhere(exprs, ag.RawKeys, "dk", out var keyParams);
+                foreach (var (name, value) in keyParams)
+                    detailParams.Add(name, value);
+
+                var detailWhere = keyWhere.Length > 0
+                    ? ClayDataQuery.CombineWhere(where, keyWhere)
+                    : where;
 
                 detailParams.Add("__start", item.DetailStart);
                 detailParams.Add("__end",   item.DetailEnd);
