@@ -27,7 +27,7 @@ public class GridGroupRow
 /// </summary>
 public class GridGroupAgg
 {
-    /// <summary>Полный ключ группы — уровни через \u001F.</summary>
+    /// <summary>Полный ключ группы — уровни через .</summary>
     public string FullKey { get; set; } = "";
 
     /// <summary>Отображаемое значение группы (значение последнего уровня).</summary>
@@ -177,66 +177,68 @@ public static class ClayGroupingEngine
         return parts.Count > 0 ? string.Join(", ", parts) : fallbackOrder;
     }
 
+    /// <summary>Отображаемое значение группы, когда ключ уровня равен NULL.</summary>
+    public const string EmptyGroupDisplay = "(пусто)";
+
     /// <summary>
     /// Превращает плоские строки GROUP BY в список <see cref="GridGroupAgg"/>
     /// с синтетическими родительскими узлами для промежуточных уровней.
-    /// Порядок агрегатов из БД сохраняется (не пересортировывается).
+    /// Число уровней берётся из <see cref="GridGroupRow.Keys"/> и не ограничено.
+    /// Порядок агрегатов из БД сохраняется (не пересортировывается): <see cref="BuildTree"/>
+    /// требует, чтобы родитель предшествовал ребёнку.
     /// </summary>
     public static List<GridGroupAgg> BuildAggregates(IEnumerable<GridGroupRow> groupRows)
     {
         var aggregates = new List<GridGroupAgg>();
-        var seenKeys = new HashSet<string>();
+        var seenKeys   = new HashSet<string>();
 
         foreach (var gr in groupRows)
         {
-            var keys = new List<string>();
-            // GN1: временный мост — поведение 1:1 как было (2 уровня, null = уровня нет).
-            // Настоящая логика на N уровней — GN2. НЕ ЧИНИТЬ ЗДЕСЬ.
-            var k0 = gr.Keys.Count > 0 ? gr.Keys[0] : null;
-            var k1 = gr.Keys.Count > 1 ? gr.Keys[1] : null;
-            if (k0 is not null) keys.Add(k0.ToString()!);
-            if (k1 is not null) keys.Add(k1.ToString()!);
+            if (gr.Keys.Count == 0) continue;   // защита от пустой строки агрегата
 
+            // Строковые представления ключей ВСЕХ уровней. null → "" (законное значение).
+            var keys  = gr.Keys.Select(k => k?.ToString() ?? "").ToList();
             var depth = keys.Count - 1;
-            var rawKeyValues = new object?[] { k0, k1 }.Take(keys.Count).ToList();
 
-            // Синтетические родительские узлы для промежуточных уровней
+            // Синтетические родители для всех промежуточных уровней 0..depth-1
             for (int d = 0; d < depth; d++)
             {
-                var parentKeys = keys.Take(d + 1).ToList();
-                var parentFullKey = string.Join("\u001F", parentKeys);
-                if (seenKeys.Add(parentFullKey))
+                var parentKeys    = keys.Take(d + 1).ToList();
+                var parentFullKey = string.Join("", parentKeys);
+                if (!seenKeys.Add(parentFullKey)) continue;
+
+                aggregates.Add(new GridGroupAgg
                 {
-                    aggregates.Add(new GridGroupAgg
-                    {
-                        FullKey      = parentFullKey,
-                        DisplayValue = parentKeys.Last(),
-                        ItemCount    = 0,
-                        Depth        = d,
-                        ParentKey    = d > 0 ? string.Join("\u001F", parentKeys.Take(d)) : "",
-                        KeyValues    = parentKeys,
-                        RawKeys      = [],
-                    });
-                }
+                    FullKey      = parentFullKey,
+                    DisplayValue = ToDisplay(parentKeys[d]),
+                    ItemCount    = 0,                       // посчитает ComputeParentCounts
+                    Depth        = d,
+                    ParentKey    = d > 0 ? string.Join("", parentKeys.Take(d)) : "",
+                    KeyValues    = parentKeys,
+                    RawKeys      = gr.Keys.Take(d + 1).ToList(),
+                });
             }
 
-            var fullKey   = string.Join("\u001F", keys);
-            var parentKey = depth > 0 ? string.Join("\u001F", keys.Take(depth)) : "";
+            var fullKey   = string.Join("", keys);
+            var parentKey = depth > 0 ? string.Join("", keys.Take(depth)) : "";
 
             aggregates.Add(new GridGroupAgg
             {
                 FullKey      = fullKey,
-                DisplayValue = keys.Last(),
+                DisplayValue = ToDisplay(keys[depth]),
                 ItemCount    = gr.Cnt,
                 Depth        = depth,
                 ParentKey    = parentKey,
                 KeyValues    = keys,
-                RawKeys      = rawKeyValues,
+                RawKeys      = gr.Keys.ToList(),
             });
         }
 
         return aggregates;
     }
+
+    /// <summary>Строковый ключ → подпись группы. Пустой ключ (NULL в данных) → «(пусто)».</summary>
+    private static string ToDisplay(string key) => key.Length > 0 ? key : EmptyGroupDisplay;
 
     /// <summary>
     /// Строит дерево <see cref="GridGroupNode"/> из плоского списка агрегатов.
