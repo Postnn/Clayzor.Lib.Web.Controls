@@ -132,6 +132,7 @@
 **Выполненные шаги печати и Excel (GE1+):**
 - GE1 — `IClayGridCellReader` + `ClayReflectionCellReader`: вынос чтения ячейки из генераторов в абстракцию. Старая сигнатура с `Type entityType` → обёртка над `new ClayReflectionCellReader`. Поведение статики не изменилось
 - GE2 — `ClayDynamicCellReader`: динамическая реализация `IClayGridCellReader`. Тип 1/2/3/7 сырыми для Excel, Тип 5/9 через справочники, Тип 10/13 со смещением, Тип 8 StripHtml, Тип 12 полный текст. Без БД, всё через конструктор
+- GE3 — `ClayGrid.Dynamic.Export.cs`: загрузка строк для экспорта (текущая страница / все / выбранные), плоско и с группировкой (C# interleaving). Агрегат через `ClayGroupRowMapper`, детальный WHERE через `BuildGroupKeyWhere`, белый список `IdColumn`
 - Оркестратор: `promts/GE0_README_dynamic_export.md`, промты `GE1`–`GE6`
 
 ### Services
@@ -159,6 +160,7 @@
 | `ClayGrid.ExportMenu.cs` | ~240 | `_isExporting`, `_openSubGroups`, `ToggleSubGroup`, `ResolveExportColumnsAsync` (prompt → настройка/как на странице/null), `Print{CurrentPage,Selected,All}Internal` (через `BuildPrintHtmlForCurrentPageAsync` / `BuildPrintHtmlAsync` / `BuildPrintHtmlForSelectedAsync`), `Excel{CurrentPage,Selected,All}Internal` |
 | `ClayGrid.Paging.cs` | 59 | `_pageSize`, `OnPageSizeChanged`, `PrevPage`, `NextPage`, `LastPage` |
 | `ClayGrid.Dynamic.cs` | ~120 | Динамический режим: инжекты (`DbManager`, `IOptions<ClayGridDynamicOptions>`, `NavigationManager`), параметры (`Dynamic`, `DynamicGridId`), `InitDynamicMode` (загрузка определения + колонок из БД, регистрация `ClayColumnMeta`, CellTemplate из словаря, первая загрузка через `NotifyQueryChanged`), `LoadDynamicData` (WHERE из композитного фильтра через `ClayCompositeSqlBuilder.Build` + поиск через `BuildWhereClause`, оборачивание строк в `ClayDynamicRow`, выполнение через `DynamicSql`), `ResolveDynamicGridId` (из параметра или query-строки) |
+| `ClayGrid.Dynamic.Export.cs` | ~200 | Загрузка строк для экспорта в динрежиме (GE3): `BuildDynamicExportWhere`, `BuildDynamicSelectAllSql`, `BuildDynamicExportRowsForCurrentPage` / `ForAll` / `ForSelected`, `BuildDynamicGroupedExportRows` (C# interleaving), `CollectDynamicGroupCounts` |
 
 **Правила модификации:**
 - Новые поля/методы добавлять в соответствующий тематический файл, а не в `ClayGrid.razor.cs`
