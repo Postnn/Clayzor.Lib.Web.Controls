@@ -71,6 +71,7 @@
 | `ClayDateTimeConverter` | Статический конвертер: `ConvertFromUtc(DateTime?, TimeSpan)` и `Format(object?, string?, TimeSpan?)`. Чистые функции (без DateTime.Now), тестируемо |
 | `ClayDynamicRow` | Строка динамического грида. Реализует `IClayGridRow` + `IDetailRow` + `IReadOnlyDictionary<string, object?>`. `IDetailRow.Item => this` — строка сама является словарём для `GetRowIdValue`. Заменяет `InvalidCastException`-каст в `LoadDynamicData` |
 | `ClayGroupRowMapper` | Статический маппер словарей агрегатного GROUP BY в `GridGroupRow` для `ClayGroupingEngine`. `MapRow(row, levelCount)` / `MapRows(rows, levelCount)`, нормализация DBNull. Общий для статического и динамического режимов. Чистые функции. Заменил `ClayDynamicGroupMapper` (GN1) |
+| `ClayDynamicCellReader` | Реализация `IClayGridCellReader` для динамических строк-словарей. Типы 1/2/3/7 сырыми, 5/9 через справочники, 10/13 со смещением, 8 StripHtml, 12 полный текст. Без БД (GE2) |
 | `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
@@ -130,6 +131,7 @@
 
 **Выполненные шаги печати и Excel (GE1+):**
 - GE1 — `IClayGridCellReader` + `ClayReflectionCellReader`: вынос чтения ячейки из генераторов в абстракцию. Старая сигнатура с `Type entityType` → обёртка над `new ClayReflectionCellReader`. Поведение статики не изменилось
+- GE2 — `ClayDynamicCellReader`: динамическая реализация `IClayGridCellReader`. Тип 1/2/3/7 сырыми для Excel, Тип 5/9 через справочники, Тип 10/13 со смещением, Тип 8 StripHtml, Тип 12 полный текст. Без БД, всё через конструктор
 - Оркестратор: `promts/GE0_README_dynamic_export.md`, промты `GE1`–`GE6`
 
 ### Services
