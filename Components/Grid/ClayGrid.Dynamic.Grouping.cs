@@ -44,7 +44,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         // ── 1. Агрегат: одна строка на листовую группу ──────────────────────────
         var groupSql  = ClayGroupingEngine.BuildGroupAggregateSql(SelectSql, exprs, where, query.SortColumns);
         var rawRows   = await DynamicSql.QueryRowsAsync(Db, groupSql, dp);
-        var groupRows = ClayDynamicGroupMapper.MapRows(rawRows);
+        var groupRows = ClayGroupRowMapper.MapRows(rawRows, exprs.Count);
 
         // ── 2. Дерево групп ────────────────────────────────────────────────────
         var aggregates = ClayGroupingEngine.BuildAggregates(groupRows);

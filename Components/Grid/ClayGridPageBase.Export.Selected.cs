@@ -86,7 +86,13 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
         // Шаг 1: GROUP BY агрегаты (полная структура групп)
         var groupSql  = ClayGroupingEngine.BuildGroupAggregateSql(
             selectSql, groupCols, where, _query.SortColumns);
-        var groupRows = await Db.QueryAsync<GridGroupRow>(groupSql, dp);
+
+        // Dapper не мапит переменный набор K{i} на GridGroupRow — читаем словарями (GN1).
+        var rawGroups = await Db.QueryAsync<dynamic>(groupSql, dp);
+        var groupRows = ClayGroupRowMapper.MapRows(
+            rawGroups.Cast<IDictionary<string, object?>>()
+                     .Select(d => (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?>(d)),
+            groupCols.Count);
 
         var aggregates = ClayGroupingEngine.BuildAggregates(groupRows);
         var roots      = ClayGroupingEngine.BuildTree(aggregates);

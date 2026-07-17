@@ -94,7 +94,13 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
         // ── Запрос 1: GROUP BY агрегаты ─────────────────────────────
         var groupSql  = ClayGroupingEngine.BuildGroupAggregateSql(
             selectSql, groupCols, where, _query.SortColumns);
-        var groupRows = await Db.QueryAsync<GridGroupRow>(groupSql, dp);
+
+        // Dapper не мапит переменный набор K{i} на GridGroupRow — читаем словарями (GN1).
+        var rawGroups = await Db.QueryAsync<dynamic>(groupSql, dp);
+        var groupRows = ClayGroupRowMapper.MapRows(
+            rawGroups.Cast<IDictionary<string, object?>>()
+                     .Select(d => (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?>(d)),
+            groupCols.Count);
 
         var aggregates = ClayGroupingEngine.BuildAggregates(groupRows);
         var roots      = ClayGroupingEngine.BuildTree(aggregates);
@@ -261,7 +267,11 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
                     for (int i = 0; i < header.GroupKeys.Count && i < groupCols.Count; i++)
                         subtreeParams.Add($"pk{i}", header.GroupKeys[i]);
 
-                    var subtreeGroupRows = await Db.QueryAsync<GridGroupRow>(subtreeGroupSql, subtreeParams);
+                    var subtreeGroupRowsRaw = await Db.QueryAsync<dynamic>(subtreeGroupSql, subtreeParams);
+                    var subtreeGroupRows = ClayGroupRowMapper.MapRows(
+                        subtreeGroupRowsRaw.Cast<IDictionary<string, object?>>()
+                                           .Select(d => (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?>(d)),
+                        groupCols.Count);
                     var subtreeAggregates = ClayGroupingEngine.BuildAggregates(subtreeGroupRows);
                     var subtreeRoots      = ClayGroupingEngine.BuildTree(subtreeAggregates);
                     ClayGroupingEngine.ComputeParentCounts(subtreeRoots);

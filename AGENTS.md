@@ -69,7 +69,7 @@
 | `ClayTimeLocalColumnType` | Дескриптор Тип 13: время из UTC в локальный пояс. Формат = .NET-строка (напр. `"HH:mm"`). Фильтруется как Date |
 | `ClayDateTimeConverter` | Статический конвертер: `ConvertFromUtc(DateTime?, TimeSpan)` и `Format(object?, string?, TimeSpan?)`. Чистые функции (без DateTime.Now), тестируемо |
 | `ClayDynamicRow` | Строка динамического грида. Реализует `IClayGridRow` + `IDetailRow` + `IReadOnlyDictionary<string, object?>`. `IDetailRow.Item => this` — строка сама является словарём для `GetRowIdValue`. Заменяет `InvalidCastException`-каст в `LoadDynamicData` |
-| `ClayDynamicGroupMapper` | Статический маппер словарей агрегатного GROUP BY в `GridGroupRow` для `ClayGroupingEngine`. `MapRow`/`MapRows`, нормализация DBNull, K0 null→"". Чистые функции |
+| `ClayGroupRowMapper` | Статический маппер словарей агрегатного GROUP BY в `GridGroupRow` для `ClayGroupingEngine`. `MapRow(row, levelCount)` / `MapRows(rows, levelCount)`, нормализация DBNull. Общий для статического и динамического режимов. Чистые функции. Заменил `ClayDynamicGroupMapper` (GN1) |
 | `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
@@ -111,7 +111,7 @@
 - GF16 — `dp.Add("search", ...)` в `LoadDynamicData`: поиск в динрежиме больше не падает `SqlException`
 
 **Выполненные шаги группировки (GG1+):**
-- GG1 — `ClayDynamicGroupMapper`: маппинг словарей агрегатного GROUP BY в `GridGroupRow` (чистые функции, DBNull→null, K0 null→"")
+- GG1 — `ClayDynamicGroupMapper`: маппинг словарей агрегатного GROUP BY в `GridGroupRow` (чистые функции, DBNull→null, K0 null→""). **Заменён на `ClayGroupRowMapper` в GN1**
 - GG2 — `LoadDynamicGroupedData`: конвейер группировки (агрегат→дерево→layout→детали), `LoadDynamicData` → диспетчер + `LoadDynamicFlatData`
 - GG3 — `_dynamicExpandedGroups` + `ToggleDynamicGroup`: раскрытие/сворачивание групп с автопереходом страницы, `HandleGroupToggle` — единый диспетчер клика
 - GG4 — `GroupRowHostKey` учитывает `HasDynamicEdit`: условие выбора сервисной колонки совпадает с условием рендеринга в `ClayGrid.razor`
@@ -120,6 +120,10 @@
 - GG7 — включение группировки: `ResetDynamicExpandedGroups` при смене состава/порядка `_groupColumns`, `Groupable = true` (уже было), `ApplySavedGroups` (уже был)
 - GG8 — tri-state чекбоксы групп: `LoadDynamicGroupChildIdsAsync`, диспетчер `LoadChildIdsForGroupsAsync`, расширен guard в `razor.cs`
 - GG9 — группировка в диалоге настройки колонок: секция Grouping (зеркало Sorting) с MudSwitch + бейджем, попутный фикс утечки `_hiddenSqlNames`, кнопка «+» в лотке
+
+**Выполненные шаги снятия потолка уровней (GN1+):**
+- GN1 — `GridGroupRow.Keys` вместо `K0/K1/K2`, `BuildGroupAggregateSql` без потолка (N уровней), `ClayGroupRowMapper` (общий маппер, заменил `ClayDynamicGroupMapper`), перевод 5 статических `Db.QueryAsync<GridGroupRow>` на словари + маппер, временный мост в `BuildAggregates`
+- Оркестратор: `promts/GN0_README_grouping_levels.md`, промты `GN1`–`GN4`
 
 ### Services
 
@@ -215,7 +219,8 @@
 - При разворачивании последней группы на странице, если её детали не влезают — автоматический переход на следующую страницу
 
 ### Многоуровневая группировка
-- SQL: `GROUP BY Col1, Col2, ...` — возвращает листовые агрегаты
+- SQL: `GROUP BY Col1, Col2, ...` — возвращает листовые агрегаты. Число уровней не ограничено (GN1): `SELECT` отдаёт `K0..K{n-1}` по числу колонок
+- `GridGroupRow.Keys` — список значений группировочных колонок (N уровней, GN1). `null` — законное значение ключа, а не признак отсутствия уровня
 - C#: синтетические родительские узлы создаются из листовых, `ItemCount` родителя = сумма дочерних
 - `ComputeParentCounts()` рекурсивно вычисляет `ItemCount` для всех промежуточных уровней
 - Уровень вложенности: `Depth` (0 = внешний), отступ заголовка: `Depth * 16px`. Строки детализации отступают на `(Depth + 1) * 16px` — на один уровень глубже родительской группы

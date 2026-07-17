@@ -5,19 +5,17 @@ namespace Clayzor.Lib.Web.Controls.Components.Grid;
 // ── Вспомогательные типы серверной группировки ─────────────────────────────
 
 /// <summary>
-/// Строка результата GROUP BY агрегатного запроса.
-/// Поля K0–K2 содержат значения группировочных колонок (до 3-х уровней).
+/// Строка результата агрегатного GROUP BY-запроса.
+/// Число уровней не ограничено: <see cref="Keys"/> содержит ровно столько значений,
+/// сколько колонок в группировке, в том же порядке.
 /// </summary>
 public class GridGroupRow
 {
-    /// <summary>Значение первой колонки группировки.</summary>
-    public object K0 { get; set; } = "";
-
-    /// <summary>Значение второй колонки группировки (null — уровень не задан).</summary>
-    public object? K1 { get; set; }
-
-    /// <summary>Значение третьей колонки группировки (null — уровень не задан).</summary>
-    public object? K2 { get; set; }
+    /// <summary>
+    /// Значения группировочных колонок по уровням: Keys[0] — внешний уровень.
+    /// null — законное значение ключа (NULL в данных), а НЕ признак отсутствия уровня.
+    /// </summary>
+    public List<object?> Keys { get; set; } = [];
 
     /// <summary>Количество строк детализации в этой листовой группе.</summary>
     public int Cnt { get; set; }
@@ -104,25 +102,24 @@ public static class ClayGroupingEngine
 {
     /// <summary>
     /// Строит агрегатный SQL-запрос GROUP BY (SQL Server 2008 R2 совместимый).
-    /// Возвращает до 3-х ключевых колонок K0–K2 + COUNT(*) AS Cnt.
+    /// Возвращает по одной ключевой колонке K{i} на каждый уровень группировки + COUNT(*) AS Cnt.
+    /// Число уровней не ограничено — сколько колонок передано, столько и будет.
     /// </summary>
-    /// <param name="selectSql">Базовый SELECT без WHERE/ORDER BY (например <c>SQLQueries.SELECT_МедицинскиеАнализы</c>).</param>
-    /// <param name="groupExprs">Выходные имена колонок группировки в порядке приоритета.</param>
+    /// <param name="selectSql">Базовый SELECT без WHERE/ORDER BY.</param>
+    /// <param name="groupExprs">Выходные имена колонок группировки в порядке приоритета. Не пустой.</param>
     /// <param name="where">WHERE-фрагмент или null.</param>
-    /// <param name="sortColumns">Текущая сортировка — определяет ORDER BY в агрегатном запросе.</param>
+    /// <param name="sortColumns">Текущая сортировка — определяет ORDER BY агрегата.</param>
+    /// <exception cref="ArgumentException">groupExprs пуст — вызывающий обязан это проверять.</exception>
     public static string BuildGroupAggregateSql(
         string selectSql,
         IReadOnlyList<string> groupExprs,
         string? where,
         IReadOnlyList<SortColumn> sortColumns)
     {
-        var selectParts = new List<string>();
-        for (int i = 0; i < 3; i++)
-        {
-            selectParts.Add(i < groupExprs.Count
-                ? $"{groupExprs[i]} AS K{i}"
-                : $"CAST(NULL AS SQL_VARIANT) AS K{i}");
-        }
+        if (groupExprs.Count == 0)
+            throw new ArgumentException("Список колонок группировки пуст.", nameof(groupExprs));
+
+        var selectParts = groupExprs.Select((expr, i) => $"{expr} AS K{i}");
 
         var grp = string.Join(", ", groupExprs);
         var ordParts = groupExprs.Select(expr =>
@@ -193,11 +190,15 @@ public static class ClayGroupingEngine
         foreach (var gr in groupRows)
         {
             var keys = new List<string>();
-            if (gr.K0 is not null) keys.Add(gr.K0.ToString()!);
-            if (gr.K1 is not null) keys.Add(gr.K1.ToString()!);
+            // GN1: временный мост — поведение 1:1 как было (2 уровня, null = уровня нет).
+            // Настоящая логика на N уровней — GN2. НЕ ЧИНИТЬ ЗДЕСЬ.
+            var k0 = gr.Keys.Count > 0 ? gr.Keys[0] : null;
+            var k1 = gr.Keys.Count > 1 ? gr.Keys[1] : null;
+            if (k0 is not null) keys.Add(k0.ToString()!);
+            if (k1 is not null) keys.Add(k1.ToString()!);
 
             var depth = keys.Count - 1;
-            var rawKeyValues = new object?[] { gr.K0, gr.K1 }.Take(keys.Count).ToList();
+            var rawKeyValues = new object?[] { k0, k1 }.Take(keys.Count).ToList();
 
             // Синтетические родительские узлы для промежуточных уровней
             for (int d = 0; d < depth; d++)
