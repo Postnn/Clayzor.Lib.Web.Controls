@@ -437,26 +437,29 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private async Task LoadDynamicData(ClayDataQuery query)
     {
-        // NotifyQueryChanged собирает query без ExpandedGroups (в статике их владелец — страница).
-        query.ExpandedGroups = _dynamicExpandedGroups;
+        await RunBusyAsync("Загрузка данных…", async () =>
+        {
+            // NotifyQueryChanged собирает query без ExpandedGroups (в статике их владелец — страница).
+            query.ExpandedGroups = _dynamicExpandedGroups;
 
-        var dp = new DynamicParameters();
+            var dp = new DynamicParameters();
 
-        // BuildWhereClause генерирует "col LIKE @search", но параметр не добавляет —
-        // это делает вызывающий (ср. ClayGridPageBase.LoadFlatData).
-        dp.Add("search", $"%{query.SearchText}%");
+            // BuildWhereClause генерирует "col LIKE @search", но параметр не добавляет —
+            // это делает вызывающий (ср. ClayGridPageBase.LoadFlatData).
+            dp.Add("search", $"%{query.SearchText}%");
 
-        var searchWhere = query.BuildWhereClause(SearchColumns);
-        var filterWhere = ClayCompositeSqlBuilder.Build(query.CompositeFilter, dp, _dynamicKnownColumns);
-        var where       = ClayDataQuery.CombineWhere(searchWhere, filterWhere);
+            var searchWhere = query.BuildWhereClause(SearchColumns);
+            var filterWhere = ClayCompositeSqlBuilder.Build(query.CompositeFilter, dp, _dynamicKnownColumns);
+            var where       = ClayDataQuery.CombineWhere(searchWhere, filterWhere);
 
-        if (query.GroupEnabled && query.GroupColumns.Count > 0)
-            await LoadDynamicGroupedData(query, where, dp);
-        else
-            await LoadDynamicFlatData(query, where, dp);
+            if (query.GroupEnabled && query.GroupColumns.Count > 0)
+                await LoadDynamicGroupedData(query, where, dp);
+            else
+                await LoadDynamicFlatData(query, where, dp);
 
-        // Сохраняем состояние после каждой загрузки данных
-        await SaveDynamicState();
+            // Сохраняем состояние после каждой загрузки данных
+            await SaveDynamicState();
+        });
     }
 
     /// <summary>Плоский режим: страница строк без группировки.</summary>

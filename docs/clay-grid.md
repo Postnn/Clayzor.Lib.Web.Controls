@@ -549,7 +549,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 
 Поток: `ExcelCurrentPageInternal()` / `ExcelAllInternal()` / `ExcelSelectedInternal()` → `DataLoader.ExcelExportAsync(ExcelExportRequest)` → `ClayGridExcelGenerator.ExportToExcel(...)` → base64 → `clayGridExcel.downloadFile()` → снекбар.
 
-**Индикатор загрузки**: флаг `_isExporting` в `ClayGrid.razor` устанавливается в `true` перед вызовом `DataLoader.ExcelExportAsync()` и сбрасывается в `false` в `finally`-блоке. Пока `_isExporting = true`, рядом с заголовком грида (`MudText Typo="Typo.h5"`) показывается `MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small"`.
+**Индикатор загрузки**: флаг `_isExporting` управляет общим оверлеем `.clay-grid-busy` через `RunBusyAsync(label, work)` (GB3). Единый механизм для экспорта, печати и загрузки данных в динамическом режиме (GB12): затемнение грида + `MudProgressCircular` + подпись.
 
 Все три режима (`CurrentPage`, `Selected`, `All`) полностью реализованы.
 
@@ -564,7 +564,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 
 **Ключевое отличие от v1**: грид (`_rows`, `_dataKey`, `_query`, `ExpandedGroups`) полностью не затрагивается. Печать изолирована в iframe — никакого восстановления страницы не требуется.
 
-**Индикатор загрузки**: `MudProgressCircular` у заголовка (`_isExporting`).
+**Индикатор загрузки**: единый оверлей `.clay-grid-busy` через `RunBusyAsync` (см. «Экспорт в Excel»).
 
 **Плоский режим**: SQL `SELECT * FROM (selectSql) _src WHERE ... ORDER BY ...` — без `ROW_NUMBER()`.
 

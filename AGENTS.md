@@ -55,7 +55,7 @@
 (SQL, колонки, кнопки) из БД. План реализации: [promts/_done/_readme_grid_dynamic.md](Components/Grid/promts/_done/_readme_grid_dynamic.md).
 Выполненные промты (G0–G14, GF1–GF16, GG1–GG9, GN1–GN4, GE1–GE6, TG1–TG9): `promts/_done/`.
 Отложенные промты: `promts/_later/`.
-Активные багфиксы (GB1–GB11): `promts/GB*.md`. Оркестратор: `promts/GB0_README_grid_ux_fixes.md`.
+Активные багфиксы (GB1–GB15): `promts/GB*.md`. Выполненные: `promts/_done/GB*.md`. Оркестратор: `promts/GB0_README_grid_ux_fixes.md`.
 
 | Класс | Назначение |
 |---|---|
@@ -152,7 +152,8 @@
 - GB4 — диалог настройки колонок: единая 5-колоночная grid-сетка, `ContentClass` с нулевым паддингом (sticky без щели), `--clay-cs-*` переменные, `MaxWidth.Small`
 - GB5 — кнопки диалога настройки колонок: `flex-wrap`, `flex-shrink: 0` у пары Отмена/Применить, `MaxWidth.Small` (зависит от GB4)
 - GB11 — сохранение порядка колонок после перетаскивания в шапке грида: `OnColumnDrop` → `async Task` + `await SaveDynamicState()` (данные не перезагружаются)
-- Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB11`
+- GB12 — индикация загрузки в динамическом гриде: `LoadDynamicData` обёрнута в `RunBusyAsync("Загрузка данных…", ...)`, переиспользует оверлей `.clay-grid-busy` из GB3
+- Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB15`
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
 
