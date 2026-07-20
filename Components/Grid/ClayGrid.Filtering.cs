@@ -309,9 +309,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
             .OfType<ColumnFilter>()
             .FirstOrDefault(cf => cf.Column == sqlName && cf.Source == ClayFilterSource.ColumnDialog);
 
-        // Ленивый загрузчик (замыкание на LoadDistinctValuesAsync)
-        Func<Task<DistinctValuesResult>> load = () =>
-            DataLoader!.LoadDistinctValuesAsync(sqlName, BuildCurrentQuery(), 100);
+        // Ленивый загрузчик (замыкание на LoadDistinctValuesAsync).
+        // В динамическом режиме DataLoader отсутствует — используем собственный запрос.
+        Func<Task<DistinctValuesResult>> load = Dynamic
+            ? () => LoadDistinctValuesDynamicAsync(sqlName, BuildCurrentQuery(), 100)
+            : () => DataLoader!.LoadDistinctValuesAsync(sqlName, BuildCurrentQuery(), 100);
 
         var parameters = new DialogParameters<ClayColumnValueFilterDialog>
         {
@@ -397,6 +399,120 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _pageNumber = 1;
             await NotifyQueryChanged();
         }
+    }
+
+    /// <summary>
+    /// Динамическая реализация <see cref="IClayGridDataLoader.LoadDistinctValuesAsync"/>
+    /// для value-filter. Повторяет логику <c>ClayGridPageBase.LoadDistinctValuesAsync</c>,
+    /// но работает с <see cref="DynamicSql"/> и собственным <c>SelectSql</c>.
+    /// </summary>
+    private async Task<DistinctValuesResult> LoadDistinctValuesDynamicAsync(
+        string sqlName, ClayDataQuery query, int limit)
+    {
+        var selectSql     = SelectSql ?? string.Empty;
+        var searchColumns = SearchColumns ?? [];
+        var meta          = _columnBySqlName[sqlName];
+        var isText        = meta.Type.Kind == ColumnType.Text;
+
+        var searchWhere = query.BuildWhereClause(searchColumns);
+        var dp          = new Dapper.DynamicParameters();
+        dp.Add("search", $"%{query.SearchText}%");
+
+        var clonedRoot     = CloneFilterTreeWithoutColumn(query.CompositeFilter, sqlName);
+        var compositeWhere = ClayCompositeSqlBuilder.Build(clonedRoot, dp, _dynamicKnownColumns);
+        var where          = ClayDataQuery.CombineWhere(searchWhere, compositeWhere);
+        var bracketedCol   = $"[{sqlName}]";
+
+        var notBlank = isText
+            ? $"{bracketedCol} IS NOT NULL AND {bracketedCol} <> ''"
+            : $"{bracketedCol} IS NOT NULL";
+        var valueWhere = ClayDataQuery.CombineWhere(where, notBlank);
+
+        var countSql = $"""
+            SELECT COUNT(*) FROM (
+                SELECT DISTINCT {bracketedCol} v
+                FROM ( {selectSql} ) src
+                {(valueWhere is null ? "" : $"WHERE {valueWhere}")}
+            ) t
+            """;
+
+        var distinctCount = (await Db.QueryAsync<int>(countSql, dp)).FirstOrDefault();
+
+        var blankCheck = isText
+            ? $"{bracketedCol} IS NULL OR {bracketedCol} = ''"
+            : $"{bracketedCol} IS NULL";
+        var blankWhere = ClayDataQuery.CombineWhere(where, blankCheck);
+        var blankSql = $"""
+            SELECT CASE WHEN EXISTS(
+                SELECT 1 FROM ( {selectSql} ) src
+                {(blankWhere is null ? "" : $"WHERE {blankWhere}")}
+            ) THEN 1 ELSE 0 END
+            """;
+        var hasBlanks = (await Db.QueryAsync<int>(blankSql, dp)).FirstOrDefault() == 1;
+
+        if (distinctCount > limit)
+            return new DistinctValuesResult { Capped = true, HasBlanks = hasBlanks };
+
+        var valuesSql = $"""
+            SELECT DISTINCT TOP (@lim) {bracketedCol} v
+            FROM ( {selectSql} ) src
+            {(valueWhere is null ? "" : $"WHERE {valueWhere}")}
+            ORDER BY v
+            """;
+        dp.Add("lim", limit);
+        var rows      = await Db.QueryAsync<dynamic>(valuesSql, dp);
+        var rawValues = ((IEnumerable<dynamic>)rows)
+            .Select(r => (object?)((IDictionary<string, object>)r)["v"])
+            .Select(v => v is DBNull ? null : v)
+            .ToList();
+
+        return new DistinctValuesResult
+        {
+            Values        = rawValues.AsReadOnly(),
+            Capped        = false,
+            HasBlanks     = hasBlanks,
+            TotalDistinct = distinctCount,
+        };
+    }
+
+    /// <summary>
+    /// Клонирует дерево фильтра, исключая все узлы (<see cref="ColumnFilter"/> и
+    /// <see cref="ValueFilter"/>), относящиеся к указанной колонке. Группы без узлов
+    /// после фильтрации отбрасываются.
+    /// </summary>
+    private static ClayFilterGroupNode? CloneFilterTreeWithoutColumn(
+        ClayFilterGroupNode? root, string sqlName)
+    {
+        if (root is null) return null;
+
+        var filtered = new List<IClayFilterNode>();
+        foreach (var node in root.Nodes)
+        {
+            if (node is ClayFilterGroupNode group)
+            {
+                var sub = CloneFilterTreeWithoutColumn(group, sqlName);
+                if (sub is not null)
+                    filtered.Add(sub);
+            }
+            else if (node is ColumnFilter cf
+                     && !string.Equals(cf.Column, sqlName, StringComparison.OrdinalIgnoreCase))
+            {
+                filtered.Add(cf.Clone());
+            }
+            else if (node is ValueFilter vf
+                     && !string.Equals(vf.Column, sqlName, StringComparison.OrdinalIgnoreCase))
+            {
+                filtered.Add(vf.Clone());
+            }
+        }
+
+        if (filtered.Count == 0) return null;
+
+        return new ClayFilterGroupNode
+        {
+            Logic = root.Logic,
+            Nodes = filtered,
+        };
     }
 
     /// <summary>

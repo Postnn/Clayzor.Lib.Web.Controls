@@ -192,15 +192,26 @@ public partial class ClayGrid<TEntity> where TEntity : class
             var desc = ClayColumnTypeMap.Resolve(col.Type);
             if (desc is null) continue; // неподдержанный тип — пропускаем с логом
 
+            var kind = (ClayColumnKind)col.Type;
+
+            // Value-filter (выбор из списка уникальных значений) осмыслен для
+            // «плоских» атомарных значений. Исключены: List (5 — справочник),
+            // Link/Html/Icon (4/8/9 — не атомарные), фильтр-онли (6/11).
+            var allowValueFilter =
+                kind is ClayColumnKind.Number or ClayColumnKind.Text or ClayColumnKind.Date
+                     or ClayColumnKind.Bool   or ClayColumnKind.DateTimeLocal
+                     or ClayColumnKind.TimeLocal or ClayColumnKind.LimitedText;
+
             var meta = new ClayColumnMeta
             {
-                ColumnId    = col.ColumnId,
-                SqlName     = col.Column,
-                DisplayName = col.Header ?? col.Column,
-                SortName    = col.Column,
-                Groupable   = true,
-                Filterable  = col.Type != (int)ClayColumnKind.List,
-                Type        = desc,
+                ColumnId         = col.ColumnId,
+                SqlName          = col.Column,
+                DisplayName      = col.Header ?? col.Column,
+                SortName         = col.Column,
+                Groupable        = true,
+                Filterable       = col.Type != (int)ClayColumnKind.List,
+                AllowValueFilter = allowValueFilter,
+                Type             = desc,
             };
             _columnById[col.ColumnId]     = meta;
             _columnBySqlName[col.Column]  = meta;
@@ -313,6 +324,14 @@ public partial class ClayGrid<TEntity> where TEntity : class
         ApplyUrlParams(opt);
 
         _dynamicInitDone = true;
+
+        // В динамике value-filter по умолчанию выключен у всех колонок.
+        // Включается per-column через переключатель в диалоге «Настройка колонок».
+        foreach (var meta in _columnById.Values)
+        {
+            if (meta.AllowValueFilter)
+                _valueFilterDisabledColumns.Add(meta.SqlName);
+        }
 
         // Первая загрузка: в динамическом режиме страницы-загрузчика нет,
         // грид обязан стартовать сам.
