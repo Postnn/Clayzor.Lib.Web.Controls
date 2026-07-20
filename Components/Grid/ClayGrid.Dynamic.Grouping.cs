@@ -1,6 +1,7 @@
 using Clayzor.Lib.Entities.DynamicGrid;
 using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 using Dapper;
+using Microsoft.JSInterop;
 
 namespace Clayzor.Lib.Web.Controls.Components.Grid;
 
@@ -115,6 +116,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private async Task ToggleDynamicGroup(GroupHeaderRow header)
     {
+        var scrollTop = await JS.InvokeAsync<double>("clayGridScroll.capture", new object[] { Id });
+
         var wasExpanded = _dynamicExpandedGroups.Contains(header.FullKey);
         if (wasExpanded)
             _dynamicExpandedGroups.Remove(header.FullKey);
@@ -122,6 +125,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _dynamicExpandedGroups.Add(header.FullKey);
 
         await NotifyQueryChanged();
+
+        var pageChanged = false;
 
         if (!wasExpanded)
         {
@@ -136,6 +141,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 if (headerIdx >= 0 && headerIdx == rows.Count - 1 && header.ItemCount > 0)
                 {
                     _pageNumber++;
+                    pageChanged = true;
                     await NotifyQueryChanged();
                 }
             }
@@ -144,10 +150,16 @@ public partial class ClayGrid<TEntity> where TEntity : class
         {
             // Свернули группу: эффективных строк стало меньше, текущей страницы может уже не быть.
             _pageNumber = _totalPages;
+            pageChanged = true;
             await NotifyQueryChanged();
         }
 
         await InvokeAsync(StateHasChanged);
+
+        // Автопереход на другую страницу — осмысленная смена контекста,
+        // возвращать старую позицию прокрутки не нужно.
+        if (!pageChanged)
+            await JS.InvokeVoidAsync("clayGridScroll.restore", Id, scrollTop);
     }
 
     /// <summary>

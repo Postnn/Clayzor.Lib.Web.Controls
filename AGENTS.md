@@ -153,6 +153,7 @@
 - GB5 — кнопки диалога настройки колонок: `flex-wrap`, `flex-shrink: 0` у пары Отмена/Применить, `MaxWidth.Small` (зависит от GB4)
 - GB11 — сохранение порядка колонок после перетаскивания в шапке грида: `OnColumnDrop` → `async Task` + `await SaveDynamicState()` (данные не перезагружаются)
 - GB12 — индикация загрузки в динамическом гриде: `LoadDynamicData` обёрнута в `RunBusyAsync("Загрузка данных…", ...)`, переиспользует оверлей `.clay-grid-busy` из GB3
+- GB13 — сохранение прокрутки при раскрытии/сворачивании группы: `clayGridScroll.js` (capture/restore `scrollTop`), `ToggleDynamicGroup` и `HandleGroupToggle` восстанавливают позицию (кроме авто-перехода страницы)
 - Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB15`
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).

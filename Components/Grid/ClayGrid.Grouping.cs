@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Clayzor.Lib.Web.Controls.Components.Grid;
 
@@ -18,9 +19,15 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private async Task HandleGroupToggle(GroupHeaderRow header)
     {
         if (Dynamic)
+        {
             await ToggleDynamicGroup(header);
+        }
         else
+        {
+            var scrollTop = await JS.InvokeAsync<double>("clayGridScroll.capture", new object[] { Id });
             await OnGroupToggle.InvokeAsync(header);
+            await JS.InvokeVoidAsync("clayGridScroll.restore", Id, scrollTop);
+        }
     }
 
     /// <summary>
