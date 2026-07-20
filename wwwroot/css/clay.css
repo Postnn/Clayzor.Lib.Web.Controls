@@ -1336,9 +1336,21 @@ body {
     color: var(--mud-palette-text-secondary);
     font-size: var(--clay-font-size);
 }
+/* Контент диалога фильтра: overflow скрыт, скролл — только у дерева условий */
+.clay-filter-dialog-content {
+    overflow: hidden !important;
+}
+
+/* Убираем второй скролл в выпадающих списках MudSelect: .mud-popover
+   уже имеет overflow-y-auto + max-height, вложенный .mud-list не должен
+   скроллиться самостоятельно. */
+.mud-popover .mud-list {
+    overflow-y: visible !important;
+}
+
 .clay-filter-expression {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 6px;
     align-items: center;
     padding: 6px;

@@ -55,7 +55,7 @@
 (SQL, колонки, кнопки) из БД. План реализации: [promts/_done/_readme_grid_dynamic.md](Components/Grid/promts/_done/_readme_grid_dynamic.md).
 Выполненные промты (G0–G14, GF1–GF16, GG1–GG9, GN1–GN4, GE1–GE6, TG1–TG9): `promts/_done/`.
 Отложенные промты: `promts/_later/`.
-Активные багфиксы (GB1–GB15): `promts/GB*.md`. Выполненные: `promts/_done/GB*.md`. Оркестратор: `promts/GB0_README_grid_ux_fixes.md`.
+Активные багфиксы (GB1–GB17): `promts/GB*.md`. Выполненные: `promts/_done/GB*.md`. Оркестратор: `promts/GB0_README_grid_ux_fixes.md`.
 
 | Класс | Назначение |
 |---|---|
@@ -154,8 +154,11 @@
 - GB11 — сохранение порядка колонок после перетаскивания в шапке грида: `OnColumnDrop` → `async Task` + `await SaveDynamicState()` (данные не перезагружаются)
 - GB12 — индикация загрузки в динамическом гриде: `LoadDynamicData` обёрнута в `RunBusyAsync("Загрузка данных…", ...)`, переиспользует оверлей `.clay-grid-busy` из GB3
 - GB13 — сохранение прокрутки при раскрытии/сворачивании группы: `clayGridScroll.js` (capture/restore `scrollTop`), `ToggleDynamicGroup` и `HandleGroupToggle` восстанавливают позицию (кроме авто-перехода страницы)
-- GB14 — value-filter в динамике: `AllowValueFilter` по типу колонки, `LoadDistinctValuesDynamicAsync` (свой `SELECT DISTINCT`), по умолчанию выключен (`_valueFilterDisabledColumns`), включается per-column в диалоге
-- Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB15`
+- GB14 — value-filter в динамике: `AllowValueFilter` по типу колонки, `LoadDistinctValuesDynamicAsync`, по умолчанию выключен (`_valueFilterDisabledColumns`), включается per-column в диалоге
+- GB15 — сортировка списка колонок в диалоге фильтра: `.OrderBy(DisplayName, StringComparer.CurrentCulture)` в `OpenCompositeFilterDialog`
+- GB16 — пустое условие без предвыборки колонки: `AddExpression` создаёт пустой лист, плейсхолдер «Выберите колонку», `StripIncompleteLeaves` при Apply
+- GB17 — двойной скролл: `.clay-filter-dialog-content { overflow:hidden !important }`, `.mud-popover .mud-list { overflow-y:visible !important }`, `flex-wrap:nowrap`, tooltip+ellipsis на элементах
+- Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB17`
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
 

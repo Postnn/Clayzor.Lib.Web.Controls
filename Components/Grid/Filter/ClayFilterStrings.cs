@@ -23,8 +23,9 @@ public static class ClayFilterStrings
 
     // ── ClayFilterExpression ──────────────────────────────────────────────
 
-    public const string FieldLabel     = "Поле";
-    public const string ConditionLabel = "Условие";
+    public const string FieldLabel       = "Поле";
+    public const string FieldPlaceholder  = "Выберите колонку";
+    public const string ConditionLabel    = "Условие";
 
     // ── ClayFilterDialog ──────────────────────────────────────────────────
 

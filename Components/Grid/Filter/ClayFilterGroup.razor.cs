@@ -52,13 +52,15 @@ public partial class ClayFilterGroup : ComponentBase
     /// </summary>
     private async Task AddExpression()
     {
-        var firstCol = Columns.FirstOrDefault();
-        var newLeaf  = new ColumnFilter
+        // Колонка НЕ выбирается заранее — пользователь выбирает её сам.
+        // OnColumnChanged выставит оператор по умолчанию для типа после выбора.
+        var newLeaf = new ColumnFilter
         {
-            Column    = firstCol?.SqlName ?? "",
-            ParamName = "",   // ParamName генерируется при построении SQL (задача 07/10)
-            Operator  = firstCol?.Type.DefaultOperator ?? ColumnFilterOperator.Contains,
+            Column    = "",
+            ParamName = "",
+            Operator  = ColumnFilterOperator.Contains,
             Source    = ClayFilterSource.CompositeDialog,
+            IsNew     = true,
         };
         Node.Nodes.Add(newLeaf);
         await NotifyChanged();

@@ -251,6 +251,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         // чтобы диалог мог разрешить display-name для колонок, которые и сгруппированы, и фильтруются)
         var filterableCols = _columnBySqlName.Values
             .Where(c => c.Filterable)
+            .OrderBy(c => c.DisplayName, StringComparer.CurrentCulture)
             .ToList();
 
         var parameters = new DialogParameters<ClayFilterDialog>
@@ -261,7 +262,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         };
         var options = new DialogOptionsEx
         {
-            MaxWidth  = MaxWidth.Small,
+            MaxWidth  = MaxWidth.Medium,
             FullWidth = false,
             CloseOnEscapeKey = true,
             DragMode  = MudDialogDragMode.Simple,

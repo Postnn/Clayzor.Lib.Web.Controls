@@ -125,7 +125,7 @@ public partial class ClayFilterExpression : ComponentBase
         _descriptor        = col?.Type;
         _availableOperators = _descriptor is not null
             ? _descriptor.Operators
-            : [];
+            : [Node.Operator];
         _options = LookupOptions?.GetValueOrDefault(sqlName);
     }
 }

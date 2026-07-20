@@ -308,7 +308,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 ### Хранение в гриде и интеграция с данными (задача 10)
 - `ClayGrid._filterRoot` (`ClayFilterGroupNode`, `Logic=And`) — приватный корень дерева, единый источник истины. Заменяет `_activeFilters` (словарь, неявное AND)
 - Колоночные фильтры (`ClayColumnFilterDialog`) — листья с `Source=ColumnDialog`, добавляются/заменяются в `_filterRoot.Nodes`; отображаются чипами в трее через `ColumnDialogLeaves`
-- Составной фильтр (`ClayFilterDialog`) — поддерево с `Source=CompositeDialog` (весь `_filterRoot` синхронизируется в `query.CompositeFilter`)
+- Составной фильтр (`ClayFilterDialog`) — поддерево с `Source=CompositeDialog` (весь `_filterRoot` синхронизируется в `query.CompositeFilter`). Колонки в выпадающем списке отсортированы по алфавиту (GB15). Новое условие создаётся без предвыбранной колонки — пользователь выбирает сам (GB16). Один скролл у дерева условий, `overflow:hidden` на `.mud-dialog-content` (GB17).
 - `ToggleFilterTray()` **не сбрасывает** фильтр при сворачивании панели. Сброс — только явной кнопкой `ClearAllFilters()` (обнуляет `_filterRoot` целиком)
 - `ClayGridPageBase.BuildCompositeFilterClause(CompositeFilter?, dp, columnNameMap?)` — обёртка над `ClayCompositeSqlBuilder.Build`, вызывает `BuildKnownColumns()` (белый список из `_inferredColumnTypes.Keys`). Заменяет старый `_query.BuildColumnFilterClause(dp)` во **всех** путях загрузки (7 мест): `LoadFlatData`, `LoadGroupedData`, `GetGroupLeafRows`, экспорт в Excel (плоский + сгруппированный), печать (плоская + сгруппированная), экспорт/печать выбранных (плоский + сгруппированный)
 

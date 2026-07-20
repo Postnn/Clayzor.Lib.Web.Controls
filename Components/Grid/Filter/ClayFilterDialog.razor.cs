@@ -78,9 +78,37 @@ public partial class ClayFilterDialog : ComponentBase
             sql => Columns.FirstOrDefault(c => c.SqlName == sql)) ?? "";
 
     /// <summary>
-    /// Применяет фильтр: закрывает диалог и возвращает черновик как результат.
+    /// Применяет фильтр: отбрасывает незавершённые листья (без колонки), чистит
+    /// опустевшие группы, закрывает диалог и возвращает черновик как результат.
     /// </summary>
-    private void Apply() => MudDialog?.Close(DialogResult.Ok(_draft));
+    private void Apply()
+    {
+        StripIncompleteLeaves(_draft);
+        MudDialog?.Close(DialogResult.Ok(_draft));
+    }
+
+    /// <summary>
+    /// Рекурсивно удаляет из дерева листья с пустой колонкой и группы,
+    /// оставшиеся без узлов после чистки. Лист без колонки — это нажатое
+    /// «Добавить условие», в котором пользователь не выбрал колонку.
+    /// </summary>
+    private static void StripIncompleteLeaves(ClayFilterGroupNode group)
+    {
+        for (int i = group.Nodes.Count - 1; i >= 0; i--)
+        {
+            switch (group.Nodes[i])
+            {
+                case ColumnFilter cf when string.IsNullOrEmpty(cf.Column):
+                    group.Nodes.RemoveAt(i);
+                    break;
+                case ClayFilterGroupNode sub:
+                    StripIncompleteLeaves(sub);
+                    if (sub.Nodes.Count == 0)
+                        group.Nodes.RemoveAt(i);
+                    break;
+            }
+        }
+    }
 
     /// <summary>
     /// Сбрасывает фильтр: закрывает диалог и возвращает пустую группу.

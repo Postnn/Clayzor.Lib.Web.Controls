@@ -9,16 +9,18 @@
     @* ── Выбор колонки ────────────────────────────────────────── *@
     <MudSelect T="string"
                Label="@ClayFilterStrings.FieldLabel"
+               Placeholder="@ClayFilterStrings.FieldPlaceholder"
                Value="@Node.Column"
                ValueChanged="@OnColumnChanged"
                Variant="Variant.Outlined"
                Margin="Margin.Dense"
                Dense="true"
                AnchorOrigin="Origin.BottomLeft"
-               Style="flex:1 1 130px;min-width:120px">
+               Style="flex:0 0 200px;min-width:180px">
         @foreach (var col in Columns)
         {
-            <MudSelectItem Value="@col.SqlName">@col.DisplayName</MudSelectItem>
+            <MudSelectItem Value="@col.SqlName" Title="@col.DisplayName"
+                           Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@col.DisplayName</MudSelectItem>
         }
     </MudSelect>
 
@@ -32,18 +34,19 @@
                Dense="true"
                AnchorOrigin="Origin.BottomLeft"
                RelativeWidth="DropdownWidth.Adaptive"
-               Style="flex:1 1 120px;min-width:110px"
+               Style="flex:0 0 140px;min-width:130px"
                Disabled="@(_descriptor is null)">
         @foreach (var op in _availableOperators)
         {
-            <MudSelectItem Value="@op" Style="white-space:nowrap">@ClayFilterOperatorLabels.Get(op)</MudSelectItem>
+            <MudSelectItem Value="@op" Title="@ClayFilterOperatorLabels.Get(op)"
+                           Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@ClayFilterOperatorLabels.Get(op)</MudSelectItem>
         }
     </MudSelect>
 
     @* ── Редактор значения ────────────────────────────────────────── *@
     @if (_descriptor is not null)
     {
-        <div style="flex:1 1 130px;min-width:120px">
+        <div style="flex:1 1 auto;min-width:130px">
             <ClayFilterValueEditor @key="_valueKey"
                                     Type="@_descriptor"
                                     Value="@Node.Value"
@@ -51,6 +54,13 @@
                                     Options="@_options"
                                     Operator="@Node.Operator"
                                     AutoFocus="@_focusValue" />
+        </div>
+    }
+    else
+    {
+        <div style="flex:1 1 auto;min-width:130px">
+            <MudTextField T="string" Label="Значение" Disabled="true"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" />
         </div>
     }
 
