@@ -697,7 +697,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 1. **`clayGridColumnDrag.init(gridId, dotnetRef)`** — вызывается из `OnAfterRenderAsync` ClayGrid при каждом перерендере динамических колонок. Безопасен для многократного вызова (dispose предыдущего).
 2. **`dragstart`** (capture:true) — определяет `srcSqlName` по `data-col-sql`, устанавливает `effectAllowed='move'`, вызывает C# `SetDraggedColumn(sql)` → устанавливает `ClayDragState.DraggedColumn` для tray-drop.
 3. **`dragover`** (capture:true) — показывает индикатор вставки (`.clay-grid-drop-indicator`) на целевой колонке: слева от центра = вставить перед, справа = после.
-4. **`drop`** — вызывает C# `OnColumnDrop(srcSql, targetSql, insertBefore)` → обновляет `_columnOrder` через insert (удаление источника + вставка на целевую позицию) → `_dataKey++` → перерендер.
+4. **`drop`** — вызывает C# `OnColumnDrop(srcSql, targetSql, insertBefore)` → обновляет `_columnOrder` через insert (удаление источника + вставка на целевую позицию) → `_dataKey++` → перерендер. В динамическом режиме сразу сохраняет новый порядок в БД через `SaveDynamicState()` (без перезагрузки данных — двигаются только столбцы).
 5. **`dragend`** — очистка, вызов `SetDraggedColumn(null)`.
 6. **`clayGridColumnDrag.dispose(gridId)`** — в `DisposeAsync` ClayGrid для очистки обработчиков.
 
@@ -714,4 +714,4 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 | JSInvokable | Направление | Описание |
 |---|---|---|
 | `SetDraggedColumn(string?)` | JS → C# | Устанавливает/сбрасывает `ClayDragState.DraggedColumn` |
-| `OnColumnDrop(src, target, insertBefore)` | JS → C# | Применяет insert-перемещение в `_columnOrder` |
+| `OnColumnDrop(src, target, insertBefore)` | JS → C# | Применяет insert-перемещение в `_columnOrder`; в динамике сохраняет порядок в БД |

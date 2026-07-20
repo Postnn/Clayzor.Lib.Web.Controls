@@ -52,9 +52,10 @@
 ### DynamicGrid — динамический режим ClayGrid
 
 Пакет `Components/Grid/Dynamic/` — конфигурация и DI для динамического режима, в котором грид читает определение
-(SQL, колонки, кнопки) из БД. План реализации: [promts/_readme_grid_dynamic.md](Components/Grid/promts/_readme_grid_dynamic.md).
-Выполненные промты (G0–G14, GF1–GF7, TG1–TG9): `promts/_done/DynamicFilter/`.
-Активные промты (GF8–GF16): `promts/GF*.md`. Оркестратор багфиксов: `promts/GF0_README_dynamic_fixes.md`.
+(SQL, колонки, кнопки) из БД. План реализации: [promts/_done/_readme_grid_dynamic.md](Components/Grid/promts/_done/_readme_grid_dynamic.md).
+Выполненные промты (G0–G14, GF1–GF16, GG1–GG9, GN1–GN4, GE1–GE6, TG1–TG9): `promts/_done/`.
+Отложенные промты: `promts/_later/`.
+Активные багфиксы (GB1–GB11): `promts/GB*.md`. Оркестратор: `promts/GB0_README_grid_ux_fixes.md`.
 
 | Класс | Назначение |
 |---|---|
@@ -149,7 +150,9 @@
 - GB7 — общие стили: `clay.css` в RCL (`wwwroot/css/`) вместо двух копий `app.css`, `App.razor` подключает `_content/Clayzor.Lib.Web.Controls/css/clay.css`
 - GB3 — индикатор долгой операции: `RunBusyAsync` + `MudOverlay` + `.clay-grid-busy`, единый для печати и Excel, убран JS-спиннер и `.clay-print-spinner`
 - GB4 — диалог настройки колонок: единая 5-колоночная grid-сетка, `ContentClass` с нулевым паддингом (sticky без щели), `--clay-cs-*` переменные, `MaxWidth.Small`
-- Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB10`
+- GB5 — кнопки диалога настройки колонок: `flex-wrap`, `flex-shrink: 0` у пары Отмена/Применить, `MaxWidth.Small` (зависит от GB4)
+- GB11 — сохранение порядка колонок после перетаскивания в шапке грида: `OnColumnDrop` → `async Task` + `await SaveDynamicState()` (данные не перезагружаются)
+- Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB11`
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
 

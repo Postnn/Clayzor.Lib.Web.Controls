@@ -279,13 +279,14 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     /// <summary>
     /// Вызывается из JS после завершения drag-and-drop заголовка колонки.
-    /// Обновляет <see cref="_columnOrder"/> через insert (не swap).
+    /// Обновляет <see cref="_columnOrder"/> через insert (не swap) и в динамическом режиме
+    /// сохраняет новый порядок (данные не перезагружаются — двигаются только столбцы).
     /// </summary>
     /// <param name="srcSql">SQL-имя перетаскиваемой колонки.</param>
     /// <param name="targetSql">SQL-имя целевой колонки (относительно которой вставляем).</param>
     /// <param name="insertBefore"><c>true</c> — вставить перед <paramref name="targetSql"/>, <c>false</c> — после.</param>
     [JSInvokable]
-    public void OnColumnDrop(string srcSql, string targetSql, bool insertBefore)
+    public async Task OnColumnDrop(string srcSql, string targetSql, bool insertBefore)
     {
         if (!_columnBySqlName.TryGetValue(srcSql, out var srcMeta)) return;
         if (!_columnBySqlName.TryGetValue(targetSql, out var tgtMeta)) return;
@@ -304,7 +305,15 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _columnOrder.Insert(insertAt, srcId);
 
         _dataKey++;
-        InvokeAsync(StateHasChanged);
+        StateHasChanged();
+
+        // Порядок колонок — часть сохраняемого состояния. Диалог настройки колонок
+        // сохраняет его через NotifyQueryChanged → LoadDynamicData → SaveDynamicState;
+        // перетаскивание данные не меняет, поэтому сохраняем состояние напрямую, без
+        // перезагрузки строк. SaveDynamicState идемпотентен и пишет только изменившийся
+        // параметр (GF12).
+        if (Dynamic)
+            await SaveDynamicState();
     }
 
     /// <inheritdoc/>
