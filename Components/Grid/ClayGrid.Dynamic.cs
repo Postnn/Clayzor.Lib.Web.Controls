@@ -109,6 +109,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _dynamicDef = await ClayGridDefinitionData.LoadGridAsync(Db, gridId, opt.SettingsTable, opt.Schema);
         if (_dynamicDef is null)
         {
+            // Если ошибка connectivity — оверлей переподключения всё покажет,
+            // не выводим ложное «Грид не найден»
+            if (ErrorService.IsCurrentErrorConnectivity)
+                return;
             _dynamicError = $"Грид не найден: запрос №{gridId} отсутствует в «{opt.SettingsTable}».";
             return;
         }

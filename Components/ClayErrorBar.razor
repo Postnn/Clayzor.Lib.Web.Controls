@@ -3,7 +3,7 @@
 
 @inject ClayErrorService ErrorService
 
-@if (ErrorService.HasError)
+@if (ErrorService.HasError && !ErrorService.IsCurrentErrorConnectivity)
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
         <div class="clay-error-bar__header">

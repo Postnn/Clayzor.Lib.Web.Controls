@@ -32,8 +32,14 @@ public class ClayErrorService : ISqlErrorHandler
     /// <summary>Включён ли показ деталей (переключатель пользователя).</summary>
     public bool ShowDebug { get; set; }
 
+    /// <summary>Является ли текущая ошибка ошибкой недоступности БД (connectivity).</summary>
+    public bool IsCurrentErrorConnectivity { get; private set; }
+
     /// <summary>Событие изменения состояния — <see cref="Components.ClayErrorBar"/> подписывается для перерисовки.</summary>
     public event Action? OnChanged;
+
+    /// <summary>Событие потери соединения с БД — <see cref="ClayDbReconnectService"/> подписывается для запуска переподключения.</summary>
+    public event Action? OnConnectionLost;
 
     /// <inheritdoc />
     public void HandleSqlError(SqlException exception, string connectionString, string commandText, IReadOnlyList<(string Name, object? Value)> parameters)
@@ -45,6 +51,12 @@ public class ClayErrorService : ISqlErrorHandler
         Parameters = parameters.ToList();
         ShowDebug = false;
         HasError = true;
+
+        // Классификация: connectivity-ошибка или обычная ошибка запроса?
+        IsCurrentErrorConnectivity = DbManager.IsConnectivityError(exception);
+        if (IsCurrentErrorConnectivity)
+            OnConnectionLost?.Invoke();
+
         OnChanged?.Invoke();
     }
 
@@ -54,6 +66,7 @@ public class ClayErrorService : ISqlErrorHandler
         HasError = false;
         ErrorMessage = string.Empty;
         ShowDebug = false;
+        IsCurrentErrorConnectivity = false;
         OnChanged?.Invoke();
     }
 }

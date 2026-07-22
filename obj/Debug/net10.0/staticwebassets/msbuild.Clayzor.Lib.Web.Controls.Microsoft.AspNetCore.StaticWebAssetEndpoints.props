@@ -1,0 +1,88 @@
+﻿<Project>
+  <ItemGroup>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/css/clay.6fra509ks4.css">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\css\clay.css'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"6fra509ks4"},{"Name":"integrity","Value":"sha256-Ul7I1oUZ/jkVs/StZXqqmwQTZ\u002B2jRPasb27elw6Zrqg="},{"Name":"label","Value":"_content/Clayzor.Lib.Web.Controls/css/clay.css"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"42964"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022Ul7I1oUZ/jkVs/StZXqqmwQTZ\u002B2jRPasb27elw6Zrqg=\u0022"},{"Name":"Last-Modified","Value":"Wed, 22 Jul 2026 08:44:39 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/css/clay.css">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\css\clay.css'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-Ul7I1oUZ/jkVs/StZXqqmwQTZ\u002B2jRPasb27elw6Zrqg="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"42964"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022Ul7I1oUZ/jkVs/StZXqqmwQTZ\u002B2jRPasb27elw6Zrqg=\u0022"},{"Name":"Last-Modified","Value":"Wed, 22 Jul 2026 08:44:39 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayColumnSettings.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayColumnSettings.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-T6Vn4/U6jXfruW/iWe5Uh8yibA90FlDoJX2cjXYxcRk="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"13096"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022T6Vn4/U6jXfruW/iWe5Uh8yibA90FlDoJX2cjXYxcRk=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayColumnSettings.lzf3jx9hqz.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayColumnSettings.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"lzf3jx9hqz"},{"Name":"integrity","Value":"sha256-T6Vn4/U6jXfruW/iWe5Uh8yibA90FlDoJX2cjXYxcRk="},{"Name":"label","Value":"_content/Clayzor.Lib.Web.Controls/js/clayColumnSettings.js"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"13096"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022T6Vn4/U6jXfruW/iWe5Uh8yibA90FlDoJX2cjXYxcRk=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayGridColumnDrag.j7zjmt946c.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridColumnDrag.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"j7zjmt946c"},{"Name":"integrity","Value":"sha256-Ac0iwiBqJgrEEJ7/735HQ8UfN\u002BBa0XzJPxjxYwuVAXI="},{"Name":"label","Value":"_content/Clayzor.Lib.Web.Controls/js/clayGridColumnDrag.js"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"8269"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022Ac0iwiBqJgrEEJ7/735HQ8UfN\u002BBa0XzJPxjxYwuVAXI=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayGridColumnDrag.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridColumnDrag.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-Ac0iwiBqJgrEEJ7/735HQ8UfN\u002BBa0XzJPxjxYwuVAXI="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"8269"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022Ac0iwiBqJgrEEJ7/735HQ8UfN\u002BBa0XzJPxjxYwuVAXI=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayGridExcel.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridExcel.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-QzhFVUs4aHnZII8xnV8I5O1TSpP/qAkKpP60j9j0H4I="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"1662"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022QzhFVUs4aHnZII8xnV8I5O1TSpP/qAkKpP60j9j0H4I=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayGridExcel.xnm0dmx4tf.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridExcel.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"xnm0dmx4tf"},{"Name":"integrity","Value":"sha256-QzhFVUs4aHnZII8xnV8I5O1TSpP/qAkKpP60j9j0H4I="},{"Name":"label","Value":"_content/Clayzor.Lib.Web.Controls/js/clayGridExcel.js"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"1662"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022QzhFVUs4aHnZII8xnV8I5O1TSpP/qAkKpP60j9j0H4I=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayGridPrint.a6mj53ivuu.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridPrint.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"a6mj53ivuu"},{"Name":"integrity","Value":"sha256-/hdDPiRAdqC/HQ0CHkVc7I5hVkZJHFK1SbOru4l47eo="},{"Name":"label","Value":"_content/Clayzor.Lib.Web.Controls/js/clayGridPrint.js"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"1618"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022/hdDPiRAdqC/HQ0CHkVc7I5hVkZJHFK1SbOru4l47eo=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayGridPrint.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridPrint.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-/hdDPiRAdqC/HQ0CHkVc7I5hVkZJHFK1SbOru4l47eo="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"1618"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022/hdDPiRAdqC/HQ0CHkVc7I5hVkZJHFK1SbOru4l47eo=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayGridScroll.9x5kxl0ekl.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridScroll.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"9x5kxl0ekl"},{"Name":"integrity","Value":"sha256-A/BEC6MZ11bPfV8XrNRfV5/\u002BQAUFvmusDYXDPQH8M30="},{"Name":"label","Value":"_content/Clayzor.Lib.Web.Controls/js/clayGridScroll.js"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"1150"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022A/BEC6MZ11bPfV8XrNRfV5/\u002BQAUFvmusDYXDPQH8M30=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayGridScroll.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridScroll.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-A/BEC6MZ11bPfV8XrNRfV5/\u002BQAUFvmusDYXDPQH8M30="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"1150"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022A/BEC6MZ11bPfV8XrNRfV5/\u002BQAUFvmusDYXDPQH8M30=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayGridTimeZone.gokue0fnu5.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridTimeZone.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"gokue0fnu5"},{"Name":"integrity","Value":"sha256-MEL47yDpIF1URLHuSGuHLoiIpBucInemBV38tMKrlno="},{"Name":"label","Value":"_content/Clayzor.Lib.Web.Controls/js/clayGridTimeZone.js"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"597"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022MEL47yDpIF1URLHuSGuHLoiIpBucInemBV38tMKrlno=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/Clayzor.Lib.Web.Controls/js/clayGridTimeZone.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridTimeZone.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-MEL47yDpIF1URLHuSGuHLoiIpBucInemBV38tMKrlno="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"597"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022MEL47yDpIF1URLHuSGuHLoiIpBucInemBV38tMKrlno=\u0022"},{"Name":"Last-Modified","Value":"Tue, 21 Jul 2026 15:29:25 GMT"},{"Name":"Vary","Value":"Accept-Encoding"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+  </ItemGroup>
+</Project>

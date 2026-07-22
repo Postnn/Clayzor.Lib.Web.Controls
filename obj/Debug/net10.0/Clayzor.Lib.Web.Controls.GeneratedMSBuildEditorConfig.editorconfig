@@ -1,0 +1,111 @@
+is_global = true
+build_property.MudDebugAnalyzer = 
+build_property.MudAllowedAttributePattern = 
+build_property.MudAllowedAttributeList = 
+build_property.TargetFramework = net10.0
+build_property.TargetFrameworkIdentifier = .NETCoreApp
+build_property.TargetFrameworkVersion = v10.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property.EntryPointFilePath = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = Clayzor.Lib.Web.Controls
+build_property.RootNamespace = Clayzor.Lib.Web.Controls
+build_property.ProjectDir = D:\Nick\Projects\Clayzor\src\Clayzor.Lib.Web.Controls\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 10.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = D:\Nick\Projects\Clayzor\src\Clayzor.Lib.Web.Controls
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 10.0
+build_property.EnableCodeStyleSeverity = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/ClayButton.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xDbGF5QnV0dG9uLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/ClayCheckbox.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xDbGF5Q2hlY2tib3gucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/ClayComboBox.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xDbGF5Q29tYm9Cb3gucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/ClayEditForm.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xDbGF5RWRpdEZvcm0ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/ClayErrorBar.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xDbGF5RXJyb3JCYXIucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/ClayMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xDbGF5TWVudS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/ConfirmDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xDb25maXJtRGlhbG9nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Connectivity/ClayDbReconnectOverlay.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xDb25uZWN0aXZpdHlcQ2xheURiUmVjb25uZWN0T3ZlcmxheS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/ClayColumn.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXENsYXlDb2x1bW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/ClayColumnDef.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXENsYXlDb2x1bW5EZWYucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/ClayColumnFilterDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXENsYXlDb2x1bW5GaWx0ZXJEaWFsb2cucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/ClayColumnSettingsDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXENsYXlDb2x1bW5TZXR0aW5nc0RpYWxvZy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/ClayColumnSettingsPromptDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXENsYXlDb2x1bW5TZXR0aW5nc1Byb21wdERpYWxvZy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/ClayColumnValueFilterDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXENsYXlDb2x1bW5WYWx1ZUZpbHRlckRpYWxvZy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/ClayGrid.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXENsYXlHcmlkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/ClayGroupHeader.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXENsYXlHcm91cEhlYWRlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/Filter/ClayFilterDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXEZpbHRlclxDbGF5RmlsdGVyRGlhbG9nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/Filter/ClayFilterExpression.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXEZpbHRlclxDbGF5RmlsdGVyRXhwcmVzc2lvbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/Filter/ClayFilterGroup.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXEZpbHRlclxDbGF5RmlsdGVyR3JvdXAucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/Components/Grid/Filter/ClayFilterValueEditor.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xHcmlkXEZpbHRlclxDbGF5RmlsdGVyVmFsdWVFZGl0b3IucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Nick/Projects/Clayzor/src/Clayzor.Lib.Web.Controls/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 

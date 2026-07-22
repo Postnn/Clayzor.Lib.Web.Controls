@@ -876,6 +876,7 @@ body {
         font-weight: bold !important;
         color: #000 !important;
         margin-bottom: 12px !important;
+        text-align: left !important;
     }
 
     /* ── MudPaper — убрать оформление карточки ── */
@@ -958,8 +959,8 @@ body {
     }
 }
 
-/* ── Индикатор долгой операции грида (печать/экспорт) ── */
-.clay-grid-busy {
+/* ── Индикатор долгой операции (загрузка/экспорт/переподключение) ── */
+.clay-busy {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1384,6 +1385,14 @@ body {
 }
 
 .clay-grid-error {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--mud-palette-surface);
+    border-left: 3px solid var(--clay-gold);
+    color: var(--mud-palette-text-primary);
     margin-top: 8px;
 }
 

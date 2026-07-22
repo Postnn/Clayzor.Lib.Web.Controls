@@ -167,7 +167,7 @@ public static class ClayGridExcelGenerator
         range.Style.Font.FontColor = XLColor.White;
         range.Style.Font.FontName = ClayFontFamily;
         range.Style.Fill.BackgroundColor = ClayNavy;
-        range.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        range.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
         range.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         // Золотое подчёркивание
         range.Style.Border.BottomBorder = XLBorderStyleValues.Medium;

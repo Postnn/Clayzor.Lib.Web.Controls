@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
+    <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
+    <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\postn\.nuget\packages\</NuGetPackageFolders>
+    <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
+    <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">7.0.0</NuGetToolVersion>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <SourceRoot Include="C:\Users\postn\.nuget\packages\" />
+  </ItemGroup>
+  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Import Project="$(NuGetPackageRoot)nextended.blazor\10.1.4\buildTransitive\Nextended.Blazor.props" Condition="Exists('$(NuGetPackageRoot)nextended.blazor\10.1.4\buildTransitive\Nextended.Blazor.props')" />
+    <Import Project="$(NuGetPackageRoot)mudblazor\9.7.0\buildTransitive\MudBlazor.props" Condition="Exists('$(NuGetPackageRoot)mudblazor\9.7.0\buildTransitive\MudBlazor.props')" />
+    <Import Project="$(NuGetPackageRoot)mudblazor.markdown\9.0.0\buildTransitive\MudBlazor.Markdown.props" Condition="Exists('$(NuGetPackageRoot)mudblazor.markdown\9.0.0\buildTransitive\MudBlazor.Markdown.props')" />
+    <Import Project="$(NuGetPackageRoot)gotho.blazorpdf\2.2.0\buildTransitive\Gotho.BlazorPdf.props" Condition="Exists('$(NuGetPackageRoot)gotho.blazorpdf\2.2.0\buildTransitive\Gotho.BlazorPdf.props')" />
+    <Import Project="$(NuGetPackageRoot)gotho.blazorpdf.mudblazor\2.2.0\buildTransitive\Gotho.BlazorPdf.MudBlazor.props" Condition="Exists('$(NuGetPackageRoot)gotho.blazorpdf.mudblazor\2.2.0\buildTransitive\Gotho.BlazorPdf.MudBlazor.props')" />
+    <Import Project="$(NuGetPackageRoot)blazorjs\2.2.0\buildTransitive\BlazorJS.props" Condition="Exists('$(NuGetPackageRoot)blazorjs\2.2.0\buildTransitive\BlazorJS.props')" />
+    <Import Project="$(NuGetPackageRoot)auralizeblazor\3.0.4\buildTransitive\AuralizeBlazor.props" Condition="Exists('$(NuGetPackageRoot)auralizeblazor\3.0.4\buildTransitive\AuralizeBlazor.props')" />
+    <Import Project="$(NuGetPackageRoot)mudblazor.extensions\9.4.1\buildTransitive\MudBlazor.Extensions.props" Condition="Exists('$(NuGetPackageRoot)mudblazor.extensions\9.4.1\buildTransitive\MudBlazor.Extensions.props')" />
+  </ImportGroup>
+</Project>

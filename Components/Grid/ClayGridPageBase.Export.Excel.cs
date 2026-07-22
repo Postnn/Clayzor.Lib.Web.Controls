@@ -32,6 +32,10 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
                     break;
             }
 
+            // При connectivity-ошибке оверлей уже виден — выгрузку не производим
+            if (ErrorService.IsCurrentErrorConnectivity)
+                return;
+
             if (rowsToExport.Count == 0)
             {
                 Snackbar.Add("Нет данных для выгрузки", Severity.Warning);
@@ -50,7 +54,9 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Ошибка выгрузки: {ex.Message}", Severity.Error);
+            // При connectivity-ошибке оверлей уже виден — снекбар не показываем
+            if (!ErrorService.IsCurrentErrorConnectivity)
+                Snackbar.Add($"Ошибка выгрузки: {ex.Message}", Severity.Error);
         }
     }
 

@@ -1,0 +1,144 @@
+﻿<Project>
+  <ItemGroup>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\css\clay.css'))">
+      <SourceType>Package</SourceType>
+      <SourceId>Clayzor.Lib.Web.Controls</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/Clayzor.Lib.Web.Controls</BasePath>
+      <RelativePath>css/clay.css</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>6fra509ks4</Fingerprint>
+      <Integrity>Ul7I1oUZ/jkVs/StZXqqmwQTZ+2jRPasb27elw6Zrqg=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <FileLength>42964</FileLength>
+      <LastWriteTime>Wed, 22 Jul 2026 08:44:39 GMT</LastWriteTime>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\css\clay.css'))</OriginalItemSpec>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayColumnSettings.js'))">
+      <SourceType>Package</SourceType>
+      <SourceId>Clayzor.Lib.Web.Controls</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/Clayzor.Lib.Web.Controls</BasePath>
+      <RelativePath>js/clayColumnSettings.js</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>lzf3jx9hqz</Fingerprint>
+      <Integrity>T6Vn4/U6jXfruW/iWe5Uh8yibA90FlDoJX2cjXYxcRk=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <FileLength>13096</FileLength>
+      <LastWriteTime>Tue, 21 Jul 2026 15:29:25 GMT</LastWriteTime>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayColumnSettings.js'))</OriginalItemSpec>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridColumnDrag.js'))">
+      <SourceType>Package</SourceType>
+      <SourceId>Clayzor.Lib.Web.Controls</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/Clayzor.Lib.Web.Controls</BasePath>
+      <RelativePath>js/clayGridColumnDrag.js</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>j7zjmt946c</Fingerprint>
+      <Integrity>Ac0iwiBqJgrEEJ7/735HQ8UfN+Ba0XzJPxjxYwuVAXI=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <FileLength>8269</FileLength>
+      <LastWriteTime>Tue, 21 Jul 2026 15:29:25 GMT</LastWriteTime>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridColumnDrag.js'))</OriginalItemSpec>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridExcel.js'))">
+      <SourceType>Package</SourceType>
+      <SourceId>Clayzor.Lib.Web.Controls</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/Clayzor.Lib.Web.Controls</BasePath>
+      <RelativePath>js/clayGridExcel.js</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>xnm0dmx4tf</Fingerprint>
+      <Integrity>QzhFVUs4aHnZII8xnV8I5O1TSpP/qAkKpP60j9j0H4I=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <FileLength>1662</FileLength>
+      <LastWriteTime>Tue, 21 Jul 2026 15:29:25 GMT</LastWriteTime>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridExcel.js'))</OriginalItemSpec>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridPrint.js'))">
+      <SourceType>Package</SourceType>
+      <SourceId>Clayzor.Lib.Web.Controls</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/Clayzor.Lib.Web.Controls</BasePath>
+      <RelativePath>js/clayGridPrint.js</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>a6mj53ivuu</Fingerprint>
+      <Integrity>/hdDPiRAdqC/HQ0CHkVc7I5hVkZJHFK1SbOru4l47eo=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <FileLength>1618</FileLength>
+      <LastWriteTime>Tue, 21 Jul 2026 15:29:25 GMT</LastWriteTime>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridPrint.js'))</OriginalItemSpec>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridScroll.js'))">
+      <SourceType>Package</SourceType>
+      <SourceId>Clayzor.Lib.Web.Controls</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/Clayzor.Lib.Web.Controls</BasePath>
+      <RelativePath>js/clayGridScroll.js</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>9x5kxl0ekl</Fingerprint>
+      <Integrity>A/BEC6MZ11bPfV8XrNRfV5/+QAUFvmusDYXDPQH8M30=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <FileLength>1150</FileLength>
+      <LastWriteTime>Tue, 21 Jul 2026 15:29:25 GMT</LastWriteTime>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridScroll.js'))</OriginalItemSpec>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridTimeZone.js'))">
+      <SourceType>Package</SourceType>
+      <SourceId>Clayzor.Lib.Web.Controls</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/Clayzor.Lib.Web.Controls</BasePath>
+      <RelativePath>js/clayGridTimeZone.js</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>gokue0fnu5</Fingerprint>
+      <Integrity>MEL47yDpIF1URLHuSGuHLoiIpBucInemBV38tMKrlno=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <FileLength>597</FileLength>
+      <LastWriteTime>Tue, 21 Jul 2026 15:29:25 GMT</LastWriteTime>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\clayGridTimeZone.js'))</OriginalItemSpec>
+    </StaticWebAsset>
+  </ItemGroup>
+</Project>

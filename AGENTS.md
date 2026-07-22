@@ -31,7 +31,8 @@
 | **ClayColumnSettingsPromptDialog** — лёгкий диалог с тремя исходами перед печатью/экспортом: «Выбрать колонки» (→ диалог настройки), «Как на странице» (→ текущий вид), «Отмена». Параметр `ContextLabel` — контекст операции | — |
 | **ClayEditForm\<T>** — MudDialog с валидацией, сохранением, удалением | [docs/clay-edit-form.md](docs/clay-edit-form.md) |
 | **ClayComboBox\<TItem>** — выпадающий список для `ILookupEntity`. Рендерит `MudSelect` с `Variant="Variant.Outlined"`, `Margin="Margin.Dense"`, `Dense="true"` и `PopoverClass="clay-combo-popover"`. CSS-правила `.clay-combo-popover` (overflow, max-height, line-height, font-size) живут в `app.css` | [docs/clay-combo-box.md](docs/clay-combo-box.md) |
-| **ClayErrorBar** — баннер ошибок БД с детализацией (SQL, параметры) | [docs/clay-error-bar.md](docs/clay-error-bar.md) |
+| **ClayErrorBar** — баннер ошибок БД с детализацией (SQL, параметры). Скрывается при connectivity-ошибках (оверлей переподключения берёт на себя UI) | [docs/clay-error-bar.md](docs/clay-error-bar.md) |
+| **ClayDbReconnectOverlay** — оверлей при недоступности SQL Server: `MudOverlay` + `.clay-busy`, счётчик попыток (N из 3), авто-переподключение через `ClayDbReconnectService`, статичное сообщение + кнопка «Перезагрузить страницу» при исчерпании попыток | — |
 | **ClayButton** — обёртка `MudTooltip` + `MudIconButton` с авто-сбросом тултипа после клика. Заменяет пару `<MudTooltip><MudIconButton/></MudTooltip>` | — |
 | **ClayMenu** — обёртка `MudMenu` с авто-построением кнопки-активатора (опциональный тултип, сброс тултипа после клика). Заменяет `<MudMenu><ActivatorContent><MudTooltip><MudIconButton/></MudTooltip></ActivatorContent></MudMenu>` | — |
 | **ClayCheckbox** — контролируемый (controlled) чекбокс с tri-state поддержкой (`State`: `true`/`false`/`null`). Кастомный `<span>`-глиф (16×16, CSS-галочка border-rotate). Используется для выбора записей в гриде и фильтра по значению | — |
@@ -158,6 +159,8 @@
 - GB15 — сортировка списка колонок в диалоге фильтра: `.OrderBy(DisplayName, StringComparer.CurrentCulture)` в `OpenCompositeFilterDialog`
 - GB16 — пустое условие без предвыборки колонки: `AddExpression` создаёт пустой лист, плейсхолдер «Выберите колонку», `StripIncompleteLeaves` при Apply
 - GB17 — двойной скролл: `.clay-filter-dialog-content { overflow:hidden !important }`, `.mud-popover .mud-list { overflow-y:visible !important }`, `flex-wrap:nowrap`, tooltip+ellipsis на элементах
+- GB18 — недоступность SQL Server: `IsConnectivityError` в `DbManager`, `RunAsync` гасит связь-ошибки, `ClayErrorService.IsCurrentErrorConnectivity` + `OnConnectionLost`, `ClayDbReconnectService` (3×30s health-check `SELECT 1`), `ClayDbReconnectOverlay` (оверлей `.clay-busy`), `ClayErrorBar` скрыт при connectivity, `DynamicSql` — null-проверки после `RunAsync`, экспорт/печать прерываются при connectivity, грид не показывает «не найден» при connectivity, заголовки Excel/печати — по левому краю
+- GB19 — `.clay-grid-busy` → `.clay-busy` (переиспользуется в `ClayDbReconnectOverlay` и `ClayGrid`-ошибках)
 - Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB17`
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
@@ -166,8 +169,9 @@
 
 | Сервис | Назначение |
 |---|---|
-| **ClayErrorService** (Scoped) — хранит состояние последней ошибки SQL, реализует `ISqlErrorHandler`. Используется `ClayErrorBar` |
+| **ClayErrorService** (Scoped) — хранит состояние последней ошибки SQL, реализует `ISqlErrorHandler`. Содержит `IsCurrentErrorConnectivity` (классификация связь-ошибок) и события `OnChanged` / `OnConnectionLost`. Используется `ClayErrorBar` и `ClayDbReconnectService` |
 | **ISqlErrorHandler** (DALC) — интерфейс, вызываемый `DbManager` при `SqlException`. Регистрируется в DI |
+| **ClayDbReconnectService** (Scoped) — авто-переподключение к SQL Server: подписывается на `ClayErrorService.OnConnectionLost`, выполняет до 3 попыток health-check (`SELECT 1`) с интервалом 30 сек, при успехе — `NavigationManager.NavigateTo(uri, forceLoad: true)`. Экспортирует `ReconnectState` и событие `StateChanged` |
 | **ClayReflectionCellReader** — читает значение ячейки через рефлексию по `[Column]`-атрибутам. Реализует `IClayGridCellReader`. Используется генераторами печати и Excel в статическом режиме (GE1) |
 | **ClayGridExportFileName** — `Sanitize(title)` — убирает недопустимые символы из имени файла. Общий для статики и динамики (GE5) |
 

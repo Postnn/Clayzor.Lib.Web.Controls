@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\buildMultiTargeting\Clayzor.Lib.Web.Controls.props" />
+</Project>

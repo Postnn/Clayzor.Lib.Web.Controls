@@ -1,0 +1,53 @@
+@namespace Clayzor.Lib.Web.Controls
+@using Clayzor.Lib.Web.Controls.Services
+@implements IDisposable
+
+@inject ClayDbReconnectService ReconnectService
+@inject NavigationManager Navigation
+
+@if (ReconnectService.State == ReconnectState.Reconnecting
+     || ReconnectService.State == ReconnectState.Failed)
+{
+    <MudOverlay Visible="true" Absolute="false" DarkBackground="true" ZIndex="9999">
+        @if (ReconnectService.State == ReconnectState.Reconnecting)
+        {
+            <div class="clay-busy">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <span>Потеряно соединение с базой данных.<br/>Попытка переподключения… (@ReconnectService.AttemptCount из @ClayDbReconnectService.MaxAttempts)</span>
+            </div>
+        }
+        else if (ReconnectService.State == ReconnectState.Failed)
+        {
+            <div class="clay-busy">
+                <MudIcon Icon="@Icons.Material.Filled.CloudOff" Size="Size.Large" Color="Color.Error" />
+                <span>Не удалось восстановить соединение с базой данных.</span>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           OnClick="ReloadPage">
+                    Перезагрузить страницу
+                </MudButton>
+            </div>
+        }
+    </MudOverlay>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        ReconnectService.StateChanged += OnStateChanged;
+    }
+
+    private async void OnStateChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ReloadPage()
+    {
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        ReconnectService.StateChanged -= OnStateChanged;
+    }
+}

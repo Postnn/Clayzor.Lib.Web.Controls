@@ -135,6 +135,9 @@ public abstract partial class ClayGridPageBase<T> : ComponentBase, IClayGridData
     /// <summary>Сервис уведомлений — инжектируется автоматически.</summary>
     [Inject] protected ISnackbar Snackbar { get; set; } = null!;
 
+    /// <summary>Сервис ошибок — для проверки connectivity-состояния.</summary>
+    [Inject] protected ClayErrorService ErrorService { get; set; } = null!;
+
     /// <summary>Сервис диалоговых окон — инжектируется автоматически.</summary>
     [Inject] protected IDialogService DialogService { get; set; } = null!;
 

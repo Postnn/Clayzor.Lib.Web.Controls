@@ -4,6 +4,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject ClayErrorService ErrorService
 @using MudBlazor.Extensions
 @using MudBlazor.Extensions.Options
 @using Clayzor.Lib.Web.Controls.Components.Grid.Filter
@@ -15,7 +16,10 @@
 <MudPaper Elevation="1" Class="pa-4" Style="position:relative" id="@Id">
     @if (_dynamicError is not null)
     {
-        <MudAlert Severity="Severity.Warning">@_dynamicError</MudAlert>
+        <div class="clay-grid-error">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Color="Color.Warning" />
+            <span>@_dynamicError</span>
+        </div>
     }
     else
     {
@@ -501,7 +505,7 @@
     }
     }
     <MudOverlay Visible="@_isExporting" Absolute="true" DarkBackground="true">
-        <div class="clay-grid-busy">
+        <div class="clay-busy">
             <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
             <span>@_busyLabel</span>
         </div>

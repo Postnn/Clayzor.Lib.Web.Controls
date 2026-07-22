@@ -1,0 +1,53 @@
+{
+  "Files": [
+    {
+      "Id": "D:\\Nick\\Projects\\GIT\\Clayzor\\src\\Clayzor.Lib.Web.Controls\\wwwroot\\css\\clay.css",
+      "PackagePath": "staticwebassets\\css\\clay.css"
+    },
+    {
+      "Id": "D:\\Nick\\Projects\\GIT\\Clayzor\\src\\Clayzor.Lib.Web.Controls\\wwwroot\\js\\clayColumnSettings.js",
+      "PackagePath": "staticwebassets\\js\\clayColumnSettings.js"
+    },
+    {
+      "Id": "D:\\Nick\\Projects\\GIT\\Clayzor\\src\\Clayzor.Lib.Web.Controls\\wwwroot\\js\\clayGridColumnDrag.js",
+      "PackagePath": "staticwebassets\\js\\clayGridColumnDrag.js"
+    },
+    {
+      "Id": "D:\\Nick\\Projects\\GIT\\Clayzor\\src\\Clayzor.Lib.Web.Controls\\wwwroot\\js\\clayGridExcel.js",
+      "PackagePath": "staticwebassets\\js\\clayGridExcel.js"
+    },
+    {
+      "Id": "D:\\Nick\\Projects\\GIT\\Clayzor\\src\\Clayzor.Lib.Web.Controls\\wwwroot\\js\\clayGridPrint.js",
+      "PackagePath": "staticwebassets\\js\\clayGridPrint.js"
+    },
+    {
+      "Id": "D:\\Nick\\Projects\\GIT\\Clayzor\\src\\Clayzor.Lib.Web.Controls\\wwwroot\\js\\clayGridScroll.js",
+      "PackagePath": "staticwebassets\\js\\clayGridScroll.js"
+    },
+    {
+      "Id": "D:\\Nick\\Projects\\GIT\\Clayzor\\src\\Clayzor.Lib.Web.Controls\\wwwroot\\js\\clayGridTimeZone.js",
+      "PackagePath": "staticwebassets\\js\\clayGridTimeZone.js"
+    },
+    {
+      "Id": "obj\\Debug\\net10.0\\staticwebassets\\msbuild.Clayzor.Lib.Web.Controls.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net10.0\\staticwebassets\\msbuild.Clayzor.Lib.Web.Controls.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net10.0\\staticwebassets\\msbuild.build.Clayzor.Lib.Web.Controls.props",
+      "PackagePath": "build\\Clayzor.Lib.Web.Controls.props"
+    },
+    {
+      "Id": "obj\\Debug\\net10.0\\staticwebassets\\msbuild.buildMultiTargeting.Clayzor.Lib.Web.Controls.props",
+      "PackagePath": "buildMultiTargeting\\Clayzor.Lib.Web.Controls.props"
+    },
+    {
+      "Id": "obj\\Debug\\net10.0\\staticwebassets\\msbuild.buildTransitive.Clayzor.Lib.Web.Controls.props",
+      "PackagePath": "buildTransitive\\Clayzor.Lib.Web.Controls.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
