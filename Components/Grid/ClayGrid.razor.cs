@@ -1,4 +1,5 @@
 using Clayzor.Lib.Entities;
+using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 using Clayzor.Lib.Web.Settings;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -384,6 +385,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 IsReadonly        = IsGrouped(m.SqlName),
                 Groupable         = m.Groupable,
                 AllowValueFilter  = !_valueFilterDisabledColumns.Contains(m.SqlName) && m.AllowValueFilter,
+                QuickSearch       = _quickSearchEffective.Contains(m.SqlName),
+                QuickSearchDisabled = !ClayColumnKindExtensions.SupportsQuickSearch(
+                    _dynamicCols.FirstOrDefault(c => c.Column == m.SqlName)?.Type ?? 0),
+                QuickSearchDefault = _dynamicCols.FirstOrDefault(c => c.Column == m.SqlName)?.QuickSearch ?? false,
             })
             .ToList();
 
@@ -419,6 +424,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         {
             { x => x.Items,        items },
             { x => x.ShowGrouping, _trayExpanded && _columnById.Values.Any(m => m.Groupable) },
+            { x => x.ShowQuickSearch, Dynamic && _dynamicDef?.SupportsQuickSearch == true },
         };
         var options = new DialogOptionsEx
         {
@@ -430,6 +436,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var result = await dialog.Result;
         if (result is not null && !result.Canceled && result.Data is List<ColumnSettingsItem> updatedItems)
         {
+            // Снапшоты для определения, изменилось ли что-то кроме быстрого поиска
+            var snapSort         = _sortState.Select(s => (s.Column, s.Desc)).ToList();
+            var snapGroups       = _groupColumns.ToList();
+            var snapValueFilter  = _valueFilterDisabledColumns.ToHashSet();
+
             // Невидимость сгруппированной колонки — следствие группировки, а не выбора
             // пользователя. Записывать её в _hiddenSqlNames нельзя: снимут группировку —
             // колонка обязана вернуться. Для таких колонок сохраняем прежний признак.
@@ -471,10 +482,34 @@ public partial class ClayGrid<TEntity> where TEntity : class
             foreach (var item in updatedItems.Where(i => i.GroupPriority > 0).OrderBy(i => i.GroupPriority))
                 _groupColumns.Add(item.SqlName);
 
+            // Быстрый поиск: обновить набор и пересчитать SearchColumns
+            _dynamicQuickSearchCols.Clear();
+            foreach (var item in updatedItems.Where(i => i.QuickSearch && !i.QuickSearchDisabled))
+                _dynamicQuickSearchCols.Add(item.SqlName);
+            var quickSearchReloaded = false;
+            if (Dynamic && _dynamicDef?.SupportsQuickSearch == true)
+            {
+                await SaveDynamicState();
+                quickSearchReloaded = await RefreshQuickSearchEffective(DynamicOpts.Value);
+                StateHasChanged();
+            }
+
             if (Dynamic) ResetDynamicExpandedGroups();   // GG7: ключи старой группировки протухли
 
-            _pageNumber = 1;
-            await NotifyQueryChanged();
+            // Проверить, изменилось ли что-то кроме быстрого поиска
+            var dataChanged =
+                !_columnOrder.SequenceEqual(_columnOrderSnapshot) ||
+                !_hiddenSqlNames.SetEquals(hiddenBefore) ||
+                _sortState.Count != snapSort.Count ||
+                !_sortState.Select(s => (s.Column, s.Desc)).SequenceEqual(snapSort) ||
+                !_groupColumns.SequenceEqual(snapGroups) ||
+                !_valueFilterDisabledColumns.SetEquals(snapValueFilter);
+
+            if (!quickSearchReloaded && dataChanged)
+            {
+                _pageNumber = 1;
+                await NotifyQueryChanged();
+            }
         }
         else
         {

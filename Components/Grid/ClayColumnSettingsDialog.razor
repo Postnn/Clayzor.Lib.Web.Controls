@@ -41,6 +41,14 @@
                         </MudTooltip>
                     }
                 </div>
+                <div class="clay-cs-cell">
+                    @if (ShowQuickSearch)
+                    {
+                        <MudTooltip Text="Быстрый поиск" Placement="Placement.Top">
+                            <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" />
+                        </MudTooltip>
+                    }
+                </div>
             </div>
 
             @for (int i = 0; i < _items.Count; i++)
@@ -94,6 +102,24 @@
                                        Color="Color.Primary" />
                         }
                     </div>
+                    <div class="clay-cs-cell clay-cs-cell--quicksearch" @onpointerdown:stopPropagation="true">
+                        @if (ShowQuickSearch)
+                        {
+                            @if (item.QuickSearchDisabled)
+                            {
+                                <MudTooltip Text="Поиск недоступен для колонок этого типа" Placement="Placement.Top">
+                                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Small" Class="clay-cs-quicksearch-disabled" />
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudSwitch T="bool"
+                                           @bind-Value="item.QuickSearch"
+                                           Disabled="@item.QuickSearchDisabled"
+                                           Color="Color.Primary" />
+                            }
+                        }
+                    </div>
                 </div>
             }
         </div>
@@ -111,6 +137,12 @@
                 {
                     <MudTooltip Text="Сбросить группировку" Placement="Placement.Top">
                         <MudIconButton Icon="@Icons.Material.Filled.LayersClear" Size="Size.Small" OnClick="ResetGroup" />
+                    </MudTooltip>
+                }
+                @if (ShowQuickSearch)
+                {
+                    <MudTooltip Text="Сбросить быстрый поиск на значения по умолчанию" Placement="Placement.Top">
+                        <MudIconButton Icon="@Icons.Material.Filled.SearchOff" Size="Size.Small" OnClick="ResetQuickSearch" />
                     </MudTooltip>
                 }
                 <MudTooltip Text="Восстановить порядок и видимость колонок по-умолчанию" Placement="Placement.Top">
@@ -139,6 +171,13 @@
     /// Грид включает его явно в OpenColumnSettings.
     /// </summary>
     [Parameter] public bool ShowGrouping { get; set; }
+
+    /// <summary>
+    /// Показывать переключатели быстрого поиска. По умолчанию false — диалог используется
+    /// и для статических гридов, и для печати/экспорта, где поиск не настраивается.
+    /// Динамический грид включает его явно в OpenColumnSettings при SupportsQuickSearch=true.
+    /// </summary>
+    [Parameter] public bool ShowQuickSearch { get; set; }
 
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
 
@@ -172,8 +211,9 @@
     /// </summary>
     private string ListClass =>
         "clay-column-settings-list"
-        + (ShowGrouping ? " clay-column-settings-list--grouping" : "")
-        + (ShowSorting  ? " clay-column-settings-list--filter"   : "");
+        + (ShowGrouping    ? " clay-column-settings-list--grouping"    : "")
+        + (ShowSorting     ? " clay-column-settings-list--filter"      : "")
+        + (ShowQuickSearch ? " clay-column-settings-list--quicksearch" : "");
 
     /// <inheritdoc/>
     protected override void OnInitialized()
@@ -190,6 +230,9 @@
             GroupPriority = i.GroupPriority,
             Groupable     = i.Groupable,
             AllowValueFilter = i.AllowValueFilter,
+            QuickSearch  = i.QuickSearch,
+            QuickSearchDisabled = i.QuickSearchDisabled,
+            QuickSearchDefault = i.QuickSearchDefault,
         }).ToList();
         _dotnetRef = DotNetObjectReference.Create(this);
 
@@ -351,6 +394,14 @@
         InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>Сбрасывает флаги быстрого поиска на админские значения по умолчанию.</summary>
+    private void ResetQuickSearch()
+    {
+        foreach (var item in _items)
+            item.QuickSearch = item.QuickSearchDefault;
+        InvokeAsync(StateHasChanged);
+    }
+
     // ── Действия ─────────────────────────────────────────────────────────────────
 
     /// <summary>Сбрасывает пользовательскую сортировку, возвращая сортировку грида по-умолчанию.</summary>
@@ -376,6 +427,9 @@
             GroupPriority = 0,
             Groupable     = i.Groupable,
             AllowValueFilter = i.AllowValueFilter,
+            QuickSearch  = i.QuickSearch,
+            QuickSearchDisabled = i.QuickSearchDisabled,
+            QuickSearchDefault = i.QuickSearchDefault,
         }));
         if (ShowSorting)
         {

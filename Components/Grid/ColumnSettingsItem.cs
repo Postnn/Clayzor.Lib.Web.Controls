@@ -44,4 +44,13 @@ public class ColumnSettingsItem
     /// пользователь может переключить в диалоге настройки.
     /// </summary>
     public bool AllowValueFilter { get; set; }
+
+    /// <summary>Участвует в быстром поиске (QS6).</summary>
+    public bool QuickSearch { get; set; }
+
+    /// <summary>Чекбокс быстрого поиска заблокирован (недопустимый тип, QS4).</summary>
+    public bool QuickSearchDisabled { get; set; }
+
+    /// <summary>Админское значение по умолчанию из ClayGridColumns (для кнопки сброса).</summary>
+    public bool QuickSearchDefault { get; set; }
 }

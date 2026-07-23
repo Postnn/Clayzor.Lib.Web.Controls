@@ -475,11 +475,27 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
             var dp = new DynamicParameters();
 
-            // BuildWhereClause генерирует "col LIKE @search", но параметр не добавляет —
-            // это делает вызывающий (ср. ClayGridPageBase.LoadFlatData).
-            dp.Add("search", $"%{query.SearchText}%");
+            // Быстрый поиск: строим WHERE с учётом типов колонок, CAST/CONVERT и ESCAPE
+            string? searchWhere = null;
+            if (SearchColumns is { Length: > 0 } && !string.IsNullOrWhiteSpace(query.SearchText))
+            {
+                var escapedText = EscapeLikePattern(query.SearchText);
+                dp.Add("q", $"%{escapedText}%");
 
-            var searchWhere = query.BuildWhereClause(SearchColumns);
+                var colByName = _dynamicCols.ToDictionary(c => c.Column, c => c, StringComparer.OrdinalIgnoreCase);
+                var exprs = SearchColumns
+                    .Select(col => colByName.TryGetValue(col, out var def)
+                        ? BuildSearchLikeExpr(col, def.Type, def.Format)
+                        : $"{col} LIKE @q ESCAPE '\\'")
+                    .ToList();
+                searchWhere = exprs.Count > 0 ? $"({string.Join(" OR ", exprs)})" : null;
+            }
+            else if (!string.IsNullOrWhiteSpace(query.SearchText))
+            {
+                // Строка поиска есть, но SearchColumns пуст — убираем условие поиска
+                query.SearchText = null;
+            }
+
             var filterWhere = ClayCompositeSqlBuilder.Build(query.CompositeFilter, dp, _dynamicKnownColumns);
             var where       = ClayDataQuery.CombineWhere(searchWhere, filterWhere);
 
@@ -726,9 +742,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     /// <summary>
     /// Пересчитывает <see cref="_quickSearchEffective"/> и обновляет <see cref="SearchColumns"/>.
-    /// Если набор опустел при непустой строке поиска — очищает строку и перезагружает данные.
+    /// Возвращает <c>true</c>, если была выполнена перезагрузка данных
+    /// (поиск активен и набор колонок изменился).
     /// </summary>
-    internal async Task RefreshQuickSearchEffective(ClayGridDynamicOptions opt)
+    internal async Task<bool> RefreshQuickSearchEffective(ClayGridDynamicOptions opt)
     {
         var qksUserParam = _dynamicSavedParams.TryGetValue(
             ClayGridUserParamsData.BuildParamName(opt.QuickSearchParamPrefix, _dynamicGridId),
@@ -741,12 +758,25 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (_dynamicDef?.SupportsQuickSearch == true)
             SearchColumns = _quickSearchEffective.ToArray();
 
-        // При опустошении набора с непустой строкой поиска — очистить и перезагрузить
-        if (_quickSearchEffective.Count == 0 && _searchText is { Length: > 0 })
-        {
+        // Поиск неактивен — только обновить SearchColumns, без перезагрузки
+        if (string.IsNullOrWhiteSpace(_searchText))
+            return false;
+
+        // Набор опустел при активном поиске — очистить строку
+        if (_quickSearchEffective.Count == 0)
             _searchText = null;
+
+        // Набор изменился при активном поиске — перезагрузить данные
+        var setChanged = oldSet.Count != _quickSearchEffective.Count
+            || !oldSet.SequenceEqual(_quickSearchEffective, StringComparer.OrdinalIgnoreCase);
+        if (setChanged)
+        {
+            _pageNumber = 1;
             await NotifyQueryChanged();
+            return true;
         }
+
+        return false;
     }
 
     /// <summary>
@@ -778,6 +808,36 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, name, value, opt.UserParamsTable, opt.Schema);
         _dynamicSavedParams[name] = value;   // кеш обновляем ТОЛЬКО после успешной записи
+    }
+
+    /// <summary>
+    /// Экранирует метасимволы LIKE в пользовательском вводе:
+    /// <c>%</c> → <c>\%</c>, <c>_</c> → <c>\_</c>, <c>[</c> → <c>\[</c>.
+    /// </summary>
+    public static string EscapeLikePattern(string value) =>
+        value.Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_").Replace("[", @"\[");
+
+    /// <summary>
+    /// Строит SQL-выражение LIKE для одной колонки быстрого поиска
+    /// с приведением типа и экранированием (SQL Server 2008 R2).
+    /// </summary>
+    /// <param name="column">Имя колонки (выходное имя SELECT).</param>
+    /// <param name="type">Код типа колонки (<see cref="ClayColumnKind"/>).</param>
+    /// <param name="format">Строка формата из БД (для дат — .NET-формат, напр. "dd.MM.yyyy").</param>
+    /// <returns>Выражение LIKE с CAST/CONVERT и ESCAPE.</returns>
+    public static string BuildSearchLikeExpr(string column, int type, string? format)
+    {
+        // Дата: CONVERT(nvarchar(30), col, 104) — формат dd.mm.yyyy
+        if (type == (int)ClayColumnKind.Date || type == (int)ClayColumnKind.DateTimeLocal
+            || type == (int)ClayColumnKind.TimeLocal)
+            return $"CONVERT(nvarchar(30), {column}, 104) LIKE @q ESCAPE '\\'";
+
+        // Число: CAST(col AS nvarchar(50))
+        if (type == (int)ClayColumnKind.Number)
+            return $"CAST({column} AS nvarchar(50)) LIKE @q ESCAPE '\\'";
+
+        // Текст и остальные — напрямую
+        return $"{column} LIKE @q ESCAPE '\\'";
     }
 
     /// <summary>
