@@ -83,6 +83,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private Dictionary<string, string> _dynamicSavedParams = [];
     private HashSet<string> _dynamicForcedParamNames = [];
     private HashSet<string> _dynamicQuickSearchCols = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<string> _quickSearchEffective = [];
 
     /// <summary>
     /// Инициализация динамического режима при первом рендере.
@@ -327,6 +328,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         // Восстановление сохранённого состояния пользователя
         await RestoreDynamicState(opt);
+
+        // Вычислить итоговый набор колонок быстрого поиска
+        await RefreshQuickSearchEffective(opt);
 
         // Применить URL-параметры (фильтры и колонки)
         ApplyUrlParams(opt);
@@ -721,6 +725,31 @@ public partial class ClayGrid<TEntity> where TEntity : class
     }
 
     /// <summary>
+    /// Пересчитывает <see cref="_quickSearchEffective"/> и обновляет <see cref="SearchColumns"/>.
+    /// Если набор опустел при непустой строке поиска — очищает строку и перезагружает данные.
+    /// </summary>
+    internal async Task RefreshQuickSearchEffective(ClayGridDynamicOptions opt)
+    {
+        var qksUserParam = _dynamicSavedParams.TryGetValue(
+            ClayGridUserParamsData.BuildParamName(opt.QuickSearchParamPrefix, _dynamicGridId),
+            out var qksVal) ? qksVal : null;
+
+        var oldSet = _quickSearchEffective;
+        _quickSearchEffective = ComputeEffectiveQuickSearchColumns(
+            _dynamicDef?.SupportsQuickSearch ?? false, _dynamicCols, qksUserParam);
+
+        if (_dynamicDef?.SupportsQuickSearch == true)
+            SearchColumns = _quickSearchEffective.ToArray();
+
+        // При опустошении набора с непустой строкой поиска — очистить и перезагрузить
+        if (_quickSearchEffective.Count == 0 && _searchText is { Length: > 0 })
+        {
+            _searchText = null;
+            await NotifyQueryChanged();
+        }
+    }
+
+    /// <summary>
     /// Сериализует набор колонок быстрого поиска в строку (имена через запятую).
     /// Если строка длиннее 1000 символов — показывает Snackbar и возвращает null
     /// (сохранение пропускается).
@@ -749,5 +778,54 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, name, value, opt.UserParamsTable, opt.Schema);
         _dynamicSavedParams[name] = value;   // кеш обновляем ТОЛЬКО после успешной записи
+    }
+
+    /// <summary>
+    /// Вычисляет итоговый набор имён колонок быстрого поиска из трёх источников
+    /// в строгом порядке приоритета:
+    /// 1. <paramref name="supportsQuickSearch"/>=false → пусто (колонки нет в таблице).
+    /// 2. Админский набор: колонки с <c>QuickSearch=true</c>.
+    /// 3. Пользовательский набор: null=нет строки→админский; "" (пусто)→перебивает;
+    ///    "col1,col2"→только перечисленные (регистронезависимо).
+    /// 4. Фильтр по допустимости типа (<see cref="ClayColumnKindExtensions.SupportsQuickSearch"/>):
+    ///    недопустимый тип исключается независимо от источника.
+    /// Метод чистый — без БД, покрывается тестами.
+    /// </summary>
+    /// <param name="supportsQuickSearch">Колонка УчаствуетВБыстромПоиске есть в таблице.</param>
+    /// <param name="allColumns">Все колонки определения грида.</param>
+    /// <param name="userParam">Сохранённое значение пользователя (null — нет строки).</param>
+    /// <returns>Итоговый список имён колонок (может быть пустым).</returns>
+    public static IReadOnlyList<string> ComputeEffectiveQuickSearchColumns(
+        bool supportsQuickSearch,
+        IReadOnlyList<ClayColumnDefinition> allColumns,
+        string? userParam)
+    {
+        if (!supportsQuickSearch)
+            return [];
+
+        if (userParam is null)
+        {
+            // Нет пользовательской настройки — берём админский набор (QuickSearch=true + допустимый тип)
+            return allColumns
+                .Where(c => c.QuickSearch && ClayColumnKindExtensions.SupportsQuickSearch(c.Type))
+                .Select(c => c.Column)
+                .ToList();
+        }
+
+        // Пользовательская настройка есть (в т.ч. пустая строка) — перебивает админский набор
+        if (string.IsNullOrWhiteSpace(userParam))
+            return [];
+
+        var known = allColumns.ToDictionary(c => c.Column, c => c, StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>();
+        foreach (var name in userParam.Split(','))
+        {
+            var trimmed = name.Trim();
+            if (trimmed.Length == 0) continue;
+            if (!known.TryGetValue(trimmed, out var col)) continue;         // нет в определении
+            if (!ClayColumnKindExtensions.SupportsQuickSearch(col.Type)) continue; // недопустимый тип
+            result.Add(col.Column); // каноническое имя
+        }
+        return result;
     }
 }

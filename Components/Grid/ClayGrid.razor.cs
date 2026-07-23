@@ -77,6 +77,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     [Inject] public ClayAppSettings ClaySettings { get; set; } = default!;
 
+    /// <summary>Видимость поля поиска: в статике всегда, в динамике — при непустом наборе.</summary>
+    private bool _searchVisible => !Dynamic || _quickSearchEffective.Count > 0;
+
     // ── Parameters ───────────────────────────────────────────────────────────────
     /// <summary>Заголовок грида.</summary>
     [Parameter] public string Title { get; set; } = "Список";
