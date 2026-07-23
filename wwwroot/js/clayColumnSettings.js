@@ -206,7 +206,7 @@ window.clayColumnSettings = (function () {
             function startDrag(e, clientX, clientY) {
                 var chip = e.target.closest('[data-col-idx]');
                 if (!chip) return;
-                if (e.target.closest('input, button, .mud-switch-base, .mud-button-root, .chip-label-clickable, .sort-toggle-area')) return;
+                if (e.target.closest('input, button, .mud-switch-base, .mud-button-root, .chip-label-clickable, .sort-toggle-area, .clay-cs-cell--quicksearch')) return;
 
                 e.preventDefault();
 

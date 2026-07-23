@@ -55,13 +55,15 @@
 Пакет `Components/Grid/Dynamic/` — конфигурация и DI для динамического режима, в котором грид читает определение
 (SQL, колонки, кнопки) из БД. План реализации: [promts/_done/_readme_grid_dynamic.md](Components/Grid/promts/_done/_readme_grid_dynamic.md).
 Выполненные промты (G0–G14, GF1–GF16, GG1–GG9, GN1–GN4, GE1–GE6, TG1–TG9): `promts/_done/`.
+Выполненные промты быстрого поиска (QS0–QS9): `promts/_done/QS*_*.md`. Оркестратор: `promts/_done/QS0_README_quick_search.md`.
 Отложенные промты: `promts/_later/`.
 Активные багфиксы (GB1–GB17): `promts/GB*.md`. Выполненные: `promts/_done/GB*.md`. Оркестратор: `promts/GB0_README_grid_ux_fixes.md`.
 
 | Класс | Назначение |
 |---|---|
-| `ClayGridDynamicOptions` | Настройки динрежима: имена таблиц, префиксы query-параметров, `ConnectionStringName`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
+| `ClayGridDynamicOptions` | Настройки динрежима: имена таблиц, префиксы query-параметров, `ConnectionStringName`, `QuickSearchParamPrefix`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
 | `ClayColumnKind` | Enum типов колонок (1–13): Number=1, Text=2, Date=3, Link=4, List=5, ConditionBool=6, Bool=7, Html=8, Icon=9, DateTimeLocal=10, ConditionList=11, LimitedText=12, TimeLocal=13 |
+| `ClayColumnKindExtensions` | `SupportsQuickSearch(int kind)` — белый список типов, допустимых для быстрого поиска (1,2,3,4,10,12,13). Исключены справочные (5,9), фильтр-онли (6,11), булевы (7), HTML (8) |
 | `ClayColumnTypeMap` | `Resolve(int)` → существующий `ColumnTypeDescriptor` (1→Number, 2→Text, 3→Date, 4→Text, 7→Boolean); `IsSupported(int)` |
 | `ClayColumnFormat` | `Parse(int, string?)` — разбор строки `Формат` из БД |
 | `ClayGridLinkResolver` | `Resolve(string?, IConfiguration?)` — резолвинг URL из определения: null/пусто, `@Key` из конфигурации, прямые URL |

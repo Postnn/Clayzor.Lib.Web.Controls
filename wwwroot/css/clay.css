@@ -1221,8 +1221,15 @@ body {
     --clay-cs-group-w: 0px;
     --clay-cs-filter-w: 0px;
 }
-.clay-column-settings-list--grouping { --clay-cs-group-w: 88px; }
-.clay-column-settings-list--filter   { --clay-cs-filter-w: 64px; }
+.clay-column-settings-list--grouping    { --clay-cs-group-w: 88px; }
+.clay-column-settings-list--filter      { --clay-cs-filter-w: 64px; }
+.clay-column-settings-list--quicksearch { --clay-cs-quicksearch-w: 64px; }
+
+/* Иконка «поиск недоступен» в диалоге настройки колонок */
+.clay-cs-quicksearch-disabled {
+    color: var(--mud-palette-text-secondary) !important;
+    opacity: 0.45;
+}
 
 /* Сетка чипа — одна и та же для шапки и строк, выравнивание по построению */
 .column-settings-chip {
@@ -1232,7 +1239,8 @@ body {
         minmax(0, 1fr)
         var(--clay-cs-group-w)
         64px
-        var(--clay-cs-filter-w);
+        var(--clay-cs-filter-w)
+        var(--clay-cs-quicksearch-w);
     align-items: center;
     background: var(--lh-navy);
     color: var(--lh-white);
