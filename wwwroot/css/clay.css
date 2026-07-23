@@ -354,6 +354,18 @@ body {
     background: color-mix(in srgb, transparent 86%, var(--mud-palette-primary) 14%) !important;
 }
 
+.toolbar-help-btn {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
+    border-radius: 2px !important;
+    box-shadow: inset 0 -2px 0 var(--lh-gold);
+    transition: background 0.15s;
+}
+
+.toolbar-help-btn:hover {
+    background: color-mix(in srgb, transparent 86%, var(--mud-palette-primary) 14%) !important;
+}
+
 .batch-menu-header {
     display: flex;
     align-items: center;
@@ -824,6 +836,7 @@ body {
     .clay-grid-printing .toolbar-add-btn,
     .clay-grid-printing .toolbar-select-btn,
     .clay-grid-printing .toolbar-batch-btn,
+    .clay-grid-printing .toolbar-help-btn,
     .clay-grid-printing .grouping-toggle-btn,
     .clay-grid-printing .filter-toggle-btn {
         display: none !important;

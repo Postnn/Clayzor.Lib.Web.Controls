@@ -159,6 +159,14 @@
                         }
                 </ClayMenu>
             }
+            @if (!string.IsNullOrWhiteSpace(ClaySettings.UriHelpClayGrid))
+            {
+                <ClayButton Text="Документация"
+                             Icon="@Icons.Material.Filled.MenuBook"
+                             Class="toolbar-help-btn"
+                             Href="@ClaySettings.UriHelpClayGrid"
+                             Target="_blank" />
+            }
         </MudStack>
     </div>
 

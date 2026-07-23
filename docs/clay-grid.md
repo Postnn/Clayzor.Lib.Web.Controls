@@ -501,7 +501,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 
 ## Кнопки тулбара
 
-Все кнопки в строке заголовка — `MudIconButton` с тултипом. Не использовать `MudButton Variant.Filled`.
+Все кнопки в строке заголовка — `ClayButton` с тултипом. Не использовать `MudButton Variant.Filled`.
 
 | Кнопка | Иконка | CSS-класс | Поведение |
 |---|---|---|---|
@@ -510,6 +510,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 | Добавить | `Add` | `toolbar-add-btn` | Вызывает `OnAdd` |
 | Выбрать записи | `CheckBox` | `toolbar-select-btn` / `toolbar-select-btn--active` | Включает/выключает чекбоксы в строках |
 | Групповые операции | `PlaylistAddCheck` | `toolbar-batch-btn` | Меню: Печать / Excel (текущая страница, выбранные, все данные) |
+| Документация | `MenuBook` | `toolbar-help-btn` | Открывает URL справки в новой вкладке. Адрес задаётся ключом `URI_help_clayGrid` в `web.config` → `appSettings`. Если ключ отсутствует или пуст — кнопка скрыта |
 
 ## Стилизация панелей
 

@@ -1,6 +1,14 @@
 <MudTooltip Text="@Text" Placement="@Placement" @key="@_key">
-    <MudIconButton Icon="@Icon" Size="@Size" Class="@Class"
-                   OnClick="@HandleClick" Disabled="@Disabled" />
+    @if (!string.IsNullOrEmpty(Href))
+    {
+        <MudIconButton Icon="@Icon" Size="@Size" Class="@Class"
+                       Href="@Href" Target="@Target" Disabled="@Disabled" />
+    }
+    else
+    {
+        <MudIconButton Icon="@Icon" Size="@Size" Class="@Class"
+                       OnClick="@HandleClick" Disabled="@Disabled" />
+    }
 </MudTooltip>
 
 @code {
@@ -21,6 +29,12 @@
 
     /// <summary>Блокировка кнопки.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>URL для навигации (если задан — MudIconButton рендерится как ссылка).</summary>
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>Цель ссылки (например "_blank"). Работает только совместно с Href.</summary>
+    [Parameter] public string? Target { get; set; }
 
     /// <summary>Обработчик клика.</summary>
     [Parameter] public EventCallback OnClick { get; set; }

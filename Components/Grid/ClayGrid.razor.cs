@@ -1,4 +1,5 @@
 using Clayzor.Lib.Entities;
+using Clayzor.Lib.Web.Settings;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
@@ -69,6 +70,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
             };
         }
     }
+
+    /// <summary>
+    /// Настройки приложения Clayzor (внедряются из DI).
+    /// Используется для получения URL справки (<see cref="ClayAppSettings.UriHelpClayGrid"/>).
+    /// </summary>
+    [Inject] public ClayAppSettings ClaySettings { get; set; } = default!;
 
     // ── Parameters ───────────────────────────────────────────────────────────────
     /// <summary>Заголовок грида.</summary>
