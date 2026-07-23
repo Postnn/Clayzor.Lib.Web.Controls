@@ -106,7 +106,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _dynamicGridId = gridId;
         _dynamicClid   = ResolveClientId(opt);
 
-        _dynamicDef = await ClayGridDefinitionData.LoadGridAsync(Db, gridId, opt.SettingsTable, opt.Schema);
+        _dynamicDef = await ClayGridDefinitionData.LoadGridWithQuickSearchAsync(
+            Db, gridId, opt.SettingsTable, opt.ColumnsTable, opt.Schema);
         if (_dynamicDef is null)
         {
             // Если ошибка connectivity — оверлей переподключения всё покажет,
@@ -120,7 +121,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
         Title     = _dynamicDef.Title ?? "Список";
         SelectSql = _dynamicDef.Sql;
 
-        _dynamicCols = await ClayGridDefinitionData.LoadColumnsAsync(Db, gridId, opt.ColumnsTable, opt.Schema);
+        _dynamicCols = await ClayGridDefinitionData.LoadColumnsAsync(
+            Db, gridId, opt.ColumnsTable, opt.Schema,
+            supportsQuickSearch: _dynamicDef.SupportsQuickSearch);
 
         // Колонки вывода: сначала видимые по Порядок, затем скрытые (Порядок 0/NULL).
         // Фильтр-онли типы (6, 11) в вывод не идут — они регистрируются отдельно.
