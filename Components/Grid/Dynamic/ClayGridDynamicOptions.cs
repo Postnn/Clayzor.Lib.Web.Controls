@@ -37,6 +37,9 @@ public sealed class ClayGridDynamicOptions
     /// <summary>Префикс параметра размера страницы. По умолчанию: "pgs".</summary>
     public string PageSizeParamPrefix { get; set; } = "pgs";
 
+    /// <summary>Префикс параметра быстрого поиска. По умолчанию: "qks".</summary>
+    public string QuickSearchParamPrefix { get; set; } = "qks";
+
     /// <summary>Имя query-параметра для CLID (идентификатор клиента). По умолчанию: "CLID".</summary>
     public string ClientIdQueryParam { get; set; } = "CLID";
 

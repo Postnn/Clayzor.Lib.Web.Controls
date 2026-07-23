@@ -82,6 +82,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Кеш «что сейчас лежит в БД» — ключ: имя параметра, значение: сохранённая строка.</summary>
     private Dictionary<string, string> _dynamicSavedParams = [];
     private HashSet<string> _dynamicForcedParamNames = [];
+    private HashSet<string> _dynamicQuickSearchCols = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Инициализация динамического режима при первом рендере.
@@ -521,7 +522,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var p = (string prefix) => ClayGridUserParamsData.BuildParamName(prefix, _dynamicGridId);
         var paramNames = new[] {
             p(opt.ColumnsParamPrefix), p(opt.FilterParamPrefix),
-            p(opt.GroupingParamPrefix), p(opt.SortingParamPrefix), p(opt.PageSizeParamPrefix)
+            p(opt.GroupingParamPrefix), p(opt.SortingParamPrefix), p(opt.PageSizeParamPrefix),
+            p(opt.QuickSearchParamPrefix)
         };
 
         var saved = await ClayGridUserParamsData.LoadAsync(
@@ -556,6 +558,29 @@ public partial class ClayGrid<TEntity> where TEntity : class
             var root = GridStateSerializer.DeserializeFilter(fltVal);
             if (root is not null)
                 _filterRoot = root;
+        }
+
+        // Быстрый поиск
+        var qksName = p(opt.QuickSearchParamPrefix);
+        if (saved.TryGetValue(qksName, out var qksVal))
+            ApplySavedQuickSearch(qksVal);
+    }
+
+    /// <summary>
+    /// Разбирает сохранённый список колонок быстрого поиска (имена через запятую).
+    /// Игнорирует имена, которых больше нет в определении колонок (регистронезависимо).
+    /// </summary>
+    private void ApplySavedQuickSearch(string value)
+    {
+        _dynamicQuickSearchCols.Clear();
+        if (string.IsNullOrWhiteSpace(value)) return;
+
+        var known = _dynamicCols.ToDictionary(c => c.Column, c => c, StringComparer.OrdinalIgnoreCase);
+        foreach (var name in value.Split(','))
+        {
+            var trimmed = name.Trim();
+            if (trimmed.Length > 0 && known.ContainsKey(trimmed))
+                _dynamicQuickSearchCols.Add(known[trimmed].Column); // каноническое имя из определения
         }
     }
 
@@ -688,8 +713,29 @@ public partial class ClayGrid<TEntity> where TEntity : class
             GridStateSerializer.SerializeGroups(_groupColumns), opt);
         await SaveParamIfChanged(p(opt.PageSizeParamPrefix),
             GridStateSerializer.SerializePageSize(_pageSize), opt);
+        var qksValue = SerializeQuickSearchColumns();
+        if (qksValue is not null)
+            await SaveParamIfChanged(p(opt.QuickSearchParamPrefix), qksValue, opt);
         await SaveParamIfChanged(p(opt.FilterParamPrefix),
             GridStateSerializer.SerializeFilter(_filterRoot) ?? string.Empty, opt);
+    }
+
+    /// <summary>
+    /// Сериализует набор колонок быстрого поиска в строку (имена через запятую).
+    /// Если строка длиннее 1000 символов — показывает Snackbar и возвращает null
+    /// (сохранение пропускается).
+    /// </summary>
+    private string? SerializeQuickSearchColumns()
+    {
+        if (_dynamicQuickSearchCols.Count == 0)
+            return string.Empty;
+
+        var value = string.Join(",", _dynamicQuickSearchCols);
+        if (value.Length <= 1000)
+            return value;
+
+        Snackbar.Add("Слишком много колонок для быстрого поиска — настройка не сохранена", Severity.Warning);
+        return null;
     }
 
     /// <summary>
