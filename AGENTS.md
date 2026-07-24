@@ -53,11 +53,11 @@
 ### DynamicGrid — динамический режим ClayGrid
 
 Пакет `Components/Grid/Dynamic/` — конфигурация и DI для динамического режима, в котором грид читает определение
-(SQL, колонки, кнопки) из БД. План реализации: [promts/_done/_readme_grid_dynamic.md](Components/Grid/promts/_done/_readme_grid_dynamic.md).
-Выполненные промты (G0–G14, GF1–GF16, GG1–GG9, GN1–GN4, GE1–GE6, TG1–TG9): `promts/_done/`.
-Выполненные промты быстрого поиска (QS0–QS9): `promts/_done/QS*_*.md`. Оркестратор: `promts/_done/QS0_README_quick_search.md`.
+(SQL, колонки, кнопки) из БД. План реализации: [promts/_done/DynamicFilter/_readme_grid_dynamic.md](Components/Grid/promts/_done/DynamicFilter/_readme_grid_dynamic.md).
+Выполненные промты (G0–G14, GF1–GF16, GG1–GG9, GN1–GN4, GE1–GE6, GB1–GB17, TG1–TG9): `promts/_done/DynamicFilter/`.
+Выполненные промты быстрого поиска (QS0–QS9): `promts/_done/QS/`. Оркестратор: `promts/_done/QS/QS0_README_quick_search.md`.
 Отложенные промты: `promts/_later/`.
-Активные багфиксы (GB1–GB17): `promts/GB*.md`. Выполненные: `promts/_done/GB*.md`. Оркестратор: `promts/GB0_README_grid_ux_fixes.md`.
+Выполненные промты групповых операций (CGO, CGR1): `promts/_done/CGO/`, `promts/_done/CGR/`.
 
 | Класс | Назначение |
 |---|---|
@@ -132,7 +132,7 @@
 - GN2 — `BuildAggregates` на N уровней: `depth = Keys.Count - 1`, `NULL` — законный ключ, `FullKey` без дубликатов при 3+ уровнях, `EmptyGroupDisplay` + `ToDisplay`
 - GN3 — `BuildGroupKeyWhere`: детальный `WHERE` с `IS NULL` для null-ключей, замена копипасты `dk{i}` в 4 местах, `LoadDynamicGroupChildIdsAsync` с `FullKey.Split` → `rawKeys`
 - GN4 — `BuildInterleavedHeaders`: C#-interleaving экспорта на N уровней, единый метод в `ClayGroupingEngine`, замена копипасты в `Export.Excel` (основной + subtree), `Export.Selected`, `Dynamic.Export`. Согласование `FullKey`/`DisplayValue` с движком (`EmptyGroupDisplay`), нормализация `null` → `""`
-- Оркестратор: `promts/GN0_README_grouping_levels.md`, промты `GN1`–`GN4`
+- Оркестратор: `promts/_done/GN/GN0_README_grouping_levels.md`, промты `GN1`–`GN4`
 
 **Выполненные шаги печати и Excel (GE1+):**
 - GE1 — `IClayGridCellReader` + `ClayReflectionCellReader`: вынос чтения ячейки из генераторов в абстракцию. Старая сигнатура с `Type entityType` → обёртка над `new ClayReflectionCellReader`. Поведение статики не изменилось
@@ -141,7 +141,7 @@
 - GE4 — печать в динрежиме: `CreateDynamicCellReader`, 3 метода `BuildDynamicPrintHtml*`, диспетчер `Dynamic/static` в `Print*Internal` (ExportMenu.cs)
 - GE5 — Excel в динрежиме: `DynamicExcelExportAsync` (switch по режиму, генератор + base64 + JS-скачивание), `ClayGridExportFileName.Sanitize` (вынос из `ClayGridPageBase`), диспетчер в `Excel*Internal`
 - GE6 — включение: `HasBatchOperations`, меню групповых операций вынесено из `@if (SelectVisible)` в `@if (HasBatchOperations)`, откат GF15
-- Оркестратор: `promts/GE0_README_dynamic_export.md`, промты `GE1`–`GE6`
+- Оркестратор: `promts/_done/GE/GE0_README_dynamic_export.md`, промты `GE1`–`GE6`
 
 **Выполненные багфиксы (GB1+):**
 - GB1 — кнопка «Выбрать записи» в динамическом гриде: `SelectVisible="true"` в `Home.razor`, `SelectAvailable` (только при `IdColumn`)
@@ -163,10 +163,10 @@
 - GB17 — двойной скролл: `.clay-filter-dialog-content { overflow:hidden !important }`, `.mud-popover .mud-list { overflow-y:visible !important }`, `flex-wrap:nowrap`, tooltip+ellipsis на элементах
 - GB18 — недоступность SQL Server: `IsConnectivityError` в `DbManager`, `RunAsync` гасит связь-ошибки, `ClayErrorService.IsCurrentErrorConnectivity` + `OnConnectionLost`, `ClayDbReconnectService` (3×30s health-check `SELECT 1`), `ClayDbReconnectOverlay` (оверлей `.clay-busy`), `ClayErrorBar` скрыт при connectivity, `DynamicSql` — null-проверки после `RunAsync`, экспорт/печать прерываются при connectivity, грид не показывает «не найден» при connectivity, заголовки Excel/печати — по левому краю
 - GB19 — `.clay-grid-busy` → `.clay-busy` (переиспользуется в `ClayDbReconnectOverlay` и `ClayGrid`-ошибках)
-- Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB17`
+- Оркестратор: `promts/_done/DynamicFilter/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB17`
 
 **Выполненные шаги рефакторинга (CGO):**
-- CGO — серия сведения конфигурационных параметров `ClayGrid` в `ClayGridOptions` (A1–C2): 21 параметр переехал в POCO-объект, 10 остались параметрами тега (данные/фрагменты/колбэки). Оркестратор: `promts/CGO0_README_grid_options.md`.
+- CGO — серия сведения конфигурационных параметров `ClayGrid` в `ClayGridOptions` (A1–C2): 21 параметр переехал в POCO-объект, 10 остались параметрами тега (данные/фрагменты/колбэки). Оркестратор: `promts/_done/CGO/CGO0_README_grid_options.md`.
 - CGR1 — переименование `ClayGridDynamicOptions` → `ClayGridDynamicSettings` в соответствии с конвенцией `*Settings` (уровень приложения) / `*Options` (экземпляр).
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
