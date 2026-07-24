@@ -1220,6 +1220,7 @@ body {
     flex-direction: column;
     --clay-cs-group-w: 0px;
     --clay-cs-filter-w: 0px;
+    --clay-cs-quicksearch-w: 0px;
 }
 .clay-column-settings-list--grouping    { --clay-cs-group-w: 88px; }
 .clay-column-settings-list--filter      { --clay-cs-filter-w: 64px; }

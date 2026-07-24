@@ -48,6 +48,23 @@
 - Не менять `clayColumnSettings.js` сверх минимально необходимого для изоляции чекбокса от drag-and-drop.
 - Не сохранять настройку по клику на чекбокс — только по «Применить» (QS5).
 
+## Багфикс CSS/JS (после QS8)
+
+При добавлении колонки быстрого поиска в CSS Grid были упущены две детали,
+ломавшие вёрстку диалога при `ShowQuickSearch=false` (печать/Excel):
+
+1. **`clay.css`** — переменная `--clay-cs-quicksearch-w` не имела дефолта `0px`
+   в `.clay-column-settings-list` (в отличие от `--clay-cs-group-w` и
+   `--clay-cs-filter-w`). Без дефолта `var()` в `grid-template-columns`
+   становится IACVT → вся сетка проваливается в авто-раскладку.
+
+2. **`clayColumnSettings.js`** — `createGhost` не копировал
+   `--clay-cs-quicksearch-w` в ghost-элемент (в отличие от group и filter).
+
+Исправлено добавлением:
+- `--clay-cs-quicksearch-w: 0px;` в `.clay-column-settings-list`
+- `g.style.setProperty('--clay-cs-quicksearch-w', ...)` в `createGhost`
+
 ## → verify
 
 1. Динамический грид, колонка `УчаствуетВБыстромПоиске` есть → чекбоксы видны, состояние соответствует итоговому набору из QS6.

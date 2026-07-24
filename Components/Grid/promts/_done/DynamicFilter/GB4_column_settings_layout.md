@@ -152,11 +152,15 @@ private string ListClass =>
     flex-direction: column;
     --clay-cs-group-w: 0px;
     --clay-cs-filter-w: 0px;
+    --clay-cs-quicksearch-w: 0px;
 }
-.clay-column-settings-list--grouping { --clay-cs-group-w: 88px; }
-.clay-column-settings-list--filter   { --clay-cs-filter-w: 64px; }
+.clay-column-settings-list--grouping    { --clay-cs-group-w: 88px; }
+.clay-column-settings-list--filter      { --clay-cs-filter-w: 64px; }
+.clay-column-settings-list--quicksearch { --clay-cs-quicksearch-w: 64px; }
 
-/* Сетка чипа. Одна и та же для шапки и для строк — выравнивание по построению. */
+/* Сетка чипа. Одна и та же для шапки и для строк — выравнивание по построению.
+   Шесть колонок: ручка | название | группировка | видимость | фильтр | быстрый поиск.
+   Колонки 3,5,6 схлопываются в 0px когда соответствующий режим выключен. */
 .column-settings-chip {
     display: grid;
     grid-template-columns:
@@ -164,7 +168,8 @@ private string ListClass =>
         minmax(0, 1fr)
         var(--clay-cs-group-w)
         64px
-        var(--clay-cs-filter-w);
+        var(--clay-cs-filter-w)
+        var(--clay-cs-quicksearch-w);
     align-items: center;
     /* остальное (background, color, min-height, padding, border-*, cursor, transition)
        — как было, кроме display:flex */
@@ -205,8 +210,9 @@ Ghost — клон чипа, который вешается в `document.body`.
 
 ```js
 var cs = getComputedStyle(container);
-g.style.setProperty('--clay-cs-group-w',  cs.getPropertyValue('--clay-cs-group-w'));
-g.style.setProperty('--clay-cs-filter-w', cs.getPropertyValue('--clay-cs-filter-w'));
+g.style.setProperty('--clay-cs-group-w',       cs.getPropertyValue('--clay-cs-group-w'));
+g.style.setProperty('--clay-cs-filter-w',      cs.getPropertyValue('--clay-cs-filter-w'));
+g.style.setProperty('--clay-cs-quicksearch-w', cs.getPropertyValue('--clay-cs-quicksearch-w'));
 ```
 
 Остальное в JS не трогать: контейнер остаётся flex-колонкой, placeholder остаётся обычным
