@@ -59,6 +59,14 @@
 Отложенные промты: `promts/_later/`.
 Выполненные промты групповых операций (CGO, CGR1): `promts/_done/CGO/`, `promts/_done/CGR/`.
 
+### Tree — компонент ClayTreeView (CT1+)
+
+Пакет `Components/Tree/` — дерево с серверной ленивой загрузкой уровней, две модели иерархии
+(NestedSet / ParentKey). План серии: [promts/CT1_tree_view_skeleton.md](Components/Tree/promts/CT1_tree_view_skeleton.md).
+
+**Аксиома имён колонок по умолчанию:** `LeftColumn = "L"`, `RightColumn = "R"`, `ParentColumn = "Parent"`.
+`LevelColumn` — может отсутствовать в источнике данных и является необязательной.
+
 | Класс | Назначение |
 |---|---|
 | `ClayGridDynamicSettings` | Настройки динрежима: имена таблиц, префиксы query-параметров, `ConnectionStringName`, `QuickSearchParamPrefix`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
@@ -76,7 +84,7 @@
 | `ClayDynamicRow` | Строка динамического грида. Реализует `IClayGridRow` + `IDetailRow` + `IReadOnlyDictionary<string, object?>`. `IDetailRow.Item => this` — строка сама является словарём для `GetRowIdValue`. Заменяет `InvalidCastException`-каст в `LoadDynamicData` |
 | `ClayGroupRowMapper` | Статический маппер словарей агрегатного GROUP BY в `GridGroupRow` для `ClayGroupingEngine`. `MapRow(row, levelCount)` / `MapRows(rows, levelCount)`, нормализация DBNull. Общий для статического и динамического режимов. Чистые функции. Заменил `ClayDynamicGroupMapper` (GN1) |
 | `ClayDynamicCellReader` | Реализация `IClayGridCellReader` для динамических строк-словарей. Типы 1/2/3/7 сырыми, 5/9 через справочники, 10/13 со смещением, 8 StripHtml, 12 полный текст. Без БД (GE2) |
-| `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicSettings` в DI + валидатор `IValidateOptions<T>` |
+| `Services/ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicSettings` в DI + валидатор `IValidateOptions<T>`. Там же `AddClayTree()` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../Clayzor.Lib.Entities/AGENTS.md).

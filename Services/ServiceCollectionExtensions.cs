@@ -1,8 +1,10 @@
+using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
+using Clayzor.Lib.Web.Controls.Components.Tree.State;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
+namespace Clayzor.Lib.Web.Controls.Services;
 
 /// <summary>
 /// Методы расширения для регистрации сервисов динамического режима ClayGrid в DI.
@@ -22,6 +24,13 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<ClayGridDynamicSettings>(config.GetSection(section));
         services.AddSingleton<IValidateOptions<ClayGridDynamicSettings>, ValidateClayGridDynamicSettings>();
+        return services;
+    }
+
+    /// <summary>Регистрирует сервисы компонента ClayTreeView.</summary>
+    public static IServiceCollection AddClayTree(this IServiceCollection services)
+    {
+        services.AddScoped<IClayTreeStateStore, ClayTreeMemoryStateStore>();
         return services;
     }
 }

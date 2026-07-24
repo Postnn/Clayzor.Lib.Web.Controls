@@ -1,0 +1,32 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Tree
+@using Clayzor.Lib.Web.Controls.Components.Tree.Models
+@using MudBlazor
+
+<CascadingValue Value="(IClayTreeView)this" IsFixed="true">
+    <div class="clay-tree @Options.Class" style="@Options.Style">
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="clay-tree-error mb-2" Variant="Variant.Outlined">
+                @_error
+            </MudAlert>
+        }
+        else if (_initialLoading)
+        {
+            <div class="clay-tree-empty">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                <span style="margin-left:8px">Загрузка...</span>
+            </div>
+        }
+        else if (_roots.Count == 0)
+        {
+            <div class="clay-tree-empty">Нет данных</div>
+        }
+        else
+        {
+            @foreach (var node in _roots)
+            {
+                <ClayTreeNodeView Node="node" Tree="this" NodeTemplate="NodeTemplate" />
+            }
+        }
+    </div>
+</CascadingValue>

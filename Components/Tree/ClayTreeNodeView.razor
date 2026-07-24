@@ -1,0 +1,45 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Tree
+@using Clayzor.Lib.Web.Controls.Components.Tree.Models
+@using MudBlazor
+
+<div class="clay-tree-node">
+    <div class="clay-tree-node-row" style="padding-left:@(Node.Level * Tree.IndentPx)px">
+        @if (Node.HasChildren)
+        {
+            <MudIconButton
+                Icon="@(Node.IsExpanded ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ChevronRight)"
+                Size="Size.Small"
+                OnClick="HandleToggle"
+                Class="clay-tree-node-toggle pa-0"
+                Style="width:22px;height:22px;min-width:22px" />
+        }
+        else
+        {
+            <div class="clay-tree-node-spacer" style="width:22px;height:22px;min-width:22px"></div>
+        }
+
+        @if (Node.IsLoading && Tree is ClayTreeView { Options.ShowLoadingIndicator: true })
+        {
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" Style="margin-right:4px" />
+        }
+
+        @if (NodeTemplate is not null)
+        {
+            @NodeTemplate(Node)
+        }
+        else
+        {
+            <span class="clay-tree-node-text" @onclick="HandleClick" @onclick:stopPropagation="true">
+                @Node.Text
+            </span>
+        }
+    </div>
+
+    @if (Node.IsExpanded && Node.Children.Count > 0)
+    {
+        @foreach (var child in Node.Children)
+        {
+            <ClayTreeNodeView Node="child" Tree="Tree" NodeTemplate="NodeTemplate" />
+        }
+    }
+</div>
