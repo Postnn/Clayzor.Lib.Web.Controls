@@ -1,8 +1,9 @@
 # Промты Clayzor — карта архива
 
-Собрано на текущий момент. Пути в репозитории:
+Пути в репозитории:
 
-- `Grid/*` → `src/Clayzor.Lib.Web.Controls/Components/Grid/promts/`
+- `Grid/_done/*` → `src/Clayzor.Lib.Web.Controls/Components/Grid/promts/_done/`
+- `Grid/SH_share/*` → `src/Clayzor.Lib.Web.Controls/Components/Grid/promts/SH_share/`
 - `Tree/*` → `src/Clayzor.Lib.Web.Controls/Components/Tree/promts/`
 
 Раскладку внутри `_done/` подгони под то, как файлы уже лежат в репозитории — здесь она
@@ -25,14 +26,13 @@
 | `CGO_B4_remaining_consumers.md` | остатки потребителей по grep | ✅ |
 | `CGO_C1_remove_legacy_parameters.md` | удаление legacy-`[Parameter]` | ✅ |
 | `CGO_C2_documentation.md` | `AGENTS.md`, `docs/`, `README` | ✅ |
-| `CGO_D1_options_convention.md` | конвенция Options для библиотеки (опциональный шаг) | ✅ |
+| `CGO_D1_options_convention.md` | конвенция Options для библиотеки | ✅ |
 
-Итог серии: у `ClayGrid` 10 параметров тега вместо ~30; конфигурация — в `ClayGridOptions`;
-правило зафиксировано в `AGENTS.md`, раздел «Настройки компонентов (Options)».
+Итог: у `ClayGrid` 10 параметров тега вместо ~30; конфигурация — в `ClayGridOptions`
+(21 свойство, `Defaults`); внутри компонента единственный источник настроек — поле `_opt`.
 
-Открытые вопросы, оставленные шагом D1 (решение за заказчиком):
-- группировка `ClayGridOptions` по секциям при росте свыше ~30 свойств;
-- переименование неудачных имён: `Id` (DOM-id), `Dynamic`, `SelectVisible`.
+Открытые вопросы от D1 (решение за заказчиком): группировка `ClayGridOptions` по секциям при
+росте свыше ~30 свойств; переименование неудачных имён `Id`, `Dynamic`, `SelectVisible`.
 
 ### CGR — переименования по конвенции
 
@@ -40,8 +40,32 @@
 |---|---|---|
 | `CGR1_rename_dynamic_settings.md` | `ClayGridDynamicOptions` → `ClayGridDynamicSettings` | ✅ |
 
-Действующее правило имён: `Clay*Options` — конфигурация экземпляра компонента на странице;
+Правило имён: `Clay*Options` — конфигурация экземпляра компонента на странице;
 `Clay*Settings` — настройки уровня приложения (из конфигурации, через DI).
+
+**Незакрытый хвост:** в `src/Clayzor.Lib.Web.Controls/AGENTS.md`, раздел «Настройки компонентов
+(Options)», пункт 7 всё ещё пишет `Clay*DynamicOptions`. Правка — одно слово.
+
+## Grid — к выполнению
+
+### SH — «Поделиться» настройками динамического грида
+
+| Файл | Этап | Состояние |
+|---|---|---|
+| `SH0_README_share.md` | индекс, правила, ловушки, решения, DoD | ⏳ **ревизия после CGO** |
+| `SH1_discovery.md` | разведка по коду, без изменений | ⏳ **ревизия после CGO** |
+| `SH2_schema.md` | схема стенда: таблица, поле, ключ, триггер, функция | ⏳ |
+| `SH3_settings_and_dalc.md` | настройки и слой доступа к данным | ⏳ **ревизия после CGO** |
+| `SH4_param_registry.md` | единый реестр имён параметров грида | ⏳ **ревизия после CGO** |
+| `SH5_share_button.md` | кнопка «Поделиться» и диалог | ⏳ **ревизия после CGO** |
+| `SH6_url_and_clipboard.md` | формирование URL и буфер обмена | ⏳ |
+| `SH7_shared_list.md` | список общих настроек | ⏳ **исправлен блокер** |
+| `SH8_shared_mode.md` | режим `sharedId`, запрет сохранения | ⏳ |
+| `SH9_tests_manual_report.md` | тесты, ручной тест, отчёт | ⏳ **ревизия после CGO** |
+| `SH_CHANGELOG_after_CGO.md` | что и почему изменено при ревизии | — справка |
+
+Требует решения до старта: имя query-параметра `sharedId` — оставить константой или добавить
+`SharedIdQueryParam` в `ClayGridDynamicSettings` (`SH0`, решение 8).
 
 ## Tree — к выполнению
 
@@ -51,7 +75,6 @@
 
 Редакция 2 учитывает итоги CGO и CGR1: вся конфигурация дерева — в `ClayTreeOptions`
 (7 параметров тега), обязательный тест-защёлка на дефолты, эталоны разметки — `Home.razor`
-и `MedicalTests.razor` после CGO. Перечень отличий от первой редакции — в §11 самого файла.
+и `MedicalTests.razor` после CGO. Отличия от первой редакции — в §11 файла.
 
-Дорожная карта CT2–CT8 (выделение, каскад, поиск, персистенция состояния в БД, контекстное
-меню, drag-and-drop, виртуализация) — в §10 файла CT1. Отдельных промтов на них пока нет.
+Дорожная карта CT2–CT8 — в §10 файла CT1; отдельных промтов на них пока нет.
