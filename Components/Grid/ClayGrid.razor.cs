@@ -58,6 +58,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>ColumnId → CellTemplate для динамического рендеринга колонок.</summary>
     private readonly Dictionary<int, object> _cellTemplates = [];
 
+    /// <summary>
+    /// Действующие настройки грида — ЕДИНСТВЕННЫЙ источник конфигурации внутри компонента.
+    /// Собирается в <see cref="ResolveOptions"/> из параметра Options.
+    /// Читать только его.
+    /// </summary>
+    private ClayGridOptions _opt = new();
+
     private string _gridHeight
     {
         get
@@ -79,26 +86,25 @@ public partial class ClayGrid<TEntity> where TEntity : class
     [Inject] public ClayAppSettings ClaySettings { get; set; } = default!;
 
     /// <summary>Видимость поля поиска: в статике всегда, в динамике — при непустом наборе.</summary>
-    private bool _searchVisible => !Dynamic || _quickSearchEffective.Count > 0;
+    private bool _searchVisible => !_opt.Dynamic || _quickSearchEffective.Count > 0;
 
     // ── Parameters ───────────────────────────────────────────────────────────────
-    /// <summary>Заголовок грида.</summary>
-    [Parameter] public string Title { get; set; } = "Список";
-
-    /// <summary>DOM-идентификатор корневого элемента грида.</summary>
-    [Parameter] public string Id { get; set; } = "clay-grid";
+    /// <summary>
+    /// Настройки грида. Если задан — устаревшие параметры тега
+    /// (<see cref="SelectSql"/>, <see cref="Title"/> и остальные конфигурационные) игнорируются
+    /// и не должны задаваться одновременно.
+    /// </summary>
+    /// <summary>
+    /// Настройки грида. Если не задан — используются значения по умолчанию
+    /// (<see cref="ClayGridOptions.Defaults"/>).
+    /// </summary>
+    [Parameter] public ClayGridOptions? Options { get; set; }
 
     /// <summary>Данные для отображения.</summary>
     [Parameter] public IEnumerable<TEntity> Items { get; set; } = [];
 
     /// <summary>Признак загрузки — управляет индикатором грида.</summary>
     [Parameter] public bool Loading { get; set; }
-
-    /// <summary>Показывать кнопку «Добавить» в тулбаре.</summary>
-    [Parameter] public bool ShowAddButton { get; set; } = true;
-
-    /// <summary>Количество строк на странице по умолчанию.</summary>
-    [Parameter] public int PageSize { get; set; } = 50;
 
     /// <summary>
     /// Колонки грида — <c>ClayColumn</c> / <c>TemplateColumn</c> / <c>PropertyColumn</c>.
@@ -115,11 +121,6 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Событие нажатия кнопки «Добавить».</summary>
     [Parameter] public EventCallback OnAdd { get; set; }
 
-    /// <summary>
-    /// Текст уведомления после успешного сохранения записи через сервисную колонку.
-    /// </summary>
-    [Parameter] public string EditSuccessMessage { get; set; } = "Запись обновлена";
-
     /// <summary>Событие изменения параметров запроса (поиск, сортировка, пагинация и т.д.).</summary>
     [Parameter] public EventCallback<ClayDataQuery> OnQueryChanged { get; set; }
 
@@ -132,41 +133,6 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     [Parameter] public int PageNumber { get; set; } = 1;
 
-    /// <summary>Показывать панель пагинации.</summary>
-    [Parameter] public bool ShowPagination { get; set; } = true;
-
-    /// <summary>Разрешить перетаскивание колонок.</summary>
-    [Parameter] public bool AllowColumnReorder { get; set; } = true;
-
-    /// <summary>
-    /// Тип данных для каждой фильтруемой колонки: ключ — SQL-имя, значение — <see cref="ColumnType"/>.
-    /// Передаётся из <see cref="ClayGridPageBase{T}.FilterColumnTypes"/>.
-    /// </summary>
-    [Parameter] public IReadOnlyDictionary<string, ColumnType> FilterColumnTypes { get; set; }
-        = new Dictionary<string, ColumnType>();
-
-    /// <summary>
-    /// Необязательный источник вариантов для выпадающего списка значений в диалоге фильтра.
-    /// Ключ — SQL-имя колонки, значение — список вариантов (<see cref="ClayFilterOption"/>).
-    /// Передаётся со страницы, которая может переопределить <see cref="ClayGridPageBase{T}.FilterLookupOptions"/>.
-    /// </summary>
-    [Parameter] public IReadOnlyDictionary<string, IReadOnlyList<ClayFilterOption>>? FilterLookupOptions { get; set; }
-
-    /// <summary>Базовый SQL-запрос SELECT (без WHERE / ORDER BY).</summary>
-    [Parameter] public string SelectSql { get; set; } = string.Empty;
-
-    /// <summary>Выходные имена колонок SELECT для полнотекстового поиска.</summary>
-    [Parameter] public string[] SearchColumns { get; set; } = [];
-
-    /// <summary>Порядок сортировки по умолчанию.</summary>
-    [Parameter] public string DefaultOrder { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Тип компонента диалога редактирования.
-    /// Диалог должен принимать параметр <c>Model</c> типа сущности.
-    /// </summary>
-    [Parameter] public Type? EditDialogType { get; set; }
-
     /// <summary>
     /// Загрузчик данных страницы. Передаётся как <c>DataLoader="this"</c> со страницы,
     /// наследующей <see cref="ClayGridPageBase{T}"/>.
@@ -174,24 +140,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     [Parameter] public IClayGridDataLoader? DataLoader { get; set; }
 
-    /// <summary>
-    /// Режим отображения кнопки меню (⋮) в заголовках колонок.
-    /// <c>Hidden</c> — всегда скрыта, <c>Always</c> — всегда видна,
-    /// <c>Mobile</c> — только на мобильных (≤960px, по умолчанию).
-    /// </summary>
-    [Parameter] public ColumnMenuMode ColumnMenuMode { get; set; } = ColumnMenuMode.Mobile;
-
-    /// <summary>Показывать кнопку выбора записей (чекбоксы).</summary>
-    [Parameter] public bool SelectVisible { get; set; }
-
-    /// <summary>Показывать группу «Печать» в меню групповых операций.</summary>
-    [Parameter] public bool ShowPrint { get; set; }
-
-    /// <summary>Показывать группу «Выгрузка в Excel» в меню групповых операций.</summary>
-    [Parameter] public bool ShowExcel { get; set; }
-
     /// <summary>Есть ли что показать в меню групповых операций.</summary>
-    private bool HasBatchOperations => ShowPrint || ShowExcel || (CustomBatchGroups?.Count > 0);
+    private bool HasBatchOperations => _opt.ShowPrint || _opt.ShowExcel || (_opt.CustomBatchGroups?.Count > 0);
 
     /// <summary>
     /// Показывать кнопку «Выбрать записи». В динамическом режиме — только если известна
@@ -199,36 +149,23 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// false, чекбоксов у строк не будет и режим выбора окажется пустышкой.
     /// </summary>
     private bool SelectAvailable
-        => SelectVisible && (!Dynamic || !string.IsNullOrWhiteSpace(_dynamicDef?.IdColumn));
-
-    /// <summary>
-    /// Глобальное включение фильтра по значению (Excel-style) для всех колонок.
-    /// При <c>false</c> значки фильтра по значению не отображаются, даже если
-    /// на отдельных колонках установлен <c>AllowValueFilter</c>=<c>true</c>.
-    /// По умолчанию <c>true</c>. Используется начиная с задачи V7.
-    /// </summary>
-    [Parameter] public bool EnableValueFilter { get; set; } = true;
-
-    /// <summary>
-    /// Кастомные группы операций для меню групповых операций.
-    /// Каждая группа рендерится как подменю со своими операциями.
-    /// Обработчики (<see cref="BatchOperation.OnExecute"/>) реализуются в приложении.
-    /// </summary>
-    [Parameter] public IReadOnlyList<BatchOperationGroup>? CustomBatchGroups { get; set; }
+        => _opt.SelectVisible && (!_opt.Dynamic || !string.IsNullOrWhiteSpace(_dynamicDef?.IdColumn));
 
     // ── Lifecycle ────────────────────────────────────────────────────────────────
     /// <inheritdoc/>
     protected override void OnInitialized()
     {
-        _pageSize = PageSize;
+        _opt = ResolveOptions();
+        _pageSize = _opt.PageSize;
     }
 
     /// <inheritdoc/>
     protected override void OnParametersSet()
     {
+        _opt = ResolveOptions();
         // В динамическом режиме пагинация внутренняя: PageNumber снаружи не передают,
         // безусловный сброс убивал переход по страницам.
-        if (!Dynamic)
+        if (!_opt.Dynamic)
             _pageNumber = PageNumber;
         if (TotalCount > 0 && _pageNumber > _totalPages)
             _pageNumber = _totalPages;
@@ -238,24 +175,34 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private bool _loadingChildIds;
 
+    // ── Options resolution ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Собирает действующие настройки: Options, если задан, иначе — из устаревших параметров тега.
+    /// При одновременно заданном Options и отличающемся от значения по умолчанию устаревшем
+    /// параметре бросает исключение: молчаливый приоритет одного источника над другим приводит
+    /// к настройкам, которых нет в разметке.
+    /// </summary>
+    private ClayGridOptions ResolveOptions() => Options ?? new ClayGridOptions();
+
     /// <inheritdoc/>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            if (Dynamic)
+            if (_opt.Dynamic)
                 await InitClientOffset();
 
             _columnsReady = true;
             _dataKey++;
             StateHasChanged();
         }
-        else if (_columnsReady && !string.IsNullOrEmpty(Id))
+        else if (_columnsReady && !string.IsNullOrEmpty(_opt.Id))
         {
             _dotnetRef ??= DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("clayGridColumnDrag.init", Id, _dotnetRef);
+            await JS.InvokeVoidAsync("clayGridColumnDrag.init", _opt.Id, _dotnetRef);
 
-            if (_selectMode && (Dynamic || DataLoader is not null) && !_loadingChildIds)
+            if (_selectMode && (_opt.Dynamic || DataLoader is not null) && !_loadingChildIds)
             {
                 var missingKeys = new List<string>();
                 foreach (var row in Items ?? [])
@@ -323,23 +270,23 @@ public partial class ClayGrid<TEntity> where TEntity : class
         // перетаскивание данные не меняет, поэтому сохраняем состояние напрямую, без
         // перезагрузки строк. SaveDynamicState идемпотентен и пишет только изменившийся
         // параметр (GF12).
-        if (Dynamic)
+        if (_opt.Dynamic)
             await SaveDynamicState();
     }
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        if (!string.IsNullOrEmpty(Id))
+        if (!string.IsNullOrEmpty(_opt.Id))
         {
-            try { await JS.InvokeVoidAsync("clayGridColumnDrag.dispose", Id); } catch { }
+            try { await JS.InvokeVoidAsync("clayGridColumnDrag.dispose", _opt.Id); } catch { }
         }
         _dotnetRef?.Dispose();
     }
 
     private bool _menuVisible(ClayColumnMeta meta) =>
         meta is not null
-        && ColumnMenuMode != ColumnMenuMode.Hidden
+        && _opt.ColumnMenuMode != ColumnMenuMode.Hidden
         && ((_trayExpanded && meta.Groupable)
             || (_filterTrayExpanded && meta.Filterable));
 
@@ -350,13 +297,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private async Task HandleEditClick(IDetailRow detail)
     {
-        if (EditDialogType is null) return;
+        if (_opt.EditDialogType is null) return;
         var parameters = new DialogParameters { ["Model"] = detail.Item };
         var options = new DialogOptionsEx { MaxWidth = MaxWidth.Small, FullWidth = true, DragMode = MudDialogDragMode.Simple };
-        var dialog = await DialogService.ShowExAsync(EditDialogType, string.Empty, parameters, options);
+        var dialog = await DialogService.ShowExAsync(_opt.EditDialogType, string.Empty, parameters, options);
         if (!(await dialog.Result)?.Canceled ?? false)
         {
-            Snackbar.Add(EditSuccessMessage, Severity.Success);
+            Snackbar.Add(_opt.EditSuccessMessage, Severity.Success);
             await NotifyQueryChanged();
         }
     }
@@ -424,7 +371,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         {
             { x => x.Items,        items },
             { x => x.ShowGrouping, _trayExpanded && _columnById.Values.Any(m => m.Groupable) },
-            { x => x.ShowQuickSearch, Dynamic && _dynamicDef?.SupportsQuickSearch == true },
+            { x => x.ShowQuickSearch, _opt.Dynamic && _dynamicDef?.SupportsQuickSearch == true },
         };
         var options = new DialogOptionsEx
         {
@@ -487,14 +434,14 @@ public partial class ClayGrid<TEntity> where TEntity : class
             foreach (var item in updatedItems.Where(i => i.QuickSearch && !i.QuickSearchDisabled))
                 _dynamicQuickSearchCols.Add(item.SqlName);
             var quickSearchReloaded = false;
-            if (Dynamic && _dynamicDef?.SupportsQuickSearch == true)
+            if (_opt.Dynamic && _dynamicDef?.SupportsQuickSearch == true)
             {
                 await SaveDynamicState();
                 quickSearchReloaded = await RefreshQuickSearchEffective(DynamicOpts.Value);
                 StateHasChanged();
             }
 
-            if (Dynamic) ResetDynamicExpandedGroups();   // GG7: ключи старой группировки протухли
+            if (_opt.Dynamic) ResetDynamicExpandedGroups();   // GG7: ключи старой группировки протухли
 
             // Проверить, изменилось ли что-то кроме быстрого поиска
             var dataChanged =
@@ -554,7 +501,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         _lastQuery = query;
 
-        if (Dynamic)
+        if (_opt.Dynamic)
         {
             await LoadDynamicData(query);
             StateHasChanged();
@@ -581,10 +528,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         remove => TrayStateChanged -= value;
     }
 
-    string IClayGrid.SelectSql        => SelectSql;
-    string[] IClayGrid.SearchColumns  => SearchColumns;
-    string IClayGrid.DefaultOrder     => DefaultOrder;
-    Type? IClayGrid.EditDialogType    => EditDialogType;
+    ClayGridOptions IClayGrid.Options => _opt;
 
     bool IClayGrid.IsGrouped(string sqlName) => IsGrouped(sqlName);
 
@@ -614,7 +558,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     void IClayGrid.RegisterColumn(int columnId, string sqlName, string displayName, bool groupable, bool filterable, string? sortName, bool allowValueFilter, string? boolTrueLabel, string? boolFalseLabel)
     {
         if (string.IsNullOrEmpty(sqlName)) return;
-        var colType = FilterColumnTypes.TryGetValue(sqlName, out var t) ? t : ColumnType.Text;
+        var colType = _opt.FilterColumnTypes.TryGetValue(sqlName, out var t) ? t : ColumnType.Text;
         var meta = new ClayColumnMeta
         {
             ColumnId         = columnId,
@@ -643,7 +587,6 @@ public partial class ClayGrid<TEntity> where TEntity : class
         ColumnsChanged?.Invoke();
     }
 
-    ColumnMenuMode IClayGrid.ColumnMenuMode       => ColumnMenuMode;
     bool IClayGrid.IsGroupingTrayExpanded         => _trayExpanded;
     bool IClayGrid.IsFilterTrayExpanded           => _filterTrayExpanded;
 

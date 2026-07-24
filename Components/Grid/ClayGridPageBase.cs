@@ -221,8 +221,8 @@ public abstract partial class ClayGridPageBase<T> : ComponentBase, IClayGridData
         var result = new Dictionary<string, HashSet<int>>();
         if (groupFullKeys.Count == 0) return result;
 
-        var selectSql     = Grid?.SelectSql     ?? string.Empty;
-        var searchColumns = Grid?.SearchColumns ?? [];
+        var selectSql     = Grid?.Options.SelectSql     ?? string.Empty;
+        var searchColumns = Grid?.Options.SearchColumns ?? [];
 
         var searchWhere    = query.BuildWhereClause(searchColumns);
         var dp             = new DynamicParameters();
@@ -270,8 +270,8 @@ public abstract partial class ClayGridPageBase<T> : ComponentBase, IClayGridData
         var isText  = colType == ColumnType.Text;
 
         // Шаг 3 — контекстный WHERE без собственных фильтров колонки
-        var selectSql     = Grid?.SelectSql     ?? string.Empty;
-        var searchColumns = Grid?.SearchColumns ?? [];
+        var selectSql     = Grid?.Options.SelectSql     ?? string.Empty;
+        var searchColumns = Grid?.Options.SearchColumns ?? [];
 
         var searchWhere = query.BuildWhereClause(searchColumns);
         var dp          = new DynamicParameters();
@@ -447,7 +447,7 @@ public abstract partial class ClayGridPageBase<T> : ComponentBase, IClayGridData
     /// </summary>
     protected async Task OpenAddDialog()
     {
-        var dialogType = Grid?.EditDialogType;
+        var dialogType = Grid?.Options.EditDialogType;
         if (dialogType is null) return;
 
         var parameters = new DialogParameters { ["Model"] = Activator.CreateInstance<T>() };
@@ -554,9 +554,9 @@ public abstract partial class ClayGridPageBase<T> : ComponentBase, IClayGridData
         _groupTreeRoots   = null;
         _groupKeysByDepth = null;
 
-        var selectSql     = Grid?.SelectSql     ?? string.Empty;
-        var searchColumns = Grid?.SearchColumns ?? [];
-        var defaultOrder  = Grid?.DefaultOrder  ?? string.Empty;
+        var selectSql     = Grid?.Options.SelectSql     ?? string.Empty;
+        var searchColumns = Grid?.Options.SearchColumns ?? [];
+        var defaultOrder  = Grid?.Options.DefaultOrder  ?? string.Empty;
 
         var searchWhere       = _query.BuildWhereClause(searchColumns);
         var orderBy           = _query.BuildOrderBy(defaultOrder);
@@ -577,9 +577,9 @@ public abstract partial class ClayGridPageBase<T> : ComponentBase, IClayGridData
     /// </summary>
     private async Task LoadGroupedData()
     {
-        var selectSql     = Grid?.SelectSql     ?? string.Empty;
-        var searchColumns = Grid?.SearchColumns ?? [];
-        var defaultOrder  = Grid?.DefaultOrder  ?? string.Empty;
+        var selectSql     = Grid?.Options.SelectSql     ?? string.Empty;
+        var searchColumns = Grid?.Options.SearchColumns ?? [];
+        var defaultOrder  = Grid?.Options.DefaultOrder  ?? string.Empty;
 
         var searchWhere    = _query.BuildWhereClause(searchColumns);
         var orderBy        = _query.BuildOrderBy(defaultOrder);

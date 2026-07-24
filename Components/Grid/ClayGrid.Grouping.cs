@@ -18,15 +18,15 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private async Task HandleGroupToggle(GroupHeaderRow header)
     {
-        if (Dynamic)
+        if (_opt.Dynamic)
         {
             await ToggleDynamicGroup(header);
         }
         else
         {
-            var scrollTop = await JS.InvokeAsync<double>("clayGridScroll.capture", new object[] { Id });
+            var scrollTop = await JS.InvokeAsync<double>("clayGridScroll.capture", new object[] { _opt.Id });
             await OnGroupToggle.InvokeAsync(header);
-            await JS.InvokeVoidAsync("clayGridScroll.restore", Id, scrollTop);
+            await JS.InvokeVoidAsync("clayGridScroll.restore", _opt.Id, scrollTop);
         }
     }
 
@@ -43,7 +43,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         get
         {
-            if (EditDialogType is not null || HasDynamicEdit) return "__edit__";
+            if (_opt.EditDialogType is not null || HasDynamicEdit) return "__edit__";
             foreach (var colId in _columnOrder)
             {
                 if (!_columnById.TryGetValue(colId, out var meta)) continue;
@@ -90,7 +90,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (_groupColumns.Contains(column))
             return;
         _groupColumns.Add(column);
-        if (Dynamic) ResetDynamicExpandedGroups();
+        if (_opt.Dynamic) ResetDynamicExpandedGroups();
         _pageNumber = 1;
         await NotifyQueryChanged();
     }
@@ -98,7 +98,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private async Task RemoveGroupColumn(string column)
     {
         _groupColumns.Remove(column);
-        if (Dynamic) ResetDynamicExpandedGroups();
+        if (_opt.Dynamic) ResetDynamicExpandedGroups();
         _pageNumber = 1;
         await NotifyQueryChanged();
     }
@@ -109,7 +109,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private async Task ToggleLevel(int depth)
     {
-        if (Dynamic)
+        if (_opt.Dynamic)
         {
             await ToggleDynamicLevelExpanded(depth);
             StateHasChanged();
@@ -123,7 +123,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     /// <summary>Развёрнуты ли все группы уровня — для иконки кнопки на чипе лотка.</summary>
     private bool IsLevelFullyExpanded(int depth)
-        => Dynamic
+        => _opt.Dynamic
             ? IsDynamicLevelFullyExpanded(depth)
             : DataLoader?.IsLevelFullyExpanded(depth) ?? false;
 
@@ -145,7 +145,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         if (fullKeys.Count == 0) return;
 
-        var batch = Dynamic
+        var batch = _opt.Dynamic
             ? await LoadDynamicGroupChildIdsAsync(fullKeys)
             : DataLoader is not null
                 ? await DataLoader.LoadGroupChildIdsAsync(fullKeys, _lastQuery)

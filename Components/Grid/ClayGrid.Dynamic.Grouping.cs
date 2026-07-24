@@ -43,7 +43,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _dynamicGroupExprs  = exprs;
 
         // ── 1. Агрегат: одна строка на листовую группу ──────────────────────────
-        var groupSql  = ClayGroupingEngine.BuildGroupAggregateSql(SelectSql, exprs, where, query.SortColumns);
+        var groupSql  = ClayGroupingEngine.BuildGroupAggregateSql(_opt.SelectSql, exprs, where, query.SortColumns);
         var rawRows   = await DynamicSql.QueryRowsAsync(Db, groupSql, dp);
         var groupRows = ClayGroupRowMapper.MapRows(rawRows, exprs.Count);
 
@@ -75,8 +75,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
 
         // ── 4. Строки: заголовки групп + детали раскрытых групп ────────────────
-        var orderBy     = query.BuildOrderBy(DefaultOrder);
-        var detailOrder = ClayGroupingEngine.BuildDetailOrder(orderBy, query.GroupColumns, DefaultOrder);
+        var orderBy     = query.BuildOrderBy(_opt.DefaultOrder);
+        var detailOrder = ClayGroupingEngine.BuildDetailOrder(orderBy, query.GroupColumns, _opt.DefaultOrder);
         var newRows     = new List<TEntity>();
 
         foreach (var item in layout)
@@ -101,7 +101,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             detailParams.Add("__start", item.DetailStart);
             detailParams.Add("__end",   item.DetailEnd);
 
-            var sql  = ClayGroupingEngine.BuildDetailPageSql(SelectSql, detailWhere, detailOrder);
+            var sql  = ClayGroupingEngine.BuildDetailPageSql(_opt.SelectSql, detailWhere, detailOrder);
             var rows = await DynamicSql.QueryRowsAsync(Db, sql, detailParams);
             newRows.AddRange(rows.Select(r => (TEntity)(object)new ClayDynamicRow(r)));
         }
@@ -116,7 +116,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private async Task ToggleDynamicGroup(GroupHeaderRow header)
     {
-        var scrollTop = await JS.InvokeAsync<double>("clayGridScroll.capture", new object[] { Id });
+        var scrollTop = await JS.InvokeAsync<double>("clayGridScroll.capture", new object[] { _opt.Id });
 
         var wasExpanded = _dynamicExpandedGroups.Contains(header.FullKey);
         if (wasExpanded)
@@ -159,7 +159,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         // Автопереход на другую страницу — осмысленная смена контекста,
         // возвращать старую позицию прокрутки не нужно.
         if (!pageChanged)
-            await JS.InvokeVoidAsync("clayGridScroll.restore", Id, scrollTop);
+            await JS.InvokeVoidAsync("clayGridScroll.restore", _opt.Id, scrollTop);
     }
 
     /// <summary>
@@ -226,7 +226,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     /// <summary>
     /// Загружает ID всех строк указанных групп (динамический режим).
-    /// Аналог ClayGridPageBase.LoadGroupChildIdsAsync: тот же SQL, но SelectSql и колонка Id
+    /// Аналог ClayGridPageBase.LoadGroupChildIdsAsync: тот же SQL, но _opt.SelectSql и колонка Id
     /// берутся из определения грида, а запрос идёт через DynamicSql.
     /// Строки, чей Id не приводится к int, пропускаются (см. TryGetSelectionId в GF13).
     /// </summary>
@@ -266,7 +266,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
             var combinedWhere = ClayDataQuery.CombineWhere(_dynamicGroupWhere, keyWhere);
 
-            var sql = $"SELECT {idColumn} FROM ({SelectSql}) _src";
+            var sql = $"SELECT {idColumn} FROM ({_opt.SelectSql}) _src";
             if (!string.IsNullOrWhiteSpace(combinedWhere))
                 sql += $" WHERE {combinedWhere}";
 

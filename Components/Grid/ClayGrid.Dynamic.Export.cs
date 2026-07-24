@@ -25,7 +25,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var dp    = new DynamicParameters();
         dp.Add("search", $"%{query.SearchText}%");     // GF16
 
-        var searchWhere = query.BuildWhereClause(SearchColumns);
+        var searchWhere = query.BuildWhereClause(_opt.SearchColumns);
         var filterWhere = ClayCompositeSqlBuilder.Build(query.CompositeFilter, dp, _dynamicKnownColumns);
         return (ClayDataQuery.CombineWhere(searchWhere, filterWhere), dp);
     }
@@ -33,7 +33,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>SELECT всех строк источника без ROW_NUMBER() и пагинации.</summary>
     private string BuildDynamicSelectAllSql(string? where, string? orderBy)
     {
-        var sql = $"SELECT * FROM ({SelectSql}) _src";
+        var sql = $"SELECT * FROM ({_opt.SelectSql}) _src";
         if (!string.IsNullOrWhiteSpace(where))   sql += $" WHERE {where}";
         if (!string.IsNullOrWhiteSpace(orderBy)) sql += $" ORDER BY {orderBy}";
         return sql;
@@ -59,7 +59,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         // ORDER BY с группировкой начинается с группировочных колонок (ClayDataQuery.BuildOrderBy),
         // а BuildInterleavedHeaders требует строки, отсортированные по уровням. Поэтому здесь
         // полный orderBy, а НЕ BuildDetailOrder (тот выбрасывает группировочные колонки).
-        var orderBy = query.BuildOrderBy(DefaultOrder);
+        var orderBy = query.BuildOrderBy(_opt.DefaultOrder);
 
         // Счётчики групп — из дерева последней загрузки (ComputeParentCounts уже вызван
         // в LoadDynamicGroupedData). Второй агрегатный запрос не нужен.
@@ -134,7 +134,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         var query = _lastQuery;
         var (where, dp) = BuildDynamicExportWhere();
-        var orderBy     = query.BuildOrderBy(DefaultOrder);
+        var orderBy     = query.BuildOrderBy(_opt.DefaultOrder);
 
         if (!query.GroupEnabled || query.GroupColumns.Count == 0)
         {
@@ -160,7 +160,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         var query = _lastQuery;
         var (where, dp) = BuildDynamicExportWhere();
-        var orderBy     = query.BuildOrderBy(DefaultOrder);
+        var orderBy     = query.BuildOrderBy(_opt.DefaultOrder);
 
         var idParams = new List<string>();
         int idx = 0;
@@ -195,7 +195,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var exprs = _lastQuery.GroupColumns.ToList();
 
         // Запрос 1: агрегат — БЕЗ idFilter, счётчики должны быть по всей группе
-        var groupSql   = ClayGroupingEngine.BuildGroupAggregateSql(SelectSql, exprs, where, _lastQuery.SortColumns);
+        var groupSql   = ClayGroupingEngine.BuildGroupAggregateSql(_opt.SelectSql, exprs, where, _lastQuery.SortColumns);
         var rawGroups  = await DynamicSql.QueryRowsAsync(Db, groupSql, dp);
         var groupRows  = ClayGroupRowMapper.MapRows(rawGroups, exprs.Count);
         var aggregates = ClayGroupingEngine.BuildAggregates(groupRows);
@@ -254,7 +254,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private Task<string> BuildDynamicPrintHtmlForCurrentPage(
         IReadOnlyList<ClayColumnMeta> columns, string? filterDescription, string? groupDescription)
         => Task.FromResult(ClayGridPrintHtmlGenerator.Build(
-            Title, columns, (Items ?? []).OfType<IClayGridRow>().ToList(), CreateDynamicCellReader(),
+            _opt.Title, columns, (Items ?? []).OfType<IClayGridRow>().ToList(), CreateDynamicCellReader(),
             filterDescription, groupDescription));
 
     private async Task<string> BuildDynamicPrintHtmlForAll(
@@ -262,7 +262,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         var rows = await BuildDynamicExportRowsForAll();
         return ClayGridPrintHtmlGenerator.Build(
-            Title, columns, rows, CreateDynamicCellReader(),
+            _opt.Title, columns, rows, CreateDynamicCellReader(),
             filterDescription, groupDescription);
     }
 
@@ -272,7 +272,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         var rows = await BuildDynamicExportRowsForSelected(selectedIds);
         return ClayGridPrintHtmlGenerator.Build(
-            Title, columns, rows, CreateDynamicCellReader(),
+            _opt.Title, columns, rows, CreateDynamicCellReader(),
             filterDescription, groupDescription);
     }
 

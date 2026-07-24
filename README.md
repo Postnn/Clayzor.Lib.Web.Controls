@@ -103,32 +103,58 @@ builder.Services.AddClayGridDynamic(); // читает секцию "ClayGrid:Dy
 
 ## Быстрый старт с ClayGrid
 
-Страница наследуется от `ClayGridPageBase<T>`, а конфигурация SQL передаётся параметрами `<ClayGrid>`:
+Страница наследуется от `ClayGridPageBase<T>`, а конфигурация собирается в `ClayGridOptions` и передаётся одним параметром `Options`:
 
 ```razor
 <ClayGrid TEntity="IClayGridRow"
+          @ref="_dataGrid"
+          Options="_gridOptions"
           DataLoader="this"
-          SelectSql="@SQLQueries.SELECT_МоиЗаписи"
-          SearchColumns="@(new[] { "НазваниеАнализа", "TestTypeName" })"
-          DefaultOrder="Порядок, НазваниеАнализа"
-          FilterColumnTypes="@FilterColumnTypes"
+          Items="_rows"
+          Loading="_loading"
+          TotalCount="@_query.TotalCount"
+          PageNumber="@_query.PageNumber"
           OnGroupToggle="ToggleGroup">
 
-    <ClayColumnDef ColumnId="1" SqlName="Код" DisplayName="Код" Groupable="true" Filterable="true" />
-    <ClayColumnDef ColumnId="2" SqlName="НазваниеАнализа" DisplayName="Название" Filterable="true" />
+    <ColumnDefs>
+        <ClayColumnDef ColumnId="1" SqlName="Код" DisplayName="Код" Groupable="true" Filterable="true" />
+        <ClayColumnDef ColumnId="2" SqlName="НазваниеАнализа" DisplayName="Название" Filterable="true" />
+    </ColumnDefs>
 
-    <ClayColumn TEntity="IClayGridRow" ColumnId="2">
-        <CellTemplate>
-            @if (context.Item is DetailRow<MyEntity> detail)
-            {
-                <MudText>@detail.Item.Name</MudText>
-            }
-        </CellTemplate>
-    </ClayColumn>
+    <Columns>
+        <ClayColumn TEntity="IClayGridRow" ColumnId="2">
+            <CellTemplate>
+                @if (context.Item is DetailRow<MyEntity> detail)
+                {
+                    <MudText>@detail.Item.Name</MudText>
+                }
+            </CellTemplate>
+        </ClayColumn>
+    </Columns>
 </ClayGrid>
+
+@code {
+    private ClayGrid<IClayGridRow> _dataGrid = null!;
+    protected override IClayGrid? Grid => _dataGrid;
+
+    private ClayGridOptions _gridOptions = null!;
+
+    protected override void OnInitialized()
+    {
+        _gridOptions = new ClayGridOptions
+        {
+            Title             = "Мои записи",
+            SelectSql         = SQLQueries.SELECT_МоиЗаписи,
+            SearchColumns     = ["НазваниеАнализа", "TestTypeName"],
+            DefaultOrder      = "Порядок, НазваниеАнализа",
+            FilterColumnTypes = FilterColumnTypes,
+            PageSize          = AppSettings.DefaultPageSize,
+        };
+    }
+}
 ```
 
-`ClayGridPageBase<T>` сам читает `SelectSql`, `SearchColumns`, `DefaultOrder`, строит `WHERE` и вызывает загрузку данных. Заголовки групп (`ClayGroupHeader`) грид рендерит автоматически — вручную вставлять их в шаблон не нужно, страница только подписывается через `OnGroupToggle`.
+`ClayGridPageBase<T>` читает настройки из `Grid.Options`, строит `WHERE` и вызывает загрузку данных. Заголовки групп (`ClayGroupHeader`) грид рендерит автоматически — вручную вставлять их в шаблон не нужно, страница только подписывается через `OnGroupToggle`.
 
 ## Основные компоненты
 
@@ -197,6 +223,7 @@ builder.Services.AddClayGridDynamic(); // читает секцию "ClayGrid:Dy
 Несколько наблюдений, которые помогают быстрее сориентироваться в коде:
 
 - Библиотека последовательно выносит логику работы с данными на сервер и держит единый источник истины для фильтра (дерево `ClayFilterGroupNode`), что делает поведение статического и динамического режимов согласованным.
+- Конфигурация компонентов выносится в отдельные `*Options`-классы (например `ClayGridOptions`): параметрами тега остаются только данные, `RenderFragment`'ы и `EventCallback`. Объект настроек создаётся один раз в поле страницы, а не выражением в разметке.
 - Крупные компоненты (`ClayGrid`, `ClayGridPageBase`) намеренно разбиты на partial-файлы по темам — это упрощает навигацию, но означает, что «одну фичу» стоит искать не в одном файле, а в паре тематических.
 - Много внимания уделено безопасности SQL (белые списки колонок, параметры) и повторному использованию (общие мапперы/ридеры для статики и динамики, единые строковые константы UI).
 - Это внутренняя корпоративная библиотека: она опирается на соседние проекты решения (`Clayzor.Lib.Entities`, `Clayzor.Lib.Web.Settings`) и на собственный слой доступа к данным, поэтому вне решения «как есть» не соберётся.

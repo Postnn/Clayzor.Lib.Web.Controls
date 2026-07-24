@@ -118,7 +118,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             return;
         }
 
-        var colType  = FilterColumnTypes.TryGetValue(sqlName, out var t) ? t : ColumnType.Text;
+        var colType  = _opt.FilterColumnTypes.TryGetValue(sqlName, out var t) ? t : ColumnType.Text;
         // Ищем существующий лист ColumnDialog для этой колонки
         var existing = _filterRoot.Nodes
             .OfType<ColumnFilter>()
@@ -131,7 +131,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             { x => x.ColumnType,        colType },
             { x => x.ExistingFilter,    existing },
             { x => x.InitialOperator,   initialOperator },
-            { x => x.LookupOptions,     FilterLookupOptions?.GetValueOrDefault(sqlName) },
+            { x => x.LookupOptions,     _opt.FilterLookupOptions?.GetValueOrDefault(sqlName) },
         };
         var options = new DialogOptionsEx
         {
@@ -258,7 +258,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         {
             { x => x.Root,         seedRoot ?? _filterRoot },
             { x => x.Columns,      (IReadOnlyList<ClayColumnMeta>)filterableCols },
-            { x => x.LookupOptions, FilterLookupOptions },
+            { x => x.LookupOptions, _opt.FilterLookupOptions },
         };
         var options = new DialogOptionsEx
         {
@@ -284,7 +284,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <inheritdoc cref="IClayGrid.IsValueFilterAvailable"/>
     bool IClayGrid.IsValueFilterAvailable(string sqlName)
     {
-        if (!EnableValueFilter) return false;
+        if (!_opt.EnableValueFilter) return false;
         if (!_columnBySqlName.TryGetValue(sqlName, out var meta)) return false;
         return meta.Filterable && meta.AllowValueFilter
                && !_valueFilterDisabledColumns.Contains(sqlName);
@@ -300,7 +300,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         if (!_columnBySqlName.TryGetValue(sqlName, out var meta)) return;
 
-        var colType = FilterColumnTypes.TryGetValue(sqlName, out var t) ? t : ColumnType.Text;
+        var colType = _opt.FilterColumnTypes.TryGetValue(sqlName, out var t) ? t : ColumnType.Text;
 
         var existingValue = _filterRoot.Nodes
             .OfType<ValueFilter>()
@@ -312,7 +312,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         // Ленивый загрузчик (замыкание на LoadDistinctValuesAsync).
         // В динамическом режиме DataLoader отсутствует — используем собственный запрос.
-        Func<Task<DistinctValuesResult>> load = Dynamic
+        Func<Task<DistinctValuesResult>> load = _opt.Dynamic
             ? () => LoadDistinctValuesDynamicAsync(sqlName, BuildCurrentQuery(), 100)
             : () => DataLoader!.LoadDistinctValuesAsync(sqlName, BuildCurrentQuery(), 100);
 
@@ -410,8 +410,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private async Task<DistinctValuesResult> LoadDistinctValuesDynamicAsync(
         string sqlName, ClayDataQuery query, int limit)
     {
-        var selectSql     = SelectSql ?? string.Empty;
-        var searchColumns = SearchColumns ?? [];
+        var selectSql     = _opt.SelectSql ?? string.Empty;
+        var searchColumns = _opt.SearchColumns ?? [];
         var meta          = _columnBySqlName[sqlName];
         var isText        = meta.Type.Kind == ColumnType.Text;
 

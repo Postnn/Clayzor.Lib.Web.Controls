@@ -43,7 +43,7 @@
             @if (_menuVisible && Grid is not null && _meta is not null)
             {
                 <ClayMenu Icon="@Icons.Material.Filled.MoreVert"
-                           Class="@("clay-column-menu" + (Grid.ColumnMenuMode == ColumnMenuMode.Mobile ? " column-menu-mobile" : ""))"
+                           Class="@("clay-column-menu" + (Grid.Options.ColumnMenuMode == ColumnMenuMode.Mobile ? " column-menu-mobile" : ""))"
                            ActivatorStyle="padding:0;width:22px;height:22px;min-width:22px">
                     @if (Grid.IsGroupingTrayExpanded && _meta.Groupable)
                     {
@@ -87,7 +87,7 @@ Grid?.IsColumnHidden(_meta.SqlName) == true);
     private bool _menuVisible =>
         Grid is not null
         && _meta is not null
-        && Grid.ColumnMenuMode != ColumnMenuMode.Hidden
+        && Grid.Options.ColumnMenuMode != ColumnMenuMode.Hidden
         && ((Grid.IsGroupingTrayExpanded && _meta.Groupable)
             || (Grid.IsFilterTrayExpanded && _meta.Filterable)
             || Grid.IsValueFilterAvailable(_meta.SqlName));

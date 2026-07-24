@@ -131,18 +131,18 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task PrintCurrentPageInternal()
     {
-        if (!Dynamic && DataLoader is null) return;
+        if (!_opt.Dynamic && DataLoader is null) return;
         var columns = await ResolveExportColumnsAsync("печати (текущая страница)");
         if (columns is null) return;
 
         string? html = null;
         await RunBusyAsync("Подготовка печатной формы…", async () =>
         {
-            html = Dynamic
+            html = _opt.Dynamic
                 ? await BuildDynamicPrintHtmlForCurrentPage(
                       columns, BuildFilterDescription(), BuildGroupDescription())
                 : await DataLoader!.BuildPrintHtmlForCurrentPageAsync(
-                      columns, Title, BuildFilterDescription(), BuildGroupDescription());
+                      columns, _opt.Title, BuildFilterDescription(), BuildGroupDescription());
         });
 
         if (html is null) return;
@@ -158,18 +158,18 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task PrintAllInternal()
     {
-        if (!Dynamic && DataLoader is null) return;
+        if (!_opt.Dynamic && DataLoader is null) return;
         var columns = await ResolveExportColumnsAsync("печати (все данные)");
         if (columns is null) return;
 
         string? html = null;
         await RunBusyAsync("Подготовка печатной формы…", async () =>
         {
-            html = Dynamic
+            html = _opt.Dynamic
                 ? await BuildDynamicPrintHtmlForAll(
                       columns, BuildFilterDescription(), BuildGroupDescription())
                 : await DataLoader!.BuildPrintHtmlAsync(
-                      columns, Title, BuildFilterDescription(), BuildGroupDescription());
+                      columns, _opt.Title, BuildFilterDescription(), BuildGroupDescription());
         });
 
         if (html is null) return;
@@ -185,7 +185,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task PrintSelectedInternal()
     {
-        if (!Dynamic && DataLoader is null) return;
+        if (!_opt.Dynamic && DataLoader is null) return;
         if (_selectedIds.Count == 0) return;
         var columns = await ResolveExportColumnsAsync("печати (выбранные записи)");
         if (columns is null) return;
@@ -193,11 +193,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
         string? html = null;
         await RunBusyAsync("Подготовка печатной формы…", async () =>
         {
-            html = Dynamic
+            html = _opt.Dynamic
                 ? await BuildDynamicPrintHtmlForSelected(
                       columns, _selectedIds.ToList(), BuildFilterDescription(), BuildGroupDescription())
                 : await DataLoader!.BuildPrintHtmlForSelectedAsync(
-                      columns, Title, _selectedIds.ToList(),
+                      columns, _opt.Title, _selectedIds.ToList(),
                       BuildFilterDescription(), BuildGroupDescription());
         });
 
@@ -216,7 +216,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task ExcelCurrentPageInternal()
     {
-        if (!Dynamic && DataLoader is null) return;
+        if (!_opt.Dynamic && DataLoader is null) return;
         var columns = await ResolveExportColumnsAsync("выгрузки в Excel (текущая страница)");
         if (columns is null) return;
 
@@ -225,13 +225,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
             var request = new ExcelExportRequest
             {
                 Mode = ExcelExportMode.CurrentPage,
-                Title = Title,
+                Title = _opt.Title,
                 VisibleColumns = columns,
                 FilterDescription = BuildFilterDescription(),
                 GroupDescription = BuildGroupDescription(),
             };
 
-            if (Dynamic)
+            if (_opt.Dynamic)
                 await DynamicExcelExportAsync(request);
             else
                 await DataLoader!.ExcelExportAsync(request);
@@ -240,7 +240,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task ExcelAllInternal()
     {
-        if (!Dynamic && DataLoader is null) return;
+        if (!_opt.Dynamic && DataLoader is null) return;
         var columns = await ResolveExportColumnsAsync("выгрузки в Excel (все данные)");
         if (columns is null) return;
 
@@ -249,13 +249,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
             var request = new ExcelExportRequest
             {
                 Mode = ExcelExportMode.All,
-                Title = Title,
+                Title = _opt.Title,
                 VisibleColumns = columns,
                 FilterDescription = BuildFilterDescription(),
                 GroupDescription = BuildGroupDescription(),
             };
 
-            if (Dynamic)
+            if (_opt.Dynamic)
                 await DynamicExcelExportAsync(request);
             else
                 await DataLoader!.ExcelExportAsync(request);
@@ -264,7 +264,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task ExcelSelectedInternal()
     {
-        if (!Dynamic && DataLoader is null) return;
+        if (!_opt.Dynamic && DataLoader is null) return;
         if (_selectedIds.Count == 0) return;
         var columns = await ResolveExportColumnsAsync("выгрузки в Excel (выбранные записи)");
         if (columns is null) return;
@@ -274,14 +274,14 @@ public partial class ClayGrid<TEntity> where TEntity : class
             var request = new ExcelExportRequest
             {
                 Mode = ExcelExportMode.Selected,
-                Title = Title,
+                Title = _opt.Title,
                 VisibleColumns = columns,
                 SelectedIds = _selectedIds.ToList(),
                 FilterDescription = BuildFilterDescription(),
                 GroupDescription = BuildGroupDescription(),
             };
 
-            if (Dynamic)
+            if (_opt.Dynamic)
                 await DynamicExcelExportAsync(request);
             else
                 await DataLoader!.ExcelExportAsync(request);

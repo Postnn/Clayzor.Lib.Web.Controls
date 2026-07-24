@@ -70,20 +70,11 @@ public interface IClayGrid
     /// </summary>
     event Action? TrayStateChanged;
 
-    /// <summary>Базовый SQL-запрос SELECT (без WHERE / ORDER BY).</summary>
-    string SelectSql { get; }
-
-    /// <summary>Выходные имена колонок для полнотекстового поиска.</summary>
-    string[] SearchColumns { get; }
-
-    /// <summary>Порядок сортировки по умолчанию.</summary>
-    string DefaultOrder { get; }
-
     /// <summary>
-    /// Тип компонента диалога редактирования.
-    /// Диалог должен принимать параметр <c>Model</c> типа сущности.
+    /// Действующие настройки грида. Единая точка чтения конфигурации для страницы
+    /// и дочерних компонентов вместо поштучных членов интерфейса.
     /// </summary>
-    Type? EditDialogType { get; }
+    ClayGridOptions Options { get; }
 
     /// <summary>
     /// Возвращает <c>true</c> если колонка в данный момент участвует в группировке.
@@ -153,11 +144,6 @@ public interface IClayGrid
     /// <param name="columnId">Числовой идентификатор колонки.</param>
     /// <param name="sqlName">SQL-имя колонки.</param>
     void UnregisterColumn(int columnId, string sqlName);
-
-    /// <summary>
-    /// Режим отображения кнопки меню (⋮) в заголовках колонок.
-    /// </summary>
-    ColumnMenuMode ColumnMenuMode { get; }
 
     /// <summary>
     /// Открыта ли панель группировки в данный момент.

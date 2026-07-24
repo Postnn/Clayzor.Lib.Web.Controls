@@ -37,8 +37,8 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
     /// </summary>
     private async Task<List<IClayGridRow>> BuildAllFlatRowsForSelected(HashSet<int> selectedIds)
     {
-        var selectSql     = Grid?.SelectSql     ?? string.Empty;
-        var searchColumns = Grid?.SearchColumns ?? [];
+        var selectSql     = Grid?.Options.SelectSql     ?? string.Empty;
+        var searchColumns = Grid?.Options.SearchColumns ?? [];
 
         var searchWhere    = _query.BuildWhereClause(searchColumns);
         var dp             = new DynamicParameters();
@@ -72,9 +72,9 @@ public abstract partial class ClayGridPageBase<T> where T : Entity
     /// </summary>
     private async Task<List<IClayGridRow>> BuildAllGroupedRowsForSelected(HashSet<int> selectedIds)
     {
-        var selectSql     = Grid?.SelectSql     ?? string.Empty;
-        var searchColumns = Grid?.SearchColumns ?? [];
-        var defaultOrder  = Grid?.DefaultOrder  ?? string.Empty;
+        var selectSql     = Grid?.Options.SelectSql     ?? string.Empty;
+        var searchColumns = Grid?.Options.SearchColumns ?? [];
+        var defaultOrder  = Grid?.Options.DefaultOrder  ?? string.Empty;
 
         var searchWhere    = _query.BuildWhereClause(searchColumns);
         var dp             = new DynamicParameters();

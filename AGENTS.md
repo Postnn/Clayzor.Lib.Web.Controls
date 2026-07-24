@@ -4,8 +4,8 @@
 
 | Компонент | Документация |
 |---|---|
-| **ClayGrid\<T>** — грид с серверной пагинацией, поиском, сортировкой, группировкой, фильтрацией по колонкам. Разметка в `ClayGrid.razor`, логика в 9 partial class-файлах (1 основной + 8 по темам, см. «Codebehind-структура» ниже). При `EditDialogType != null` автоматически добавляет сервисную колонку (первой) с иконкой карандаша для открытия диалога редактирования. Конфигурация передаётся через параметры: `SelectSql`, `SearchColumns`, `DefaultOrder`, `EditDialogType`, `DataLoader`, `ColumnMenuMode`. `OnGroupToggle` — страница подписывается на раскрытие/сворачивание групп (грид сам рендерит `ClayGroupHeader` в вычисленной хост-колонке `GroupRowHostKey`)| [docs/clay-grid.md](docs/clay-grid.md) |
-| **ClayGridPageBase\<T>** — базовый класс страниц с гридом в 5 partial-файлах (1 основной + 4 по темам, см. «Codebehind-структура ClayGridPageBase» ниже). Читает конфигурацию SQL из `Grid` (IClayGrid). Предоставляет `LoadData`, `ToggleGroup`, `OpenAddDialog`. Авто-вычисляет `FilterColumnTypes` | [docs/clay-grid.md](docs/clay-grid.md) |
+| **ClayGrid\<T>** — грид с серверной пагинацией, поиском, сортировкой, группировкой, фильтрацией по колонкам. Разметка в `ClayGrid.razor`, логика в 9 partial class-файлах (1 основной + 8 по темам, см. «Codebehind-структура» ниже). При `EditDialogType != null` автоматически добавляет сервисную колонку (первой) с иконкой карандаша для открытия диалога редактирования. Конфигурация — в `ClayGridOptions` (параметр `Options`); параметрами тега остаются только данные, фрагменты колонок и колбэки. `OnGroupToggle` — страница подписывается на раскрытие/сворачивание групп (грид сам рендерит `ClayGroupHeader` в вычисленной хост-колонке `GroupRowHostKey`)| [docs/clay-grid.md](docs/clay-grid.md) |
+| **ClayGridPageBase\<T>** — базовый класс страниц с гридом в 5 partial-файлах (1 основной + 4 по темам, см. «Codebehind-структура ClayGridPageBase» ниже). Читает настройки из `Grid.Options`. Предоставляет `LoadData`, `ToggleGroup`, `OpenAddDialog`. Авто-вычисляет `FilterColumnTypes` | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayColumn\<T>** — колонка грида с авто-заголовком. Получает Title/SortName/Drag&Drop из `ClayColumnDef` по `ColumnId`. Скрывается при группировке. Кнопка меню ⋮ для мобильных | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayColumnDef** — невидимый регистратор метаданных колонки: `ColumnId` (EditorRequired), `SqlName`, `DisplayName`, `SortName`, `Groupable`, `Filterable`, `AllowValueFilter`, `BoolTrueLabel`, `BoolFalseLabel` | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayGroupHeader** — заголовок строки группы с иконкой раскрытия/сворачивания и количеством элементов. Рендерится гридом автоматически в вычисленной хост-колонке (`GroupRowHostKey`) — страница напрямую компонент не вызывает, только подписывается на `OnGroupToggle` | [docs/clay-grid.md](docs/clay-grid.md) |
@@ -45,7 +45,7 @@
 
 | Интерфейс | Назначение |
 |---|---|
-| **IClayGrid** — контракт ClayGrid: `SelectSql`, `SearchColumns`, `DefaultOrder`, `EditDialogType`, `ColumnMenuMode`, `IsGrouped`, `ToggleSort`, `GetSortBadge`, `GetColumnMeta`, `AddGroupAsync`, `AddFilterAsync`, `IsValueFilterAvailable`, `IsValueFilterActive`, `OpenValueFilterDialog` (V7), регистрация колонок | [docs/clay-grid.md](docs/clay-grid.md) |
+| **IClayGrid** — контракт ClayGrid: `Options` (настройки), `IsGrouped`, `ToggleSort`, `GetSortBadge`, `GetColumnMeta`, `AddGroupAsync`, `AddFilterAsync`, `IsValueFilterAvailable`, `IsValueFilterActive`, `OpenValueFilterDialog` (V7), регистрация колонок | [docs/clay-grid.md](docs/clay-grid.md) |
 | **IClayGridDataLoader** — контракт обратного вызова: `OnQueryChangedAsync(ClayDataQuery)`, `ExcelExportAsync(ExcelExportRequest)`, `BuildPrintHtmlAsync(columns, title, filterDescription, groupDescription)`, `BuildPrintHtmlForCurrentPageAsync(columns, title, filterDescription, groupDescription)`, `BuildPrintHtmlForSelectedAsync(...)`, `LoadDistinctValuesAsync(sqlName, query, limit)` — загрузка уникальных значений колонки для Excel-style фильтра. Реализуется ClayGridPageBase, передаётся через `DataLoader="this"` | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayColumnMeta** — метаданные зарегистрированной колонки: `ColumnId`, `SqlName`, `DisplayName`, `SortName`, `Groupable`, `Filterable`, `AllowValueFilter`, `BoolTrueLabel`, `BoolFalseLabel`, `Type` | [docs/clay-grid.md](docs/clay-grid.md) |
 | **IClayGridCellReader** — абстракция чтения ячейки для генераторов печати и Excel. `TryGetCellValue(IDetailRow, ClayColumnMeta, out value, out valueType)`. Реализации: `ClayReflectionCellReader` (статика), `ClayDynamicCellReader` (динамика, GE2) | — |
@@ -165,7 +165,28 @@
 - GB19 — `.clay-grid-busy` → `.clay-busy` (переиспользуется в `ClayDbReconnectOverlay` и `ClayGrid`-ошибках)
 - Оркестратор: `promts/GB0_README_grid_ux_fixes.md`, промты `GB1`–`GB17`
 
+**Выполненные шаги рефакторинга (CGO):**
+- CGO — серия сведения конфигурационных параметров `ClayGrid` в `ClayGridOptions` (A1–C2): 21 параметр переехал в POCO-объект, 10 остались параметрами тега (данные/фрагменты/колбэки). Оркестратор: `promts/CGO0_README_grid_options.md`.
+
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
+
+### Настройки компонентов (Options)
+
+**Правила** — обязательны для всех новых компонентов библиотеки:
+
+1. Конфигурация компонента живёт в отдельном классе `Clay<Имя>Options`, рядом с компонентом в `Components/<Имя>/`. Класс `sealed`, POCO с `{ get; set; }`, дефолты в объявлении свойств, `/// <summary>` на каждом свойстве.
+2. Параметрами тега (`[Parameter]`) остаются только: данные, меняющиеся между рендерами (`Items`, `Loading`, `TotalCount`); `RenderFragment` (`Columns`, `ColumnDefs`); `EventCallback`; живые ссылки на потребителя (`DataLoader="this"`); служебные параметры для `@ref`.
+3. Объект настроек создаётся страницей **один раз** — поле + `OnInitialized`, не выражением в разметке. Причина: новый объект на каждый рендер ломает сравнение ссылки на параметр.
+4. Компонент внутри читает **единственное** поле действующих настроек (`_opt`), а не параметры поштучно. Сборка поля — в `OnInitialized` и `OnParametersSet`.
+5. Дефолты свойств — единственный источник значений по умолчанию. Тест-защёлка на дефолты обязательна (образец — `ClayGridOptionsTests`).
+6. Ничего, что компонент **записывает** сам в процессе работы, в options не кладётся.
+7. Настройки уровня приложения (из `appsettings`/`web.config`, через DI) — **другой** класс и другое имя (`Clay*DynamicOptions`, `ClayAppSettings`), в options экземпляра их не смешивать.
+
+В решении два класса с похожими именами, но разным назначением:
+- `ClayGridOptions` (`Components/Grid`) — настройки одного экземпляра грида на конкретной странице;
+- `ClayGridDynamicOptions` (`Components/Grid/Dynamic`) — настройки уровня приложения (имена таблиц справочника гридов, префиксы параметров), байндятся из `appsettings.json` и живут в DI.
+
+Образец для новых компонентов — [`docs/component-options-template.md`](docs/component-options-template.md).
 
 ### Services
 
@@ -184,7 +205,8 @@
 | Файл | Строк | Содержание |
 |---|---|---|
 | `ClayGrid.razor` | ~640 | Разметка грида (MudDataGrid, тулбар, панели, колонки) |
-| `ClayGrid.razor.cs` | ~540 | Основа: интерфейсы, параметры, поля (`_lastQuery`, `_columnById`, `_columnBySqlName`, `_columnOrder`, `_hiddenSqlNames`), инициализация, регистрация колонок, `RegisterCellTemplate`, `NotifyQueryChanged`, высота грида, `DisposeAsync`, `ColumnMenuMode`, `OpenColumnSettings`, `BuildColumnSettingsItems` (переиспользуется для печати/экспорта) |
+| `ClayGrid.razor.cs` | ~540 | Основа: интерфейсы, параметры, поля (`_lastQuery`, `_columnById`, `_columnBySqlName`, `_columnOrder`, `_hiddenSqlNames`), инициализация, регистрация колонок, `RegisterCellTemplate`, `NotifyQueryChanged`, высота грида, `DisposeAsync`, `OpenColumnSettings`, `BuildColumnSettingsItems` (переиспользуется для печати/экспорта) |
+| `ClayGridOptions.cs` | ~130 | Настройки одного экземпляра грида (`ClayGridOptions`): 21 свойство, `Defaults`, серия CGO |
 | `ClayGrid.Search.cs` | 18 | `_searchText`, `DebounceTimer`, обработчики поиска |
 | `ClayGrid.Sorting.cs` | 66 | `_sortState`, `ToggleSort`, `HandleSortClick`, `GetSortBadge` |
 | `ClayGrid.Grouping.cs` | ~250 | `OnGroupToggle` (параметр-событие), `GroupRowHostKey` (авто-выбор хост-колонки для заголовка группы), `IsGroupRowHost`, `_groupColumns`, `_trayExpanded`, `AddGroupColumn`, `RemoveGroupColumn`, `OnChipDragStart/End`, `OnTrayDragOver/Drop`, `GroupColumns`, `OnGroupTriToggle`, `OnHeaderTriToggle`, `_groupChildIds` |

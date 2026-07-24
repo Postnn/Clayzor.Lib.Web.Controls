@@ -13,7 +13,7 @@
    и ClayColumn внутри MudDataGrid (построение заголовков) получают одну ссылку на IClayGrid *@
 <CascadingValue Value="(IClayGrid)this" IsFixed="true">
 @ColumnDefs
-<MudPaper Elevation="1" Class="pa-4" Style="position:relative" id="@Id">
+<MudPaper Elevation="1" Class="pa-4" Style="position:relative" id="@_opt.Id">
     @if (_dynamicError is not null)
     {
         <div class="clay-grid-error">
@@ -25,7 +25,7 @@
     {
     <div class="d-flex flex-wrap justify-space-between gap-2 mb-4" style="align-items:center">
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.h5">@Title</MudText>
+            <MudText Typo="Typo.h5">@_opt.Title</MudText>
         </MudStack>
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
             @if (_searchVisible)
@@ -66,7 +66,7 @@
                                  OnClick="@ToggleFilterTray" />
                 </MudBadge>
             }
-            @if (ShowAddButton || HasDynamicAdd)
+            @if (_opt.ShowAddButton || HasDynamicAdd)
             {
                 <ClayButton Text="Добавить"
                              Icon="@Icons.Material.Filled.Add"
@@ -86,7 +86,7 @@
                            Tooltip="Групповые операции"
                            Class="toolbar-batch-btn"
                            OnBeforeOpen="@(() => _openSubGroups.Clear())">
-                        @if (ShowPrint)
+                        @if (_opt.ShowPrint)
                         {
                             <MudMenuItem AutoClose="false" OnClick='() => ToggleSubGroup("Печать")'>
                                 <div class="batch-menu-header">
@@ -105,7 +105,7 @@
                                 <MudMenuItem OnClick="PrintAllInternal" Style="padding-left:44px">Все данные</MudMenuItem>
                             }
                         }
-                        @if (ShowExcel)
+                        @if (_opt.ShowExcel)
                         {
                             <MudMenuItem AutoClose="false" OnClick='() => ToggleSubGroup("Excel")'>
                                 <div class="batch-menu-header">
@@ -124,9 +124,9 @@
                                 <MudMenuItem OnClick="ExcelAllInternal" Style="padding-left:44px">Все данные</MudMenuItem>
                             }
                         }
-                        @if (CustomBatchGroups is not null)
+                        @if (_opt.CustomBatchGroups is not null)
                         {
-                            foreach (var group in CustomBatchGroups)
+                            foreach (var group in _opt.CustomBatchGroups)
                             {
                                 var groupLabel = group.Label;
                                 <MudMenuItem AutoClose="false" OnClick="() => ToggleSubGroup(groupLabel)">
@@ -389,7 +389,7 @@
                         </CellTemplate>
                     </TemplateColumn>
                 }
-                @if (EditDialogType is not null || HasDynamicEdit)
+                @if (_opt.EditDialogType is not null || HasDynamicEdit)
                 {
                     <TemplateColumn @key="ServiceEditColumnKey" T="TEntity"
                                     Title=""
@@ -459,7 +459,7 @@
                                 {
                                     var gSqlName = sqlName;
                                     <ClayMenu Icon="@Icons.Material.Filled.MoreVert"
-                                               Class="@("clay-column-menu" + (ColumnMenuMode == ColumnMenuMode.Mobile ? " column-menu-mobile" : ""))"
+                                               Class="@("clay-column-menu" + (_opt.ColumnMenuMode == ColumnMenuMode.Mobile ? " column-menu-mobile" : ""))"
                                                ActivatorStyle="padding:0;width:22px;height:22px;min-width:22px">
                                         @if (_trayExpanded && ordMeta.Groupable)
                                         {
@@ -496,7 +496,7 @@
             }
         </Columns>
     </MudDataGrid>
-    @if (ShowPagination)
+    @if (_opt.ShowPagination)
     {
         <div class="d-flex flex-wrap justify-space-between gap-2 mt-3 clay-grid-paginator" style="align-items:center">
             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">

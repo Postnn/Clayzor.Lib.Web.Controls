@@ -25,15 +25,6 @@ public partial class ClayGrid<TEntity> where TEntity : class
     [Inject] private IOptions<ClayGridDynamicOptions> DynamicOpts { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
-    /// <summary>Включает динамический режим (чтение определения из БД).</summary>
-    [Parameter] public bool Dynamic { get; set; }
-
-    /// <summary>
-    /// Код запроса (GridId). Если не задан — берётся из query-параметра
-    /// с именем <see cref="ClayGridDynamicOptions.GridIdQueryParam"/>.
-    /// </summary>
-    [Parameter] public int? DynamicGridId { get; set; }
-
     [Inject] private IConfiguration Config { get; set; } = default!;
 
     private ClayGridDefinition? _dynamicDef;
@@ -90,7 +81,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        if (Dynamic && !_dynamicInitDone)
+        if (_opt.Dynamic && !_dynamicInitDone)
             await InitDynamicMode();
     }
 
@@ -120,8 +111,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
             return;
         }
 
-        Title     = _dynamicDef.Title ?? "Список";
-        SelectSql = _dynamicDef.Sql;
+        _opt.Title     = _dynamicDef.Title ?? "Список";
+        _opt.SelectSql = _dynamicDef.Sql;
 
         _dynamicCols = await ClayGridDefinitionData.LoadColumnsAsync(
             Db, gridId, opt.ColumnsTable, opt.Schema,
@@ -139,8 +130,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         var visibleCols = gridCols.Where(c => c.Order is > 0).ToList();
 
-        SearchColumns = visibleCols.Select(c => c.Column).ToArray();
-        DefaultOrder  = string.Join(", ", visibleCols.Select(c => c.Column));
+        _opt.SearchColumns = visibleCols.Select(c => c.Column).ToArray();
+        _opt.DefaultOrder  = string.Join(", ", visibleCols.Select(c => c.Column));
         _dynamicKnownColumns = gridCols.Select(c => c.Column).ToHashSet();
 
         // Загружаем справочники для колонок типа 5 (Список)
@@ -432,7 +423,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         id = 0;
 
-        if (Dynamic)
+        if (_opt.Dynamic)
         {
             var raw = GetRowIdValue(rowItem);
             return raw is not null && int.TryParse(raw, out id);
@@ -449,8 +440,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private int ResolveDynamicGridId(ClayGridDynamicOptions opt)
     {
-        if (DynamicGridId.HasValue && DynamicGridId.Value != 0)
-            return DynamicGridId.Value;
+        if (_opt.DynamicGridId.HasValue && _opt.DynamicGridId.Value != 0)
+            return _opt.DynamicGridId.Value;
 
         var uri  = new Uri(Nav.Uri);
         var qs   = System.Web.HttpUtility.ParseQueryString(uri.Query);
@@ -477,13 +468,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
             // Быстрый поиск: строим WHERE с учётом типов колонок, CAST/CONVERT и ESCAPE
             string? searchWhere = null;
-            if (SearchColumns is { Length: > 0 } && !string.IsNullOrWhiteSpace(query.SearchText))
+            if (_opt.SearchColumns is { Length: > 0 } && !string.IsNullOrWhiteSpace(query.SearchText))
             {
                 var escapedText = EscapeLikePattern(query.SearchText);
                 dp.Add("q", $"%{escapedText}%");
 
                 var colByName = _dynamicCols.ToDictionary(c => c.Column, c => c, StringComparer.OrdinalIgnoreCase);
-                var exprs = SearchColumns
+                var exprs = _opt.SearchColumns
                     .Select(col => colByName.TryGetValue(col, out var def)
                         ? BuildSearchLikeExpr(col, def.Type, def.Format)
                         : $"{col} LIKE @q ESCAPE '\\'")
@@ -518,12 +509,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _dynamicGroupParams      = null;
         _dynamicGroupExprs       = [];
 
-        var orderBy = query.BuildOrderBy(DefaultOrder);
+        var orderBy = query.BuildOrderBy(_opt.DefaultOrder);
 
         var rows = await DynamicSql.QueryPagedRowsAsync(
-            Db, SelectSql, where, orderBy, dp, query.PageNumber, query.PageSize);
+            Db, _opt.SelectSql, where, orderBy, dp, query.PageNumber, query.PageSize);
 
-        TotalCount = await DynamicSql.QueryCountAsync(Db, SelectSql, where, dp);
+        TotalCount = await DynamicSql.QueryCountAsync(Db, _opt.SelectSql, where, dp);
         Items      = rows.Select(r => (TEntity)(object)new ClayDynamicRow(r)).ToList();
     }
 
@@ -756,7 +747,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _dynamicDef?.SupportsQuickSearch ?? false, _dynamicCols, qksUserParam);
 
         if (_dynamicDef?.SupportsQuickSearch == true)
-            SearchColumns = _quickSearchEffective.ToArray();
+            _opt.SearchColumns = _quickSearchEffective.ToArray();
 
         // Поиск неактивен — только обновить SearchColumns, без перезагрузки
         if (string.IsNullOrWhiteSpace(_searchText))

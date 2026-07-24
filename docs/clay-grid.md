@@ -5,37 +5,51 @@
 
 При `EditDialogType != null` грид автоматически добавляет **сервисную колонку** (первой, ширина 44px) с иконкой карандаша (`Icons.Material.Filled.Edit`). Иконка отображается только для строк детализации (`DetailRow<T>`), для заголовков групп (`GroupHeaderRow`) — пустая ячейка. При клике открывается диалог редактирования с параметром `Model = detail.Item`. После успешного сохранения показывает уведомление (`EditSuccessMessage`) и перезагружает данные.
 
-## Параметры
+## Параметры тега
 
-| Параметр | Тип | По умолчанию | Описание |
+Параметрами остаются только данные, фрагменты разметки и колбэки — всё, что **не может** жить в POCO-объекте. Конфигурация вынесена в [`ClayGridOptions`](#настройки-claygridoptions).
+
+| Параметр | Тип | По умолчанию | Почему остался параметром |
 |---|---|---|---|
-| `Title` | `string` | `"Список"` | Заголовок |
-| `Items` | `IEnumerable<TEntity>` | `[]` | Данные текущей страницы |
-| `Loading` | `bool` | `false` | Индикатор загрузки |
-| `ShowAddButton` | `bool` | `true` | Показать кнопку «Добавить» |
-| `PageSize` | `int` | `50` | Размер страницы по умолчанию |
-| `ShowPagination` | `bool` | `true` | Показать панель постраничной навигации |
-| `TotalCount` | `int` | `0` | Общее количество записей (передаётся из страницы) |
-| `PageNumber` | `int` | `1` | Текущий номер страницы (передаётся из страницы). **Обязателен** для синхронизации пагинатора при авто-переходах в `ToggleGroup` |
-| `Columns` | `RenderFragment?` | — | Колонки грида — `<ClayColumn>` компоненты |
-| `ColumnDefs` | `RenderFragment?` | — | Метаданные колонок — `<ClayColumnDef>` компоненты для регистрации группируемых/фильтруемых колонок |
-| `FilterColumnTypes` | `IReadOnlyDictionary<string, ColumnType>` | `[]` | Тип данных фильтруемых колонок: SQL-имя → `ColumnType`. Авто-вычисляется в `ClayGridPageBase` через рефлексию |
-| `FilterLookupOptions` | `IReadOnlyDictionary<string, IReadOnlyList<ClayFilterOption>>?` | `null` | Необязательный источник вариантов для выпадающего списка в диалоге фильтра. Ключ — SQL-имя колонки. Если задан — вместо текстового/числового поля показывается `MudSelect` |
-| `SelectSql` | `string` | `""` | Базовый SELECT SQL (без WHERE/ORDER BY) |
-| `SearchColumns` | `string[]` | `[]` | Выходные имена колонок для полнотекстового поиска |
-| `DefaultOrder` | `string` | `""` | Порядок сортировки по умолчанию (например, `"Порядок, НазваниеАнализа"`) |
-| `EditDialogType` | `Type?` | `null` | Тип диалога редактирования/добавления. Должен принимать параметр `Model` типа сущности |
-| `DataLoader` | `IClayGridDataLoader?` | `null` | Загрузчик данных. Страница передаёт `DataLoader="this"` |
-| `ColumnMenuMode` | `ColumnMenuMode` | `Mobile` | Режим кнопки меню (⋮) в заголовках: `Hidden` — скрыта, `Always` — всегда видна, `Mobile` — только на мобильных (≤960px) |
-| `SelectVisible` | `bool` | `false` | Показать кнопку выбора записей (чекбоксы + меню групповых операций) |
-| `ShowPrint` | `bool` | `false` | Показать группу «Печать» в меню групповых операций (текущая страница и все данные реализованы) |
-| `ShowExcel` | `bool` | `false` | Показать группу «Выгрузка в Excel» в меню групповых операций. При экспорте рядом с заголовком показывается спиннер |
-| `EnableValueFilter` | `bool` | `true` | Глобальное включение фильтра по уникальному значению (Excel-style). При `false` значки фильтра по значению не отображаются, даже если на отдельных колонках установлен `AllowValueFilter=true` |
-| `CustomBatchGroups` | `IReadOnlyList<BatchOperationGroup>?` | `null` | Кастомные группы операций (рендерятся после стандартных) |
-| `OnAdd` | `EventCallback` | — | Обработчик кнопки «Добавить» |
-| `OnGroupToggle` | `EventCallback<GroupHeaderRow>` | — | Обработчик раскрытия/сворачивания группы. Страница подписывается через `OnGroupToggle="ToggleGroup"` — вручную вставлять `<ClayGroupHeader>` в `CellTemplate` больше не нужно, грид рендерит его сам в вычисленной хост-колонке (`GroupRowHostKey`) |
-| `EditSuccessMessage` | `string` | `"Запись обновлена"` | Текст уведомления после успешного сохранения через сервисную колонку |
-| `AllowColumnReorder` | `bool` | `true` | Разрешить перетаскивание колонок грида мышью |
+| `Options` | `ClayGridOptions?` | `null` | Конфигурация — единый объект. Если не задан — используются значения по умолчанию (`ClayGridOptions.Defaults`) |
+| `Items` | `IEnumerable<TEntity>` | `[]` | Меняется на каждой загрузке данных — новый объект на каждый рендер |
+| `Loading` | `bool` | `false` | Меняется дважды на каждую загрузку |
+| `TotalCount` | `int` | `0` | Приходит со страницы после каждого запроса |
+| `PageNumber` | `int` | `1` | Синхронизация пагинатора при авто-переходах в `ToggleGroup` |
+| `Columns` | `RenderFragment?` | — | Дочерняя разметка — `<ClayColumn>` компоненты |
+| `ColumnDefs` | `RenderFragment?` | — | Дочерняя разметка — `<ClayColumnDef>` компоненты |
+| `DataLoader` | `IClayGridDataLoader?` | `null` | Живая ссылка на страницу (`DataLoader="this"`) |
+| `OnAdd` | `EventCallback` | — | EventCallback: Blazor обеспечивает ре-рендер вызывающего компонента |
+| `OnGroupToggle` | `EventCallback<GroupHeaderRow>` | — | EventCallback |
+| `OnQueryChanged` | `EventCallback<ClayDataQuery>` | — | EventCallback |
+
+### Настройки (`ClayGridOptions`)
+
+Объект создаётся страницей **один раз** и хранится в поле, а не собирается выражением в разметке: грид сравнивает ссылку на параметр, и новый объект на каждый рендер приводит к лишним пересчётам.
+
+| Свойство | Тип | По умолчанию | Описание |
+|---|---|---|---|
+| `Title` | `string` | `"Список"` | Заголовок грида |
+| `Id` | `string` | `"clay-grid"` | DOM-идентификатор корневого элемента грида |
+| `SelectSql` | `string` | `""` | Базовый SQL-запрос SELECT (без WHERE / ORDER BY) |
+| `SearchColumns` | `string[]` | `[]` | Выходные имена колонок SELECT для полнотекстового поиска |
+| `DefaultOrder` | `string` | `""` | Порядок сортировки по умолчанию |
+| `PageSize` | `int` | `50` | Количество строк на странице по умолчанию |
+| `ShowAddButton` | `bool` | `true` | Показывать кнопку «Добавить» в тулбаре |
+| `ShowPagination` | `bool` | `true` | Показывать панель пагинации |
+| `ColumnMenuMode` | `ColumnMenuMode` | `Mobile` | Режим кнопки меню (⋮) в заголовках |
+| `AllowColumnReorder` | `bool` | `true` | Разрешить перетаскивание колонок |
+| `EnableValueFilter` | `bool` | `true` | Глобальное включение фильтра по значению (Excel-style) |
+| `FilterColumnTypes` | `IReadOnlyDictionary<string, ColumnType>` | `[]` | Тип данных для каждой фильтруемой колонки |
+| `FilterLookupOptions` | `IReadOnlyDictionary<string, IReadOnlyList<ClayFilterOption>>?` | `null` | Источник вариантов для выпадающего списка в диалоге фильтра |
+| `EditDialogType` | `Type?` | `null` | Тип компонента диалога редактирования |
+| `EditSuccessMessage` | `string` | `"Запись обновлена"` | Текст уведомления после успешного сохранения |
+| `SelectVisible` | `bool` | `false` | Показывать кнопку выбора записей (чекбоксы) |
+| `ShowPrint` | `bool` | `false` | Показывать группу «Печать» в меню групповых операций |
+| `ShowExcel` | `bool` | `false` | Показывать группу «Выгрузка в Excel» |
+| `CustomBatchGroups` | `IReadOnlyList<BatchOperationGroup>?` | `null` | Кастомные группы операций |
+| `Dynamic` | `bool` | `false` | Включает динамический режим (чтение определения из БД) |
+| `DynamicGridId` | `int?` | `null` | Код запроса для динамического режима |
 
 Удалённые параметры (больше не используются):
 - ~~`OnRowClick`~~ — редактирование открывается через сервисную колонку (иконка карандаша), которая добавляется автоматически при `EditDialogType != null`
@@ -49,6 +63,7 @@
 - ~~`ShowFilterTray`~~ / ~~`AvailableFilterColumns`~~ — заменены на `ClayColumnDef` в `<ColumnDefs>`
 - ~~`ChildContent`~~ — переименован в `Columns`, заодно добавлен `ColumnDefs`
 - ~~`OnQueryChanged`~~ — заменён на `DataLoader` (IClayGridDataLoader)
+- Конфигурационные параметры сведены в `ClayGridOptions` (серия CGO): `Title`, `Id`, `ShowAddButton`, `PageSize`, `EditSuccessMessage`, `ShowPagination`, `AllowColumnReorder`, `FilterColumnTypes`, `FilterLookupOptions`, `SelectSql`, `SearchColumns`, `DefaultOrder`, `EditDialogType`, `ColumnMenuMode`, `SelectVisible`, `ShowPrint`, `ShowExcel`, `EnableValueFilter`, `CustomBatchGroups`, `Dynamic`, `DynamicGridId`
 
 ## Публичные методы
 
@@ -149,10 +164,7 @@ public static class ClayDragState
 
 | Член | Тип | Описание |
 |---|---|---|
-| `SelectSql` | `string` | Базовый SELECT |
-| `SearchColumns` | `string[]` | Колонки поиска (выходные имена) |
-| `DefaultOrder` | `string` | ORDER BY по умолчанию |
-| `EditDialogType` | `Type?` | Тип диалога |
+| `Options` | `ClayGridOptions` | Действующие настройки грида — единая точка чтения конфигурации |
 | `IsGrouped(sqlName)` | `bool` | Участвует ли в группировке |
 | `ToggleSort(sqlName)` | `Task` | Переключение сортировки |
 | `GetSortBadge(sqlName)` | `RenderFragment` | Бейдж сортировки |
@@ -162,7 +174,6 @@ public static class ClayDragState
 | `UnregisterColumn(columnId, sqlName)` | `void` | Отмена регистрации |
 | `ColumnsChanged` | `event Action?` | Событие изменения реестра |
 | `TrayStateChanged` | `event Action?` | Событие открытия/закрытия панелей |
-| `ColumnMenuMode` | `ColumnMenuMode` | Режим кнопки ⋮ (Hidden/Always/Mobile) |
 | `IsGroupingTrayExpanded` | `bool` | Открыта ли панель группировки |
 | `IsFilterTrayExpanded` | `bool` | Открыта ли панель фильтрации |
 | `AddGroupAsync(sqlName)` | `Task` | Добавить колонку в трей группировки |
@@ -359,7 +370,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 
 Страница-наследник:
 1. Наследуется: `@inherits ClayGridPageBase<MyEntity>`
-2. Передаёт SQL-конфигурацию в параметры `<ClayGrid>`: `SelectSql`, `SearchColumns`, `DefaultOrder`, `EditDialogType`
+2. Передаёт настройки через `Options="_gridOptions"` — объект `ClayGridOptions`, собранный в `OnInitialized`
 3. Передаёт `DataLoader="this"` — подключает `IClayGridDataLoader`
 4. Переопределяет свойство `Grid`: `protected override IClayGrid? Grid => _dataGrid;`
 5. Объявляет поле `private ClayGrid<IClayGridRow> _dataGrid = null!;` для `@ref`
@@ -571,7 +582,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 | `ShowExcel` | `bool` | `false` | Группа «Выгрузка в Excel»: текущая страница, выбранные, все данные. На время экспорта рядом с заголовком грида показывается `MudProgressCircular` |
 
 ```razor
-<ClayGrid ... SelectVisible="true" ShowPrint="true" ShowExcel="true" />
+<ClayGrid TEntity="IClayGridRow" Options="_gridOptions" ... />
 ```
 
 #### Экспорт в Excel
