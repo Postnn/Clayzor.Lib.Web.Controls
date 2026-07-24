@@ -10,7 +10,7 @@ namespace Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Регистрирует <see cref="ClayGridDynamicOptions"/> из конфигурации и валидатор опций.
+    /// Регистрирует <see cref="ClayGridDynamicSettings"/> из конфигурации и валидатор опций.
     /// </summary>
     /// <param name="services">Коллекция сервисов.</param>
     /// <param name="config">Корневая конфигурация приложения.</param>
@@ -20,19 +20,19 @@ public static class ServiceCollectionExtensions
         IConfiguration config,
         string section = "ClayGrid:Dynamic")
     {
-        services.Configure<ClayGridDynamicOptions>(config.GetSection(section));
-        services.AddSingleton<IValidateOptions<ClayGridDynamicOptions>, ValidateClayGridDynamicOptions>();
+        services.Configure<ClayGridDynamicSettings>(config.GetSection(section));
+        services.AddSingleton<IValidateOptions<ClayGridDynamicSettings>, ValidateClayGridDynamicSettings>();
         return services;
     }
 }
 
 /// <summary>
-/// Валидатор <see cref="ClayGridDynamicOptions"/> при старте приложения.
-/// Вызывает <see cref="ClayGridDynamicOptions.Validate"/> при первом резолве опций.
+/// Валидатор <see cref="ClayGridDynamicSettings"/> при старте приложения.
+/// Вызывает <see cref="ClayGridDynamicSettings.Validate"/> при первом резолве опций.
 /// </summary>
-internal sealed class ValidateClayGridDynamicOptions : IValidateOptions<ClayGridDynamicOptions>
+internal sealed class ValidateClayGridDynamicSettings : IValidateOptions<ClayGridDynamicSettings>
 {
-    public ValidateOptionsResult Validate(string? name, ClayGridDynamicOptions options)
+    public ValidateOptionsResult Validate(string? name, ClayGridDynamicSettings options)
     {
         try
         {

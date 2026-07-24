@@ -3,9 +3,11 @@ using Clayzor.Lib.Entities.DynamicGrid;
 namespace Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 
 /// <summary>
-/// Настройки динамического режима ClayGrid, связываемые из секции "ClayGrid:Dynamic".
+/// Настройки динамического режима ClayGrid уровня приложения, связываемые из секции
+/// "ClayGrid:Dynamic" и живущие в DI. В отличие от <see cref="Grid.ClayGridOptions"/> —
+/// настроек одного экземпляра грида на конкретной странице.
 /// </summary>
-public sealed class ClayGridDynamicOptions
+public sealed class ClayGridDynamicSettings
 {
     /// <summary>Имя строки подключения (из ConnectionStrings). Сама строка здесь не хранится.</summary>
     public string ConnectionStringName { get; set; } = "";
@@ -53,12 +55,12 @@ public sealed class ClayGridDynamicOptions
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(ConnectionStringName))
-            throw new InvalidOperationException("ClayGridDynamicOptions.ConnectionStringName пусто");
+            throw new InvalidOperationException("ClayGridDynamicSettings.ConnectionStringName пусто");
         if (string.IsNullOrWhiteSpace(SettingsTable))
-            throw new InvalidOperationException("ClayGridDynamicOptions.SettingsTable пусто");
+            throw new InvalidOperationException("ClayGridDynamicSettings.SettingsTable пусто");
         if (string.IsNullOrWhiteSpace(ColumnsTable))
-            throw new InvalidOperationException("ClayGridDynamicOptions.ColumnsTable пусто");
+            throw new InvalidOperationException("ClayGridDynamicSettings.ColumnsTable пусто");
         if (string.IsNullOrWhiteSpace(UserParamsTable))
-            throw new InvalidOperationException("ClayGridDynamicOptions.UserParamsTable пусто");
+            throw new InvalidOperationException("ClayGridDynamicSettings.UserParamsTable пусто");
     }
 }

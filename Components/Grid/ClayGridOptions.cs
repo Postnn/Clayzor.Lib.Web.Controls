@@ -11,7 +11,7 @@ namespace Clayzor.Lib.Web.Controls.Components.Grid;
 /// приводит к лишним пересчётам.
 /// </para>
 /// <para>
-/// Не путать с <see cref="ClayGridDynamicOptions"/>: тот — настройки уровня
+/// Не путать с <see cref="ClayGridDynamicSettings"/>: тот — настройки уровня
 /// приложения (имена таблиц справочника гридов, префиксы пользовательских параметров),
 /// байндятся из appsettings и живут в DI; этот — настройки конкретного грида на
 /// конкретной странице.
@@ -128,7 +128,7 @@ public sealed class ClayGridOptions
 
     /// <summary>
     /// Код запроса (GridId). Если не задан — берётся из query-параметра
-    /// с именем <see cref="ClayGridDynamicOptions.GridIdQueryParam"/>.
+    /// с именем <see cref="ClayGridDynamicSettings.GridIdQueryParam"/>.
     /// </summary>
     public int? DynamicGridId { get; set; }
 }

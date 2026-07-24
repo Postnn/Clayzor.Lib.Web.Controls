@@ -61,7 +61,7 @@
 
 | Класс | Назначение |
 |---|---|
-| `ClayGridDynamicOptions` | Настройки динрежима: имена таблиц, префиксы query-параметров, `ConnectionStringName`, `QuickSearchParamPrefix`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
+| `ClayGridDynamicSettings` | Настройки динрежима: имена таблиц, префиксы query-параметров, `ConnectionStringName`, `QuickSearchParamPrefix`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
 | `ClayColumnKind` | Enum типов колонок (1–13): Number=1, Text=2, Date=3, Link=4, List=5, ConditionBool=6, Bool=7, Html=8, Icon=9, DateTimeLocal=10, ConditionList=11, LimitedText=12, TimeLocal=13 |
 | `ClayColumnKindExtensions` | `SupportsQuickSearch(int kind)` — белый список типов, допустимых для быстрого поиска (1,2,3,4,10,12,13). Исключены справочные (5,9), фильтр-онли (6,11), булевы (7), HTML (8) |
 | `ClayColumnTypeMap` | `Resolve(int)` → существующий `ColumnTypeDescriptor` (1→Number, 2→Text, 3→Date, 4→Text, 7→Boolean); `IsSupported(int)` |
@@ -76,7 +76,7 @@
 | `ClayDynamicRow` | Строка динамического грида. Реализует `IClayGridRow` + `IDetailRow` + `IReadOnlyDictionary<string, object?>`. `IDetailRow.Item => this` — строка сама является словарём для `GetRowIdValue`. Заменяет `InvalidCastException`-каст в `LoadDynamicData` |
 | `ClayGroupRowMapper` | Статический маппер словарей агрегатного GROUP BY в `GridGroupRow` для `ClayGroupingEngine`. `MapRow(row, levelCount)` / `MapRows(rows, levelCount)`, нормализация DBNull. Общий для статического и динамического режимов. Чистые функции. Заменил `ClayDynamicGroupMapper` (GN1) |
 | `ClayDynamicCellReader` | Реализация `IClayGridCellReader` для динамических строк-словарей. Типы 1/2/3/7 сырыми, 5/9 через справочники, 10/13 со смещением, 8 StripHtml, 12 полный текст. Без БД (GE2) |
-| `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicOptions` в DI + валидатор `IValidateOptions<T>` |
+| `ServiceCollectionExtensions.AddClayGridDynamic()` | Регистрирует `ClayGridDynamicSettings` в DI + валидатор `IValidateOptions<T>` |
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../Clayzor.Lib.Entities/AGENTS.md).
@@ -167,6 +167,7 @@
 
 **Выполненные шаги рефакторинга (CGO):**
 - CGO — серия сведения конфигурационных параметров `ClayGrid` в `ClayGridOptions` (A1–C2): 21 параметр переехал в POCO-объект, 10 остались параметрами тега (данные/фрагменты/колбэки). Оркестратор: `promts/CGO0_README_grid_options.md`.
+- CGR1 — переименование `ClayGridDynamicOptions` → `ClayGridDynamicSettings` в соответствии с конвенцией `*Settings` (уровень приложения) / `*Options` (экземпляр).
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
 
@@ -182,9 +183,9 @@
 6. Ничего, что компонент **записывает** сам в процессе работы, в options не кладётся.
 7. Настройки уровня приложения (из `appsettings`/`web.config`, через DI) — **другой** класс и другое имя (`Clay*DynamicOptions`, `ClayAppSettings`), в options экземпляра их не смешивать.
 
-В решении два класса с похожими именами, но разным назначением:
-- `ClayGridOptions` (`Components/Grid`) — настройки одного экземпляра грида на конкретной странице;
-- `ClayGridDynamicOptions` (`Components/Grid/Dynamic`) — настройки уровня приложения (имена таблиц справочника гридов, префиксы параметров), байндятся из `appsettings.json` и живут в DI.
+Правило именования: **`*Settings`** — настройки уровня приложения (из `appsettings`/`web.config`, через DI, одни на приложение); **`*Options`** — настройки одного экземпляра компонента на странице, задаются страницей. Примеры:
+- `ClayAppSettings`, `ClayGridDynamicSettings` — Settings;
+- `ClayGridOptions`, `ClayTreeOptions` — Options.
 
 Образец для новых компонентов — [`docs/component-options-template.md`](docs/component-options-template.md).
 
@@ -215,7 +216,7 @@
 | `ClayGrid.Selection.cs` | 113 | `_selectMode`, `_selectAllChecked`, `_selectedIds`, `OnRowSelectAsync`, `SelectAllAsync`, `DeselectAllAsync`, `ToggleSelectMode`, персистентность выделения. В динрежиме кнопка выбора появляется только при заполненном `Запросы.ID` (GB1) |
 | `ClayGrid.ExportMenu.cs` | ~240 | `_isExporting`, `_openSubGroups`, `ToggleSubGroup`, `ResolveExportColumnsAsync` (prompt → настройка/как на странице/null), `Print{CurrentPage,Selected,All}Internal` (через `BuildPrintHtmlForCurrentPageAsync` / `BuildPrintHtmlAsync` / `BuildPrintHtmlForSelectedAsync`), `Excel{CurrentPage,Selected,All}Internal` |
 | `ClayGrid.Paging.cs` | 59 | `_pageSize`, `OnPageSizeChanged`, `PrevPage`, `NextPage`, `LastPage` |
-| `ClayGrid.Dynamic.cs` | ~120 | Динамический режим: инжекты (`DbManager`, `IOptions<ClayGridDynamicOptions>`, `NavigationManager`), параметры (`Dynamic`, `DynamicGridId`), `InitDynamicMode` (загрузка определения + колонок из БД, регистрация `ClayColumnMeta`, CellTemplate из словаря, первая загрузка через `NotifyQueryChanged`), `LoadDynamicData` (WHERE из композитного фильтра через `ClayCompositeSqlBuilder.Build` + поиск через `BuildWhereClause`, оборачивание строк в `ClayDynamicRow`, выполнение через `DynamicSql`), `ResolveDynamicGridId` (из параметра или query-строки) |
+| `ClayGrid.Dynamic.cs` | ~120 | Динамический режим: инжекты (`DbManager`, `IOptions<ClayGridDynamicSettings>`, `NavigationManager`), параметры (`Dynamic`, `DynamicGridId`), `InitDynamicMode` (загрузка определения + колонок из БД, регистрация `ClayColumnMeta`, CellTemplate из словаря, первая загрузка через `NotifyQueryChanged`), `LoadDynamicData` (WHERE из композитного фильтра через `ClayCompositeSqlBuilder.Build` + поиск через `BuildWhereClause`, оборачивание строк в `ClayDynamicRow`, выполнение через `DynamicSql`), `ResolveDynamicGridId` (из параметра или query-строки) |
 | `ClayGrid.Dynamic.Export.cs` | ~200 | Загрузка строк для экспорта в динрежиме (GE3): `BuildDynamicExportWhere`, `BuildDynamicSelectAllSql`, `BuildDynamicExportRowsForCurrentPage` / `ForAll` / `ForSelected`, `BuildDynamicGroupedExportRows` (C# interleaving), `CollectDynamicGroupCounts` |
 
 **Правила модификации:**

@@ -22,7 +22,7 @@ namespace Clayzor.Lib.Web.Controls.Components.Grid;
 public partial class ClayGrid<TEntity> where TEntity : class
 {
     [Inject] private DbManager Db { get; set; } = default!;
-    [Inject] private IOptions<ClayGridDynamicOptions> DynamicOpts { get; set; } = default!;
+    [Inject] private IOptions<ClayGridDynamicSettings> DynamicOpts { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
     [Inject] private IConfiguration Config { get; set; } = default!;
@@ -438,7 +438,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         return false;
     }
 
-    private int ResolveDynamicGridId(ClayGridDynamicOptions opt)
+    private int ResolveDynamicGridId(ClayGridDynamicSettings opt)
     {
         if (_opt.DynamicGridId.HasValue && _opt.DynamicGridId.Value != 0)
             return _opt.DynamicGridId.Value;
@@ -520,7 +520,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     // ── Персистенция состояния ─────────────────────────────────────────────────
 
-    private int ResolveClientId(ClayGridDynamicOptions opt)
+    private int ResolveClientId(ClayGridDynamicSettings opt)
     {
         var uri  = new Uri(Nav.Uri);
         var qs   = System.Web.HttpUtility.ParseQueryString(uri.Query);
@@ -528,7 +528,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         return val is not null && int.TryParse(val, out var clid) ? clid : 0;
     }
 
-    private async Task RestoreDynamicState(ClayGridDynamicOptions opt)
+    private async Task RestoreDynamicState(ClayGridDynamicSettings opt)
     {
         var p = (string prefix) => ClayGridUserParamsData.BuildParamName(prefix, _dynamicGridId);
         var paramNames = new[] {
@@ -659,7 +659,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     }
 
     /// <summary>Разбирает URL-параметры фильтра и колонок, применяет к состоянию грида.</summary>
-    private void ApplyUrlParams(ClayGridDynamicOptions opt)
+    private void ApplyUrlParams(ClayGridDynamicSettings opt)
     {
         var uri = new Uri(Nav.Uri);
         var qs  = System.Web.HttpUtility.ParseQueryString(uri.Query);
@@ -736,7 +736,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// Возвращает <c>true</c>, если была выполнена перезагрузка данных
     /// (поиск активен и набор колонок изменился).
     /// </summary>
-    internal async Task<bool> RefreshQuickSearchEffective(ClayGridDynamicOptions opt)
+    internal async Task<bool> RefreshQuickSearchEffective(ClayGridDynamicSettings opt)
     {
         var qksUserParam = _dynamicSavedParams.TryGetValue(
             ClayGridUserParamsData.BuildParamName(opt.QuickSearchParamPrefix, _dynamicGridId),
@@ -792,7 +792,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// Пишет параметр, только если значение отличается от того, что уже в БД
     /// (по кешу <see cref="_dynamicSavedParams"/>). Forced-параметры (из URL) не сохраняются.
     /// </summary>
-    private async Task SaveParamIfChanged(string name, string value, ClayGridDynamicOptions opt)
+    private async Task SaveParamIfChanged(string name, string value, ClayGridDynamicSettings opt)
     {
         if (_dynamicForcedParamNames.Contains(name)) return;
         if (_dynamicSavedParams.TryGetValue(name, out var current) && current == value) return;
