@@ -37,6 +37,7 @@
 | **ClayMenu** — обёртка `MudMenu` с авто-построением кнопки-активатора (опциональный тултип, сброс тултипа после клика). Заменяет `<MudMenu><ActivatorContent><MudTooltip><MudIconButton/></MudTooltip></ActivatorContent></MudMenu>` | — |
 | **ClayCheckbox** — контролируемый (controlled) чекбокс с tri-state поддержкой (`State`: `true`/`false`/`null`). Кастомный `<span>`-глиф (16×16, CSS-галочка border-rotate). Используется для выбора записей в гриде и фильтра по значению | — |
 | **ConfirmDialog** — диалог подтверждения | [docs/confirm-dialog.md](docs/confirm-dialog.md) |
+| **ClayShareDialog** — диалог ввода названия общей настройки (серия SH). Используется для создания ссылки «Поделиться» и переименования. Параметры: `Title`, `InitialValue`, `ActionButtonText`. Поле с `MaxLength=100`, автофокус+выделение при открытии | — |
 | **ILookupEntity** — интерфейс справочной сущности (`int Id`, `string Name`) | [../Clayzor.Lib.Entities/docs/entity-crud.md](../Clayzor.Lib.Entities/docs/entity-crud.md) |
 | **ClayTheme** — corporate theme (DarkNavy + Gold accent). PaletteLight references `ClayColors.*` (single source of truth for brand hex values). Typography references CSS variables `--clay-font-family` (Verdana) and `--clay-font-size` (0.8rem). Applied in MainLayout. **Important**: palette values must be C# hex literals, NOT `var(...)` — MudBlazor parses them via `MudColor.Parse()` | — |
 | **ClayColors** — public C# constants (`public const string`) for every brand color. Single source of truth — shared by `ClayTheme.cs` and (via `--mud-palette-*` variables) by `app.css`. See STYLE_RULES.md §1 (Variant A) | — |
@@ -69,7 +70,8 @@
 
 | Класс | Назначение |
 |---|---|
-| `ClayGridDynamicSettings` | Настройки динрежима: имена таблиц (`SettingsTable`, `ColumnsTable`, `UserParamsTable`, `UserSharedParamsTable`), имя табличной функции `UserParamsShared`, префиксы query-параметров, `ConnectionStringName`, `QuickSearchParamPrefix`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
+| `ClayGridDynamicSettings` | Настройки динрежима: имена таблиц (`SettingsTable`, `ColumnsTable`, `UserParamsTable`, `UserSharedParamsTable`), имя табличной функции/процедуры `UserParamsShared`, префиксы query-параметров, `ConnectionStringName`, `QuickSearchParamPrefix`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
+| `ClayGridParamRegistry` | Единый реестр имён параметров грида (SH4): `GetGridParamNames(settings, gridId)` → 6 имён (cols/filter/group/sort/pageSize/quickSearch префикс + gridId). Проверка длины ≤ 20 с именем свойства в ошибке. Чистая функция |
 | `ClayColumnKind` | Enum типов колонок (1–13): Number=1, Text=2, Date=3, Link=4, List=5, ConditionBool=6, Bool=7, Html=8, Icon=9, DateTimeLocal=10, ConditionList=11, LimitedText=12, TimeLocal=13 |
 | `ClayColumnKindExtensions` | `SupportsQuickSearch(int kind)` — белый список типов, допустимых для быстрого поиска (1,2,3,4,10,12,13). Исключены справочные (5,9), фильтр-онли (6,11), булевы (7), HTML (8) |
 | `ClayColumnTypeMap` | `Resolve(int)` → существующий `ColumnTypeDescriptor` (1→Number, 2→Text, 3→Date, 4→Text, 7→Boolean); `IsSupported(int)` |
@@ -180,6 +182,8 @@
 **Выполненные шаги «Поделиться» (SH2–SH3):**
 - SH2 — схема БД: таблица `ClayGridUserSharedParams`, колонка `КодНастройкиОбщей` в `ClayGridUserParams`, FK без каскада, перестроенный UNIQUE (3 колонки), переписанный триггер upsert, табличная функция `ClayGridUserParamsShared`, seed. Оркестратор: `Components/Grid/promts/SH_share/SH0_README_share.md`.
 - SH3 — конфигурация и DALC: `UserSharedParamsTable` + `UserParamsShared` в `ClayGridDynamicSettings`, `ClayGridSharedParamsData` (7 операций в `Clayzor.Lib.Entities`), фильтр `КодНастройкиОбщей = 0` во всех чтениях/записях личных параметров, тесты.
+- SH4 — единый реестр имён параметров: `ClayGridParamRegistry.GetGridParamNames(settings, gridId)` → 6 имён с проверкой длины ≤ 20 и именованием свойства-префикса в ошибке. Чистая функция, тестируется без DI.
+- SH5 — кнопка «Поделиться»: `ClayButton` с `Icons.Material.Filled.Share` в тулбаре (`@if (_opt.Dynamic)`), CSS-класс `toolbar-share-btn`. Диалог `ClayShareDialog` (поле с `MaxLength=100`, автофокус+выделение). `BuildCurrentParamSet()` — сериализация текущего состояния теми же методами `GridStateSerializer`. `CreateSharedLinkAsync()` — создание общей настройки через `ClayGridSharedParamsData.CreateWithParamsAsync` + сборка URL + копирование в буфер (`clayGridShare.js` с fallback для http).
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
 

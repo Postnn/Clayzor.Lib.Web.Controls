@@ -47,6 +47,13 @@
                          Icon="@Icons.Material.Filled.ViewColumn"
                          Class="toolbar-columns-btn"
                          OnClick="OpenColumnSettings" />
+            @if (_opt.Dynamic)
+            {
+                <ClayButton Text="Поделиться настройками"
+                             Icon="@Icons.Material.Filled.Share"
+                             Class="toolbar-share-btn"
+                             OnClick="OpenShareDialog" />
+            }
             @if (_columnBySqlName.Values.Any(c => c.Groupable))
             {
                 <ClayButton Text="@(_trayExpanded ? "Отключить группировку" : "Группировать")"

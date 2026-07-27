@@ -879,4 +879,94 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
         return result;
     }
+
+    // ── SH5: «Поделиться» ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Собирает текущее состояние грида в словарь Параметр → Значение,
+    /// используя ту же сериализацию, что и <see cref="SaveDynamicState"/>.
+    /// Параметры с пустым значением исключаются — восстановят состояние по умолчанию.
+    /// </summary>
+    private IReadOnlyDictionary<string, string> BuildCurrentParamSet()
+    {
+        var opt = DynamicOpts.Value;
+        var p   = (string prefix) => ClayGridUserParamsData.BuildParamName(prefix, _dynamicGridId);
+
+        var result = new Dictionary<string, string>
+        {
+            [p(opt.ColumnsParamPrefix)]     = GridStateSerializer.SerializeColumns(_columnOrder, _columnById, _hiddenSqlNames),
+            [p(opt.SortingParamPrefix)]     = GridStateSerializer.SerializeSort(_sortState),
+            [p(opt.GroupingParamPrefix)]    = GridStateSerializer.SerializeGroups(_groupColumns),
+            [p(opt.PageSizeParamPrefix)]    = GridStateSerializer.SerializePageSize(_pageSize),
+            [p(opt.FilterParamPrefix)]      = GridStateSerializer.SerializeFilter(_filterRoot) ?? string.Empty,
+        };
+
+        var qksValue = SerializeQuickSearchColumns();
+        if (qksValue is not null)
+            result[p(opt.QuickSearchParamPrefix)] = qksValue;
+
+        // Параметры с пустым значением не пишем — восстановят состояние по умолчанию
+        return result.Where(kv => kv.Value.Length > 0)
+                     .ToDictionary(kv => kv.Key, kv => kv.Value);
+    }
+
+    /// <summary>Обработчик кнопки «Поделиться»: диалог → создание общей настройки.</summary>
+    private async Task OpenShareDialog()
+    {
+        var parameters = new DialogParameters<ClayShareDialog>
+        {
+            { x => x.InitialValue, _opt.Title }
+        };
+        var options = new DialogOptionsEx { DragMode = MudDialogDragMode.Simple };
+        var dialog = await DialogService.ShowExAsync<ClayShareDialog>("Поделиться настройками", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var title = result.Data as string;
+        if (string.IsNullOrWhiteSpace(title)) return;
+
+        await CreateSharedLinkAsync(title);
+    }
+
+    /// <summary>
+    /// Создаёт общую настройку с текущим состоянием грида, формирует ссылку
+    /// и копирует в буфер обмена. На время операции — оверлей через <see cref="RunBusyAsync"/>.
+    /// </summary>
+    private async Task CreateSharedLinkAsync(string title)
+    {
+        try
+        {
+            await RunBusyAsync("Создание ссылки…", async () =>
+            {
+                var opt    = DynamicOpts.Value;
+                var @params = BuildCurrentParamSet();
+                if (@params.Count == 0)
+                {
+                    Snackbar.Add("Нет параметров для сохранения", Severity.Warning);
+                    return;
+                }
+
+                var sharedId = await ClayGridSharedParamsData.CreateWithParamsAsync(
+                    Db, title, @params,
+                    opt.UserSharedParamsTable, opt.UserParamsTable, opt.Schema);
+
+                // Сборка URL: текущий URL грида, очищенный от всех параметров кроме gridId
+                var uri = new Uri(Nav.Uri);
+                var gridIdParam = opt.GridIdQueryParam;
+                var gridIdValue = _dynamicGridId.ToString();
+                var baseUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}{uri.AbsolutePath}";
+                var sharedUrl = $"{baseUrl}?{gridIdParam}={gridIdValue}&sharedId={sharedId}";
+
+                // Копирование в буфер обмена
+                await JS.InvokeAsync<bool>("clayGridShare.copyToClipboard", new object[] { sharedUrl });
+
+                Snackbar.Add("Ссылка скопирована в буфер обмена", Severity.Success);
+            });
+        }
+        catch
+        {
+            // DbManager уже передал ошибку в ISqlErrorHandler → ClayErrorBar.
+            // Не роняем circuit — пользователь увидит баннер с деталями.
+        }
+    }
 }

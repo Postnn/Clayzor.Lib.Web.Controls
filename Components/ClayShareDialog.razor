@@ -1,0 +1,70 @@
+@namespace Clayzor.Lib.Web.Controls.Components
+
+@* Диалог ввода названия общей настройки. Используется для создания (SH5) и переименования (SH7). *@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField T="string"
+                      @bind-Value="_name"
+                      Label="Название ссылки"
+                      Variant="Variant.Outlined"
+                      MaxLength="100"
+                      Immediate="true"
+                      @ref="_textField"
+                      />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Отмена</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="@(string.IsNullOrWhiteSpace(_name))"
+                   OnClick="Confirm">
+            @ActionButtonText
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>Заголовок диалога.</summary>
+    [Parameter] public string Title { get; set; } = "Поделиться настройками";
+
+    /// <summary>Начальное значение поля ввода (по умолчанию — название грида).</summary>
+    [Parameter] public string InitialValue { get; set; } = "";
+
+    /// <summary>Текст кнопки действия.</summary>
+    [Parameter] public string ActionButtonText { get; set; } = "Получить ссылку";
+
+    private MudTextField<string> _textField = null!;
+    private string _name = "";
+
+    protected override void OnInitialized()
+    {
+        _name = InitialValue;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Фокус + выделение текста, чтобы можно было сразу набрать своё
+            await _textField.FocusAsync();
+            await _textField.SelectAsync();
+        }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private async Task Confirm()
+    {
+        var trimmed = _name.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed)) return;
+        MudDialog?.Close(DialogResult.Ok(trimmed));
+        await Task.CompletedTask;
+    }
+}

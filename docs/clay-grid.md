@@ -518,6 +518,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 |---|---|---|---|
 | Группировка | `AccountTree` | `grouping-toggle-btn` / `grouping-toggle-btn--active` | Показывает/скрывает панель tray |
 | Фильтрация | `FilterAlt` | `filter-toggle-btn` / `filter-toggle-btn--active` | Показывает/скрывает панель фильтрации |
+| Поделиться | `Share` | `toolbar-share-btn` | Только в динамическом режиме. Открывает диалог `ClayShareDialog`, создаёт общую настройку, копирует ссылку в буфер обмена |
 | Добавить | `Add` | `toolbar-add-btn` | Вызывает `OnAdd` |
 | Выбрать записи | `CheckBox` | `toolbar-select-btn` / `toolbar-select-btn--active` | Включает/выключает чекбоксы в строках |
 | Групповые операции | `PlaylistAddCheck` | `toolbar-batch-btn` | Меню: Печать / Excel (текущая страница, выбранные, все данные) |
