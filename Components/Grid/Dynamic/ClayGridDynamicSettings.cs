@@ -21,6 +21,17 @@ public sealed class ClayGridDynamicSettings
     /// <summary>Имя таблицы параметров пользователя. По умолчанию: "ClayGridUserParams".</summary>
     public string UserParamsTable { get; set; } = "ClayGridUserParams";
 
+    /// <summary>Имя таблицы общих настроек. По умолчанию: "ClayGridUserSharedParams".</summary>
+    public string UserSharedParamsTable { get; set; } = "ClayGridUserSharedParams";
+
+    /// <summary>
+    /// Имя табличной функции чтения параметров по sharedId.
+    /// Контракт: входной параметр @КодНастройкиОбщей int,
+    /// возвращаемые поля Параметр varchar(50), Значение nvarchar(MAX).
+    /// По умолчанию: "ClayGridUserParamsShared".
+    /// </summary>
+    public string UserParamsShared { get; set; } = "ClayGridUserParamsShared";
+
     /// <summary>Имя query-параметра для ID грида. По умолчанию: "id".</summary>
     public string GridIdQueryParam { get; set; } = "id";
 
@@ -62,5 +73,9 @@ public sealed class ClayGridDynamicSettings
             throw new InvalidOperationException("ClayGridDynamicSettings.ColumnsTable пусто");
         if (string.IsNullOrWhiteSpace(UserParamsTable))
             throw new InvalidOperationException("ClayGridDynamicSettings.UserParamsTable пусто");
+        if (string.IsNullOrWhiteSpace(UserSharedParamsTable))
+            throw new InvalidOperationException("ClayGridDynamicSettings.UserSharedParamsTable пусто");
+        if (string.IsNullOrWhiteSpace(UserParamsShared))
+            throw new InvalidOperationException("ClayGridDynamicSettings.UserParamsShared пусто");
     }
 }

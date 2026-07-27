@@ -69,7 +69,7 @@
 
 | Класс | Назначение |
 |---|---|
-| `ClayGridDynamicSettings` | Настройки динрежима: имена таблиц, префиксы query-параметров, `ConnectionStringName`, `QuickSearchParamPrefix`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
+| `ClayGridDynamicSettings` | Настройки динрежима: имена таблиц (`SettingsTable`, `ColumnsTable`, `UserParamsTable`, `UserSharedParamsTable`), имя табличной функции `UserParamsShared`, префиксы query-параметров, `ConnectionStringName`, `QuickSearchParamPrefix`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
 | `ClayColumnKind` | Enum типов колонок (1–13): Number=1, Text=2, Date=3, Link=4, List=5, ConditionBool=6, Bool=7, Html=8, Icon=9, DateTimeLocal=10, ConditionList=11, LimitedText=12, TimeLocal=13 |
 | `ClayColumnKindExtensions` | `SupportsQuickSearch(int kind)` — белый список типов, допустимых для быстрого поиска (1,2,3,4,10,12,13). Исключены справочные (5,9), фильтр-онли (6,11), булевы (7), HTML (8) |
 | `ClayColumnTypeMap` | `Resolve(int)` → существующий `ColumnTypeDescriptor` (1→Number, 2→Text, 3→Date, 4→Text, 7→Boolean); `IsSupported(int)` |
@@ -176,6 +176,10 @@
 **Выполненные шаги рефакторинга (CGO):**
 - CGO — серия сведения конфигурационных параметров `ClayGrid` в `ClayGridOptions` (A1–C2): 21 параметр переехал в POCO-объект, 10 остались параметрами тега (данные/фрагменты/колбэки). Оркестратор: `promts/_done/CGO/CGO0_README_grid_options.md`.
 - CGR1 — переименование `ClayGridDynamicOptions` → `ClayGridDynamicSettings` в соответствии с конвенцией `*Settings` (уровень приложения) / `*Options` (экземпляр).
+
+**Выполненные шаги «Поделиться» (SH2–SH3):**
+- SH2 — схема БД: таблица `ClayGridUserSharedParams`, колонка `КодНастройкиОбщей` в `ClayGridUserParams`, FK без каскада, перестроенный UNIQUE (3 колонки), переписанный триггер upsert, табличная функция `ClayGridUserParamsShared`, seed. Оркестратор: `Components/Grid/promts/SH_share/SH0_README_share.md`.
+- SH3 — конфигурация и DALC: `UserSharedParamsTable` + `UserParamsShared` в `ClayGridDynamicSettings`, `ClayGridSharedParamsData` (7 операций в `Clayzor.Lib.Entities`), фильтр `КодНастройкиОбщей = 0` во всех чтениях/записях личных параметров, тесты.
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
 

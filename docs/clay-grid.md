@@ -556,7 +556,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 
 ## Стилизация панелей
 
-Панели группировки и фильтрации имеют идентичное визуальное оформление. Все цвета используют MudBlazor-переменные палитры (`--mud-palette-*`) — автоматически адаптируются к светлой/тёмной теме. CSS определён в `wwwroot/css/app.css`.
+Панели группировки и фильтрации имеют идентичное визуальное оформление. Все цвета используют MudBlazor-переменные палитры (`--mud-palette-*`) — автоматически адаптируются к светлой/тёмной теме. CSS определён в `wwwroot/css/clay.css` (RCL, перенесён из `app.css` шагом GB7).
 
 | Элемент | CSS-класс | Свойства |
 |---|---|---|
@@ -751,7 +751,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 - `DragAndDropEnabled="false"` на всех `TemplateColumn` — MudBlazor не участвует в drag-and-drop колонок
 - `ClayGrid` должен иметь уникальный `Id` (используется для поиска корневого элемента)
 - `App.razor` должен подключать JS: `<script src="_content/Clayzor.Lib.Web.Controls/js/clayGridColumnDrag.js"></script>`
-- CSS-индикатор (`.clay-grid-drop-indicator`) определён в `app.css`
+- CSS-индикатор (`.clay-grid-drop-indicator`) определён в `clay.css`
 
 ### ClayGrid → JS-методы
 

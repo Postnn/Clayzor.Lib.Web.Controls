@@ -538,7 +538,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         };
 
         var saved = await ClayGridUserParamsData.LoadAsync(
-            Db, _dynamicClid, paramNames, opt.UserParamsTable, opt.Schema);
+            Db, _dynamicClid, paramNames, opt.UserParamsTable, opt.Schema, sharedId: 0);
 
         _dynamicSavedParams = new Dictionary<string, string>(saved);
 
@@ -797,7 +797,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (_dynamicForcedParamNames.Contains(name)) return;
         if (_dynamicSavedParams.TryGetValue(name, out var current) && current == value) return;
 
-        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, name, value, opt.UserParamsTable, opt.Schema);
+        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, name, value, opt.UserParamsTable, opt.Schema, sharedId: 0);
         _dynamicSavedParams[name] = value;   // кеш обновляем ТОЛЬКО после успешной записи
     }
 
