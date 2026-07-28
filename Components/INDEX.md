@@ -3,7 +3,7 @@
 Пути в репозитории:
 
 - `Grid/_done/*` → `src/Clayzor.Lib.Web.Controls/Components/Grid/promts/_done/`
-- `Grid/SH_share/*` → `src/Clayzor.Lib.Web.Controls/Components/Grid/promts/SH_share/`
+- `Grid/SH_share/*` → `src/Clayzor.Lib.Web.Controls/Components/Grid/promts/_done/SH_share/`
 - `Tree/*` → `src/Clayzor.Lib.Web.Controls/Components/Tree/promts/`
 
 Раскладку внутри `_done/` подгони под то, как файлы уже лежат в репозитории — здесь она
