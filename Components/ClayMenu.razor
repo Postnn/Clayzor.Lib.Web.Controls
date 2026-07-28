@@ -14,7 +14,8 @@
          AnchorOrigin="@AnchorOrigin"
          TransformOrigin="@TransformOrigin"
          Dense="@Dense"
-         Disabled="@Disabled">
+         Disabled="@Disabled"
+         @ref="_menu">
     <ActivatorContent Context="x">
         @{
             // Захватываем x как object для передачи в обработчик
@@ -79,7 +80,14 @@
     /// <summary>Содержимое меню — элементы MudMenuItem.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    private MudMenu _menu = null!;
     private int _tipKey;
+
+    /// <summary>Программно закрывает меню. Используется перед открытием диалогов из пунктов меню.</summary>
+    public async Task CloseAsync()
+    {
+        await _menu.CloseMenuAsync();
+    }
 
     private async Task HandleOpen(object context)
     {

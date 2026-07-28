@@ -99,6 +99,15 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _dynamicGridId = gridId;
         _dynamicClid   = ResolveClientId(opt);
 
+        // SH8: разбор sharedId — если невалидный, отказ до загрузки данных
+        var sharedId = ResolveSharedId();
+        _isSharedMode = sharedId.HasValue;
+        if (_isSharedMode && sharedId.Value <= 0)
+        {
+            _dynamicError = $"Неверный код общей настройки «{sharedId}» — ссылка недействительна.";
+            return;
+        }
+
         _dynamicDef = await ClayGridDefinitionData.LoadGridWithQuickSearchAsync(
             Db, gridId, opt.SettingsTable, opt.ColumnsTable, opt.Schema);
         if (_dynamicDef is null)
@@ -336,6 +345,20 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 _valueFilterDisabledColumns.Add(meta.SqlName);
         }
 
+        // SH8: загрузить и применить общие настройки ДО первой загрузки данных
+        if (_isSharedMode && sharedId.HasValue && sharedId.Value > 0)
+        {
+            var sharedParams = await LoadAndValidateSharedParamsAsync(sharedId.Value, opt);
+            if (sharedParams is not null)
+                ApplySharedParams(sharedParams, opt);
+            // Если null — _dynamicError уже установлен, грид не загрузится
+        }
+        else
+        {
+            // Обычный режим — проверить наличие своих общих настроек (SH7)
+            await CheckSharedSettingsAsync();
+        }
+
         // Первая загрузка: в динамическом режиме страницы-загрузчика нет,
         // грид обязан стартовать сам.
         await NotifyQueryChanged();
@@ -526,6 +549,126 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var qs   = System.Web.HttpUtility.ParseQueryString(uri.Query);
         var val  = qs[opt.ClientIdQueryParam];
         return val is not null && int.TryParse(val, out var clid) ? clid : 0;
+    }
+
+    /// <summary>
+    /// Разбирает sharedId из URL.
+    /// null — параметра нет или он равен 0 (обычный режим).
+    /// Положительное — валидный sharedId.
+    /// Отрицательное/нечисловое — ошибка.
+    /// </summary>
+    private int? ResolveSharedId()
+    {
+        var uri = new Uri(Nav.Uri);
+        var qs  = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var val = qs[ClayShareUrlBuilder.SharedIdParam];
+        if (string.IsNullOrEmpty(val)) return null;
+        if (!int.TryParse(val, out var sid)) return -1; // не число → ошибка
+        if (sid == 0) return null;                       // 0 = обычный режим
+        return sid;
+    }
+
+    /// <summary>
+    /// Загружает параметры общей настройки через <c>UserParamsShared</c>
+    /// и проверяет соответствие имён текущему гриду.
+    /// При ошибке устанавливает <see cref="_dynamicError"/> и возвращает null.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, string>?> LoadAndValidateSharedParamsAsync(
+        int sharedId, ClayGridDynamicSettings opt)
+    {
+        var paramNames = ClayGridParamRegistry.GetGridParamNames(opt, _dynamicGridId);
+        IReadOnlyDictionary<string, string> sharedParams;
+        try
+        {
+            sharedParams = await ClayGridSharedParamsData.LoadSharedParamsAsync(
+                Db, sharedId, opt.UserParamsShared, paramNames);
+        }
+        catch
+        {
+            _dynamicError = $"Не удалось загрузить общие настройки №{sharedId}. " +
+                            "Ссылка недействительна или база данных недоступна.";
+            return null;
+        }
+
+        if (sharedParams.Count == 0)
+        {
+            _dynamicError = $"Общие настройки №{sharedId} не найдены. " +
+                            "Возможно, ссылка устарела или была удалена.";
+            return null;
+        }
+
+        if (!ClaySharedParamValidator.IsValid(sharedParams.Keys, paramNames))
+        {
+            _dynamicError = $"Общие настройки №{sharedId} не соответствуют текущему гриду. " +
+                            "Ссылка могла быть создана для другого набора данных.";
+            return null;
+        }
+
+        return sharedParams;
+    }
+
+    /// <summary>
+    /// Применяет чужие параметры к состоянию грида теми же методами десериализации,
+    /// что и <see cref="RestoreDynamicState"/>. НЕ заполняет <see cref="_dynamicSavedParams"/>
+    /// (кеш «что в БД») — чтобы choke point не думал, что параметры уже сохранены.
+    /// </summary>
+    private void ApplySharedParams(IReadOnlyDictionary<string, string> sharedParams, ClayGridDynamicSettings opt)
+    {
+        var p = (string prefix) => ClayGridUserParamsData.BuildParamName(prefix, _dynamicGridId);
+
+        // Колонки
+        var colsName = p(opt.ColumnsParamPrefix);
+        if (sharedParams.TryGetValue(colsName, out var colsVal))
+            ApplyColumnsState(colsVal);
+
+        // Сортировка
+        var srtName = p(opt.SortingParamPrefix);
+        if (sharedParams.TryGetValue(srtName, out var srtVal))
+            ApplySavedSort(srtVal);
+
+        // Группировка
+        var grpName = p(opt.GroupingParamPrefix);
+        if (sharedParams.TryGetValue(grpName, out var grpVal))
+            ApplySavedGroups(grpVal);
+
+        // Размер страницы
+        var pgsName = p(opt.PageSizeParamPrefix);
+        if (sharedParams.TryGetValue(pgsName, out var pgsVal) && int.TryParse(pgsVal, out var ps) && ps > 0)
+            _pageSize = ps;
+
+        // Фильтр
+        var fltName = p(opt.FilterParamPrefix);
+        if (sharedParams.TryGetValue(fltName, out var fltVal))
+        {
+            var root = GridStateSerializer.DeserializeFilter(fltVal);
+            if (root is not null)
+                _filterRoot = root;
+        }
+
+        // Быстрый поиск
+        var qksName = p(opt.QuickSearchParamPrefix);
+        if (sharedParams.TryGetValue(qksName, out var qksVal))
+            ApplySavedQuickSearch(qksVal);
+
+        // Применить ограничения грида поверх чужих значений (п. 4)
+        _ = RefreshQuickSearchEffective(opt);
+    }
+
+    /// <summary>Переходит на текущий грид без sharedId (полная перезагрузка).</summary>
+    private void OpenWithoutSharedId()
+    {
+        var cleanUrl = ClayShareUrlBuilder.BuildShareUrl(Nav.Uri, DynamicOpts.Value.GridIdQueryParam, 0);
+        // Убираем sharedId из чистого URL (BuildShareUrl добавляет sharedId=0)
+        var uri = new Uri(cleanUrl);
+        var baseUrl = uri.GetLeftPart(UriPartial.Path);
+        var qs = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        qs.Remove(ClayShareUrlBuilder.SharedIdParam);
+        var gridIdVal = qs[DynamicOpts.Value.GridIdQueryParam];
+        qs.Clear();
+        if (gridIdVal is not null)
+            qs[DynamicOpts.Value.GridIdQueryParam] = gridIdVal;
+        var finalUrl = qs.Count > 0 ? $"{baseUrl}?{qs}" : baseUrl;
+        Nav.NavigateTo(finalUrl, forceLoad: true);
     }
 
     private async Task RestoreDynamicState(ClayGridDynamicSettings opt)
@@ -794,6 +937,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private async Task SaveParamIfChanged(string name, string value, ClayGridDynamicSettings opt)
     {
+        // SH8: choke point — в режиме sharedId личные параметры не сохраняются.
+        // Записи с ненулевым sharedId (общие настройки) проходят через ClayGridSharedParamsData.
+        if (_isSharedMode) return;
         if (_dynamicForcedParamNames.Contains(name)) return;
         if (_dynamicSavedParams.TryGetValue(name, out var current) && current == value) return;
 
@@ -961,6 +1107,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 if (copied)
                 {
                     Snackbar.Add("Ссылка скопирована в буфер обмена", Severity.Success);
+                    _hasSharedSettings = true; // только что создали первую или очередную
                 }
                 else
                 {
@@ -979,5 +1126,134 @@ public partial class ClayGrid<TEntity> where TEntity : class
             // DbManager уже передал ошибку в ISqlErrorHandler → ClayErrorBar.
             // Не роняем circuit — пользователь увидит баннер с деталями.
         }
+    }
+
+    // ── SH7: список общих настроек ──────────────────────────────────────────
+
+    /// <summary>Признак, что грид открыт по чужой ссылке (sharedId в URL). В этом режиме
+    /// кнопки «Поделиться» и списка общих настроек скрыты.</summary>
+    private bool _isSharedMode;
+
+    /// <summary>Признак наличия общих настроек у текущего грида (управляет видимостью кнопки).</summary>
+    private bool _hasSharedSettings;
+
+    /// <summary>Список общих настроек: (КодНастройкиОбщей, Название).</summary>
+    private List<(int SharedId, string Title)> _sharedList = [];
+
+    /// <summary>Признак загрузки списка (показывается MudProgressCircular).</summary>
+    private bool _sharedListLoading;
+
+    /// <summary>Ссылка на меню списка общих настроек — для программного закрытия.</summary>
+    private ClayMenu _sharedListMenu = null!;
+
+    /// <summary>Проверяет наличие общих настроек и обновляет <see cref="_hasSharedSettings"/>.</summary>
+    private async Task CheckSharedSettingsAsync()
+    {
+        var opt = DynamicOpts.Value;
+        var paramNames = ClayGridParamRegistry.GetGridParamNames(opt, _dynamicGridId);
+        _hasSharedSettings = await ClayGridSharedParamsData.AnyAsync(
+            Db, _dynamicClid, paramNames, opt.UserParamsTable, opt.Schema);
+    }
+
+    /// <summary>Загружает список общих настроек из БД. Вызывается при раскрытии меню.</summary>
+    private async Task LoadSharedListAsync()
+    {
+        _sharedListLoading = true;
+        try
+        {
+            var opt = DynamicOpts.Value;
+            var paramNames = ClayGridParamRegistry.GetGridParamNames(opt, _dynamicGridId);
+            var items = await ClayGridSharedParamsData.ListAsync(
+                Db, _dynamicClid, paramNames, opt.UserParamsTable, opt.UserSharedParamsTable, opt.Schema);
+            _sharedList = items.ToList();
+            if (_sharedList.Count == 0)
+                _hasSharedSettings = false;
+        }
+        catch
+        {
+            // Ошибка загрузки — оставляем предыдущий список, не роняем меню
+            _sharedList = [];
+        }
+        finally
+        {
+            _sharedListLoading = false;
+        }
+    }
+
+    /// <summary>Открывает диалог переименования общей настройки.</summary>
+    private async Task RenameSharedAsync(int sharedId, string currentTitle)
+    {
+        await _sharedListMenu.CloseAsync();
+        await Task.Delay(100); // даём меню закрыться перед открытием диалога
+
+        var parameters = new DialogParameters<ClayShareDialog>
+        {
+            { x => x.Title, "Переименовать" },
+            { x => x.InitialValue, currentTitle },
+            { x => x.ActionButtonText, "Сохранить" }
+        };
+        var options = new DialogOptionsEx { DragMode = MudDialogDragMode.Simple };
+        var dialog = await DialogService.ShowExAsync<ClayShareDialog>("Переименовать", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var newTitle = result.Data as string;
+        if (string.IsNullOrWhiteSpace(newTitle)) return;
+
+        var opt = DynamicOpts.Value;
+        await ClayGridSharedParamsData.RenameAsync(Db, sharedId, newTitle, opt.UserSharedParamsTable);
+    }
+
+    /// <summary>Удаляет общую настройку с подтверждением.</summary>
+    private async Task DeleteSharedAsync(int sharedId, string title)
+    {
+        await _sharedListMenu.CloseAsync();
+        await Task.Delay(100);
+
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Message, $"Удалить общую настройку «{title}»?" }
+        };
+        var options = new DialogOptionsEx { DragMode = MudDialogDragMode.Simple };
+        var dialog = await DialogService.ShowExAsync<ConfirmDialog>("Подтверждение", parameters, options);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var opt = DynamicOpts.Value;
+        await ClayGridSharedParamsData.DeleteAsync(
+            Db, sharedId, opt.UserParamsTable, opt.UserSharedParamsTable, opt.Schema);
+        await CheckSharedSettingsAsync();
+    }
+
+    /// <summary>Копирует ссылку общей настройки в буфер обмена.</summary>
+    private async Task CopySharedLinkAsync(int sharedId)
+    {
+        await _sharedListMenu.CloseAsync();
+        await Task.Delay(100);
+
+        var opt = DynamicOpts.Value;
+        var sharedUrl = ClayShareUrlBuilder.BuildShareUrl(Nav.Uri, opt.GridIdQueryParam, sharedId);
+        var copied = await JS.InvokeAsync<bool>(
+            "clayGridShare.copyToClipboard", new object[] { sharedUrl });
+
+        if (copied)
+        {
+            Snackbar.Add("Ссылка скопирована в буфер обмена", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(sharedUrl, Severity.Info, config =>
+            {
+                config.RequireInteraction = true;
+                config.VisibleStateDuration = 30000;
+            });
+        }
+    }
+
+    /// <summary>Строит URL для кнопки «Перейти» — открывается в новом окне.</summary>
+    private string BuildSharedUrl(int sharedId)
+    {
+        var opt = DynamicOpts.Value;
+        return ClayShareUrlBuilder.BuildShareUrl(Nav.Uri, opt.GridIdQueryParam, sharedId);
     }
 }

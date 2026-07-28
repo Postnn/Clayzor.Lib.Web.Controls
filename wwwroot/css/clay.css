@@ -366,6 +366,18 @@ body {
     background: color-mix(in srgb, transparent 86%, var(--mud-palette-primary) 14%) !important;
 }
 
+.toolbar-shared-list-btn .mud-icon-button {
+    color: var(--mud-palette-primary) !important;
+    background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
+    border-radius: 2px !important;
+    box-shadow: inset 0 -2px 0 var(--lh-gold);
+    transition: background 0.15s;
+}
+
+.toolbar-shared-list-btn .mud-icon-button:hover {
+    background: color-mix(in srgb, transparent 86%, var(--mud-palette-primary) 14%) !important;
+}
+
 .toolbar-help-btn {
     color: var(--mud-palette-primary) !important;
     background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
@@ -816,6 +828,36 @@ body {
    на целевой грид перед window.print().
    Только грид с этим классом отображается при печати.
    ═══════════════════════════════════════════════════ */
+
+/* ── Shared mode badge (SH8) ── */
+.clay-shared-mode-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    color: var(--mud-palette-warning);
+    background: color-mix(in srgb, var(--mud-palette-warning) 12%, transparent);
+    border: 1px solid var(--mud-palette-warning);
+    border-radius: 4px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+/* ── Shared list (SH7) ── */
+.shared-list-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    min-width: 280px;
+}
+
+.shared-list-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
 @media print {
     /* ── Скрыть layout chrome ── */
     .mud-appbar,
@@ -848,6 +890,7 @@ body {
     .clay-grid-printing .toolbar-share-btn,
     .clay-grid-printing .toolbar-add-btn,
     .clay-grid-printing .toolbar-select-btn,
+    .clay-grid-printing .toolbar-shared-list-btn,
     .clay-grid-printing .toolbar-batch-btn,
     .clay-grid-printing .toolbar-help-btn,
     .clay-grid-printing .grouping-toggle-btn,
