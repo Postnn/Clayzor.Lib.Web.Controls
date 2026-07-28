@@ -63,7 +63,7 @@
 ### Tree — компонент ClayTreeView (CT1+)
 
 Пакет `Components/Tree/` — дерево с серверной ленивой загрузкой уровней, две модели иерархии
-(NestedSet / ParentKey). План серии: [promts/CT1_tree_view_skeleton.md](Components/Tree/promts/CT1_tree_view_skeleton.md).
+(NestedSet / ParentKey). План серии: [promts/_done/CT/CT1_tree_view_skeleton.md](Components/Tree/promts/_done/CT/CT1_tree_view_skeleton.md).
 
 **Аксиома имён колонок по умолчанию:** `LeftColumn = "L"`, `RightColumn = "R"`, `ParentColumn = "Parent"`.
 `LevelColumn` — может отсутствовать в источнике данных и является необязательной.
@@ -180,6 +180,12 @@
 **Выполненные шаги рефакторинга (CGO):**
 - CGO — серия сведения конфигурационных параметров `ClayGrid` в `ClayGridOptions` (A1–C2): 21 параметр переехал в POCO-объект, 10 остались параметрами тега (данные/фрагменты/колбэки). Оркестратор: `promts/_done/CGO/CGO0_README_grid_options.md`.
 - CGR1 — переименование `ClayGridDynamicOptions` → `ClayGridDynamicSettings` в соответствии с конвенцией `*Settings` (уровень приложения) / `*Options` (экземпляр).
+
+**Выполненные заплатки ClayTreeView (CTF1–CTF4):**
+- CTF1 — NestedSet без `LevelColumn`: `NOT EXISTS`-предикат для прямых детей (блокер, без него дерево не работает глубже первого уровня). `ClayTreeSqlBuilder.BuildNestedSetSql`.
+- CTF2 — уровень узла от родителя: `Level = row.Level ?? ((parent?.Level + 1) ?? 0)` в `ClaySqlTreeDataSource.MapRow` (без колонки все узлы рисовались плоскими).
+- CTF3 — сброс `_expanded` в `LoadRootsAsync`: `_expanded.Clear()` вместе с `_roots`/`_byId` (кнопка «Обновить» рассинхронизировала счётчик раскрытых).
+- CTF4 — устойчивость ключей: `ToKey` нормализует `DBNull` → `""`, `ToggleAsync` берёт ключ из `node.Id` вместо пересчёта. 4 теста. Оркестратор: `Components/Tree/promts/_done/CTF/CTF0_README_fixes.md`.
 
 **Выполненные шаги «Поделиться» (SH2–SH3):**
 - SH2 — схема БД: таблица `ClayGridUserSharedParams`, колонка `КодНастройкиОбщей` в `ClayGridUserParams`, FK без каскада, перестроенный UNIQUE (3 колонки), переписанный триггер upsert, табличная функция `ClayGridUserParamsShared`, seed. Оркестратор: `Components/Grid/promts/_done/SH_share/SH0_README_share.md`.

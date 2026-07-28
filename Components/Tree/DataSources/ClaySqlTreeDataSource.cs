@@ -1,3 +1,4 @@
+using System.Data;
 using Clayzor.Lib.DALC;
 using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
@@ -56,9 +57,8 @@ public sealed class ClaySqlTreeDataSource : IClayTreeDataSource
             RawId       = row.Id,
             Text        = row.Text,
             ParentId    = row.ParentId,
-            Level       = _source.Mode == ClayTreeHierarchyMode.ParentKey
-                            ? (parent?.Level + 1) ?? 0
-                            : row.Level ?? 0,
+            // Уровень от родителя в обоих режимах. row.Level — уточнение при наличии колонки в схеме.
+            Level       = row.Level ?? ((parent?.Level + 1) ?? 0),
             Left        = row.Left,
             Right       = row.Right,
             HasChildren = row.HasChildren,
@@ -67,6 +67,13 @@ public sealed class ClaySqlTreeDataSource : IClayTreeDataSource
         };
     }
 
-    /// <summary>Преобразует идентификатор в строковый ключ для состояния.</summary>
-    public static string ToKey(object? value) => value?.ToString() ?? "";
+    /// <summary>
+    /// Преобразует идентификатор узла в строковый ключ состояния.
+    /// DBNull трактуется как отсутствие значения.
+    /// </summary>
+    public static string ToKey(object? value)
+    {
+        if (value is null || value is DBNull) return "";
+        return value.ToString() ?? "";
+    }
 }

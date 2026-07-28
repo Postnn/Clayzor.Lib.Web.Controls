@@ -15,6 +15,7 @@ public partial class ClayTreeView
         _error = null;
         _roots.Clear();
         _byId.Clear();
+        _expanded.Clear();   // проекция текущего дерева; наполнится заново в RestoreStateAsync
 
         try
         {
@@ -105,14 +106,13 @@ public partial class ClayTreeView
         StateHasChanged();
     }
 
-    /// <summary>Переключение раскрытия/сворачивания.</summary>
+    /// <summary>Переключение раскрытия/сворачивания. Ключ — из узла, не пересчитывается.</summary>
     public async Task ToggleAsync(ClayTreeNode node)
     {
-        var key = ClaySqlTreeDataSource.ToKey(node.RawId);
         if (node.IsExpanded)
-            await CollapseNodeAsync(key);
+            await CollapseNodeAsync(node.Id);
         else
-            await ExpandNodeAsync(key);
+            await ExpandNodeAsync(node.Id);
     }
 
     private void IndexNodes(IReadOnlyList<ClayTreeNode> nodes, ClayTreeNode? parent)
