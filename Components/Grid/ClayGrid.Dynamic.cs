@@ -950,17 +950,28 @@ public partial class ClayGrid<TEntity> where TEntity : class
                     Db, title, @params,
                     opt.UserSharedParamsTable, opt.UserParamsTable, opt.Schema);
 
-                // Сборка URL: текущий URL грида, очищенный от всех параметров кроме gridId
-                var uri = new Uri(Nav.Uri);
-                var gridIdParam = opt.GridIdQueryParam;
-                var gridIdValue = _dynamicGridId.ToString();
-                var baseUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}{uri.AbsolutePath}";
-                var sharedUrl = $"{baseUrl}?{gridIdParam}={gridIdValue}&sharedId={sharedId}";
+                // Сборка URL: белый список — только gridId, плюс sharedId (SH6)
+                var sharedUrl = ClayShareUrlBuilder.BuildShareUrl(
+                    Nav.Uri, opt.GridIdQueryParam, sharedId);
 
-                // Копирование в буфер обмена
-                await JS.InvokeAsync<bool>("clayGridShare.copyToClipboard", new object[] { sharedUrl });
+                // Копирование в буфер с проверкой результата
+                var copied = await JS.InvokeAsync<bool>(
+                    "clayGridShare.copyToClipboard", new object[] { sharedUrl });
 
-                Snackbar.Add("Ссылка скопирована в буфер обмена", Severity.Success);
+                if (copied)
+                {
+                    Snackbar.Add("Ссылка скопирована в буфер обмена", Severity.Success);
+                }
+                else
+                {
+                    // Буфер недоступен (http без localhost) — показываем ссылку
+                    // для ручного копирования. Длинный таймаут — пользователь копирует сам.
+                    Snackbar.Add(sharedUrl, Severity.Info, config =>
+                    {
+                        config.RequireInteraction = true;
+                        config.VisibleStateDuration = 30000;
+                    });
+                }
             });
         }
         catch

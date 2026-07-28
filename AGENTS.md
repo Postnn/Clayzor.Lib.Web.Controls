@@ -72,6 +72,7 @@
 |---|---|
 | `ClayGridDynamicSettings` | Настройки динрежима: имена таблиц (`SettingsTable`, `ColumnsTable`, `UserParamsTable`, `UserSharedParamsTable`), имя табличной функции/процедуры `UserParamsShared`, префиксы query-параметров, `ConnectionStringName`, `QuickSearchParamPrefix`. Связывается из `"ClayGrid:Dynamic"` через `IOptions<T>`. `Validate()` проверяет обязательные поля |
 | `ClayGridParamRegistry` | Единый реестр имён параметров грида (SH4): `GetGridParamNames(settings, gridId)` → 6 имён (cols/filter/group/sort/pageSize/quickSearch префикс + gridId). Проверка длины ≤ 20 с именем свойства в ошибке. Чистая функция |
+| `ClayShareUrlBuilder` | Построитель URL для «Поделиться» (SH6): `BuildShareUrl(currentUrl, gridIdParam, sharedId)` — белый список параметров (только gridId + sharedId), абсолютный URL, URL-кодирование. Чистая функция, 5 тестов |
 | `ClayColumnKind` | Enum типов колонок (1–13): Number=1, Text=2, Date=3, Link=4, List=5, ConditionBool=6, Bool=7, Html=8, Icon=9, DateTimeLocal=10, ConditionList=11, LimitedText=12, TimeLocal=13 |
 | `ClayColumnKindExtensions` | `SupportsQuickSearch(int kind)` — белый список типов, допустимых для быстрого поиска (1,2,3,4,10,12,13). Исключены справочные (5,9), фильтр-онли (6,11), булевы (7), HTML (8) |
 | `ClayColumnTypeMap` | `Resolve(int)` → существующий `ColumnTypeDescriptor` (1→Number, 2→Text, 3→Date, 4→Text, 7→Boolean); `IsSupported(int)` |
@@ -184,6 +185,7 @@
 - SH3 — конфигурация и DALC: `UserSharedParamsTable` + `UserParamsShared` в `ClayGridDynamicSettings`, `ClayGridSharedParamsData` (7 операций в `Clayzor.Lib.Entities`), фильтр `КодНастройкиОбщей = 0` во всех чтениях/записях личных параметров, тесты.
 - SH4 — единый реестр имён параметров: `ClayGridParamRegistry.GetGridParamNames(settings, gridId)` → 6 имён с проверкой длины ≤ 20 и именованием свойства-префикса в ошибке. Чистая функция, тестируется без DI.
 - SH5 — кнопка «Поделиться»: `ClayButton` с `Icons.Material.Filled.Share` в тулбаре (`@if (_opt.Dynamic)`), CSS-класс `toolbar-share-btn`. Диалог `ClayShareDialog` (поле с `MaxLength=100`, автофокус+выделение). `BuildCurrentParamSet()` — сериализация текущего состояния теми же методами `GridStateSerializer`. `CreateSharedLinkAsync()` — создание общей настройки через `ClayGridSharedParamsData.CreateWithParamsAsync` + сборка URL + копирование в буфер (`clayGridShare.js` с fallback для http).
+- SH6 — сборка URL и буфер обмена: `ClayShareUrlBuilder.BuildShareUrl(currentUrl, gridIdParam, sharedId)` — чистый метод, белый список параметров (только gridId + sharedId). `CreateSharedLinkAsync` проверяет результат копирования: успех → снекбар, отказ → ссылка для ручного копирования. 5 unit-тестов.
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
 
