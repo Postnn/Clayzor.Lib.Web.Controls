@@ -8,16 +8,40 @@ public partial class ClayTreeView
     /// <summary>Плоский индекс всех загруженных узлов по строковому ключу.</summary>
     private readonly Dictionary<string, ClayTreeNode> _byId = [];
 
+    /// <summary>Оверлей .clay-busy активен.</summary>
+    private bool _isBusy;
+
+    /// <summary>Подпись под индикатором загрузки.</summary>
+    private string? _busyLabel;
+
+    /// <summary>Выполняет операцию под оверлеем .clay-busy (как в ClayGrid).</summary>
+    private async Task RunBusyAsync(string label, Func<Task> work)
+    {
+        _busyLabel = label;
+        _isBusy    = true;
+        StateHasChanged();
+        await Task.Delay(100);  // дать Blazor отрендерить оверлей до операции
+        try
+        {
+            await work();
+        }
+        finally
+        {
+            _isBusy   = false;
+            _busyLabel = null;
+            StateHasChanged();
+        }
+    }
+
     /// <inheritdoc/>
     public async Task LoadRootsAsync()
     {
-        _initialLoading = true;
         _error = null;
         _roots.Clear();
         _byId.Clear();
         _expanded.Clear();   // проекция текущего дерева; наполнится заново в RestoreStateAsync
 
-        try
+        await RunBusyAsync("Загрузка дерева…", async () =>
         {
             var result = await _dataSource.LoadLevelAsync(new ClayTreeLoadRequest(null));
             if (result.Error is not null)
@@ -31,28 +55,16 @@ public partial class ClayTreeView
                 IndexNodes(result.Nodes, null);
                 await RestoreStateAsync();
             }
-        }
-        catch (Exception ex)
-        {
-            _error = ex.Message;
-            await OnLoadError.InvokeAsync(ex.Message);
-        }
-        finally
-        {
-            _initialLoading = false;
-        }
+        });
     }
 
     /// <summary>Загружает детей узла, если они ещё не загружены.</summary>
     public async Task EnsureChildrenLoadedAsync(ClayTreeNode node)
     {
-        if (node.IsLoaded || node.IsLoading) return;
+        if (node.IsLoaded) return;
         if (!node.HasChildren) return;
 
-        node.IsLoading = true;
-        StateHasChanged();
-
-        try
+        await RunBusyAsync("Загрузка…", async () =>
         {
             var result = await _dataSource.LoadLevelAsync(new ClayTreeLoadRequest(node));
             if (result.Error is not null)
@@ -67,16 +79,7 @@ public partial class ClayTreeView
                 IndexNodes(result.Nodes, node);
                 node.IsLoaded = true;
             }
-        }
-        catch (Exception ex)
-        {
-            _error = ex.Message;
-            await OnLoadError.InvokeAsync(ex.Message);
-        }
-        finally
-        {
-            node.IsLoading = false;
-        }
+        });
     }
 
     /// <summary>Раскрывает узел по строковому ключу (с ленивой загрузкой).</summary>

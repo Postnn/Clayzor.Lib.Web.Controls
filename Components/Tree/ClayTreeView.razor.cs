@@ -52,7 +52,6 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView
     private IClayTreeDataSource _dataSource = null!;
     private readonly List<ClayTreeNode> _roots = [];
     private string? _error;
-    private bool _initialLoading;
 
     // ── IClayTreeView ────────────────────────────────────────────────────────────
 

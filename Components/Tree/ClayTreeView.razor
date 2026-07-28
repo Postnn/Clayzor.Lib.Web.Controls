@@ -10,14 +10,7 @@
                 @_error
             </MudAlert>
         }
-        else if (_initialLoading)
-        {
-            <div class="clay-tree-empty">
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
-                <span style="margin-left:8px">Загрузка...</span>
-            </div>
-        }
-        else if (_roots.Count == 0)
+        else if (_roots.Count == 0 && !_isBusy)
         {
             <div class="clay-tree-empty">Нет данных</div>
         }
@@ -28,5 +21,12 @@
                 <ClayTreeNodeView Node="node" Tree="this" NodeTemplate="NodeTemplate" />
             }
         }
+
+        <MudOverlay Visible="@_isBusy" Fixed="true" DarkBackground="true">
+            <div class="clay-busy">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <span>@_busyLabel</span>
+            </div>
+        </MudOverlay>
     </div>
 </CascadingValue>
