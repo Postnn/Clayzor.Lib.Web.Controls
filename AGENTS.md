@@ -189,6 +189,7 @@
 - SH6 — сборка URL и буфер обмена: `ClayShareUrlBuilder.BuildShareUrl(currentUrl, gridIdParam, sharedId)` — чистый метод, белый список параметров (только gridId + sharedId). `CreateSharedLinkAsync` проверяет результат копирования: успех → снекбар, отказ → ссылка для ручного копирования. 5 unit-тестов.
 - SH7 — список общих настроек: `ClayMenu` «Общие настройки» (`ListAlt`) рядом с «Поделиться», видимость по `_hasSharedSettings`. `LoadSharedListAsync` — загрузка из БД при каждом раскрытии. Четыре кнопки у элемента: редактировать (`ClayShareDialog`), удалить (`ConfirmDialog` + `DeleteAsync`), перейти (`ClayButton Href` + `Target="_blank"`), поделиться (`clayGridShare.copyToClipboard`). `ClayMenu.CloseAsync()` для программного закрытия.
 - SH8 — режим sharedId: `ResolveSharedId()` — разбор `?sharedId=`, `ClaySharedParamValidator.IsValid()` — чистый метод проверки имён, `LoadAndValidateSharedParamsAsync()` → `ApplySharedParams()` — загрузка и применение чужих настроек. Choke point `if (_isSharedMode) return` в `SaveParamIfChanged`. `MudAlert` + кнопка «Открыть без общих настроек», индикатор `.clay-shared-mode-badge`. 7 unit-тестов.
+- SH9 — тесты и отчёт: `ClaySharedParamsDataTests` (4 теста валидации названия), `FullParamSet_RoundTrip_AllTypesPreserved` (1 round-trip), проверка SQL на 2008 R2. Отчёт `promts/SH_share/SH9_report.md`. Всего 235 тестов (+32 в серии SH).
 
 **Стили компонентов:** общий стиль грида/треев/чипов/диалогов живёт в `wwwroot/css/clay.css`. Правится он, а не копии в приложениях (см. `STYLE_RULES.md` §0).
 
