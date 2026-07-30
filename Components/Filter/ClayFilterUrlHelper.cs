@@ -2,7 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// Сериализация/десериализация дерева фильтра в URL-safe строку

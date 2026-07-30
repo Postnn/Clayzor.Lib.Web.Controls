@@ -1,6 +1,6 @@
 using Dapper;
 using Clayzor.Lib.Entities;
-using Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+using Clayzor.Lib.Web.Controls.Components.Filter;
 
 namespace Clayzor.Lib.Web.Controls.Components.Grid;
 

@@ -1,4 +1,5 @@
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+using Clayzor.Lib.Web.Controls.Components.Grid;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// Статический хелпер: читаемые русские метки операторов фильтрации.

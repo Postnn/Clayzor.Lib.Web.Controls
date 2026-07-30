@@ -1,3 +1,4 @@
+using Clayzor.Lib.Web.Controls.Components.Filter;
 using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 
 namespace Clayzor.Lib.Web.Controls.Components.Grid;

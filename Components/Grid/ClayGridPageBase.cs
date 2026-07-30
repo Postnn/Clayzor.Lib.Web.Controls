@@ -1,7 +1,7 @@
 using Dapper;
 using Clayzor.Lib.DALC;
 using Clayzor.Lib.Entities;
-using Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+using Clayzor.Lib.Web.Controls.Components.Filter;
 using Clayzor.Lib.Web.Controls.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;

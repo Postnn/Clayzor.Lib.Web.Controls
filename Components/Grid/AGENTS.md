@@ -137,7 +137,7 @@
 - `ClayCompositeSqlBuilder.Build(root, parameters, knownColumns, columnNameMap?)` — рекурсивно обходит дерево и возвращает фрагмент WHERE. Имя колонки — только из белого списка; значения — только Dapper-параметры
 - `ClayGridPageBase.BuildCompositeFilterClause(CompositeFilter?, dp, columnNameMap?)` — обёртка над билдером
 
-### Типы составного фильтра (`Components/Grid/Filter/`)
+### Типы составного фильтра (`Components/Filter/`)
 - `IClayFilterNode` — интерфейс узла дерева фильтра: `Clone()` (рекурсивное глубокое копирование)
 - `ClayFilterGroupNode` — группа И/ИЛИ с рекурсивным `Clone()`
 - `ColumnFilter` — листовой узел дерева. `Source` (`ColumnDialog` / `CompositeDialog`)

@@ -1,4 +1,4 @@
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// Единый источник всех строковых констант для UI фильтра.

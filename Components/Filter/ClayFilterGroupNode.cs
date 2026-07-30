@@ -1,4 +1,5 @@
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+using Clayzor.Lib.Web.Controls.Components.Grid;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// Группа условий составного фильтра с логикой И/ИЛИ.

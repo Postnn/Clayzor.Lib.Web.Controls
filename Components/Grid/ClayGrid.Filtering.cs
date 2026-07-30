@@ -1,4 +1,4 @@
-using Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+using Clayzor.Lib.Web.Controls.Components.Filter;
 using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using MudBlazor.Extensions;
@@ -196,7 +196,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         => ClayFilterDescriptionBuilder.BuildText(
             _filterRoot,
             sqlName => _columnBySqlName.TryGetValue(sqlName, out var m) ? m.DisplayName : sqlName,
-            sqlName => _columnBySqlName.TryGetValue(sqlName, out var m) ? m : null);
+            sqlName => _columnBySqlName.TryGetValue(sqlName, out var m) ? ToFilterColumn(m) : null);
 
     /// <summary>
     /// Строит список кликабельных сегментов из всего дерева фильтра для панели.
@@ -205,7 +205,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         => ClayFilterDescriptionBuilder.BuildSegments(
             _filterRoot,
             sqlName => _columnBySqlName.TryGetValue(sqlName, out var m) ? m.DisplayName : sqlName,
-            sqlName => _columnBySqlName.TryGetValue(sqlName, out var m) ? m : null);
+            sqlName => _columnBySqlName.TryGetValue(sqlName, out var m) ? ToFilterColumn(m) : null);
 
     /// <summary>
     /// Возвращает читаемое описание ValueFilter для отображения в чипе панели фильтрации.
@@ -215,7 +215,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         => ClayFilterDescriptionBuilder.DescribeValueFilter(
             vf,
             sqlName => _columnBySqlName.TryGetValue(sqlName, out var m) ? m.DisplayName : sqlName,
-            sqlName => _columnBySqlName.TryGetValue(sqlName, out var m) ? m : null);
+            sqlName => _columnBySqlName.TryGetValue(sqlName, out var m) ? ToFilterColumn(m) : null);
 
     /// <inheritdoc cref="IClayGrid.ActiveCompositeFilter"/>
     public ClayFilterGroupNode? ActiveCompositeFilter => _filterRoot;
@@ -252,12 +252,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var filterableCols = _columnBySqlName.Values
             .Where(c => c.Filterable)
             .OrderBy(c => c.DisplayName, StringComparer.CurrentCulture)
+            .Select(ToFilterColumn)
             .ToList();
 
         var parameters = new DialogParameters<ClayFilterDialog>
         {
             { x => x.Root,         seedRoot ?? _filterRoot },
-            { x => x.Columns,      (IReadOnlyList<ClayColumnMeta>)filterableCols },
+            { x => x.Columns,      (IReadOnlyList<ClayFilterColumnInfo>)filterableCols },
             { x => x.LookupOptions, _opt.FilterLookupOptions },
         };
         var options = new DialogOptionsEx
@@ -526,5 +527,17 @@ public partial class ClayGrid<TEntity> where TEntity : class
             SearchText      = _searchText ?? "",
             CompositeFilter = _filterRoot,
         };
+
+    /// <summary>
+    /// Проецирует метаданные колонки грида в описание фильтруемого поля для диалога фильтра.
+    /// </summary>
+    private static ClayFilterColumnInfo ToFilterColumn(ClayColumnMeta m) => new()
+    {
+        SqlName        = m.SqlName,
+        DisplayName    = m.DisplayName,
+        Type           = m.Type,
+        BoolTrueLabel  = m.BoolTrueLabel,
+        BoolFalseLabel = m.BoolFalseLabel,
+    };
 
 }

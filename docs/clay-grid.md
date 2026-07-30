@@ -310,7 +310,7 @@ UI — панель фильтров (filter tray) с drag-and-drop заголо
 
 ### Составной фильтр (дерево И/ИЛИ)
 
-Типы в `Components/Grid/Filter/`:
+Типы в `Components/Filter/`:
 - `IClayFilterNode` — интерфейс узла дерева с рекурсивным `Clone()`
 - `ClayFilterGroupNode` — группа: `Logic` (And/Or), `Nodes` (List\<IClayFilterNode\>), `Clone()`. Переиспользует существующий `LogicalOperator`
 - `ColumnFilter` реализует `IClayFilterNode` — листовой узел. `Source` (`ClayFilterSource`) — `ColumnDialog` (диалог колонки) или `CompositeDialog` (настраиваемый фильтр). `IsNew` (`[JsonIgnore]`, не копируется) — транзиентный флаг для автофокуса на «Значение»

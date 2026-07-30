@@ -3,7 +3,7 @@ using Clayzor.Lib.Entities;
 using Clayzor.Lib.Entities.DynamicGrid;
 using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes;
 using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
-using Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+using Clayzor.Lib.Web.Controls.Components.Filter;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;

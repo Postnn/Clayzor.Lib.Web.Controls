@@ -1,7 +1,8 @@
+using Clayzor.Lib.Web.Controls.Components.Grid;
 using System.Text;
 using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes;
 
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// Кликабельный сегмент в панели фильтра.
@@ -48,12 +49,12 @@ public static class ClayFilterDescriptionBuilder
     /// </summary>
     /// <param name="root">Корень дерева.</param>
     /// <param name="getDisplayName">Функция получения отображаемого имени по SQL-имени колонки.</param>
-    /// <param name="getColumnMeta">Опциональная функция получения <see cref="ClayColumnMeta"/> по SQL-имени.</param>
+    /// <param name="getColumnMeta">Опциональная функция получения <see cref="ClayFilterColumnInfo"/> по SQL-имени.</param>
     /// <returns>Список сегментов в порядке обхода дерева.</returns>
     public static IReadOnlyList<FilterSegment> BuildSegments(
         ClayFilterGroupNode? root,
         Func<string, string> getDisplayName,
-        Func<string, ClayColumnMeta?>? getColumnMeta)
+        Func<string, ClayFilterColumnInfo?>? getColumnMeta)
     {
         if (root is null || root.Nodes.Count == 0) return [];
         var result = new List<FilterSegment>();
@@ -79,12 +80,12 @@ public static class ClayFilterDescriptionBuilder
     /// </summary>
     /// <param name="root">Корень дерева.</param>
     /// <param name="getDisplayName">Функция получения отображаемого имени по SQL-имени колонки.</param>
-    /// <param name="getColumnMeta">Опциональная функция получения <see cref="ClayColumnMeta"/> по SQL-имени.</param>
+    /// <param name="getColumnMeta">Опциональная функция получения <see cref="ClayFilterColumnInfo"/> по SQL-имени.</param>
     /// <returns>Строка описания или null если дерево пустое.</returns>
     public static string? BuildText(
         ClayFilterGroupNode? root,
         Func<string, string> getDisplayName,
-        Func<string, ClayColumnMeta?>? getColumnMeta)
+        Func<string, ClayFilterColumnInfo?>? getColumnMeta)
     {
         if (root is null || root.Nodes.Count == 0) return null;
         var text = BuildGroupText(root, getDisplayName, getColumnMeta, isRoot: true);
@@ -108,11 +109,11 @@ public static class ClayFilterDescriptionBuilder
     /// <param name="getDisplayName">Функция получения отображаемого имени колонки.</param>
     /// <param name="getColumnMeta">Опциональная функция получения метаданных колонки
     /// (для форматирования значений через <see cref="ColumnTypeDescriptor.Format"/>
-    /// и подписей bool через <see cref="ClayColumnMeta.BoolTrueLabel"/>).</param>
+    /// и подписей bool через <see cref="ClayFilterColumnInfo.BoolTrueLabel"/>).</param>
     public static string DescribeValueFilter(
         ValueFilter vf,
         Func<string, string> getDisplayName,
-        Func<string, ClayColumnMeta?>? getColumnMeta)
+        Func<string, ClayFilterColumnInfo?>? getColumnMeta)
     {
         var dn = getDisplayName(vf.Column);
         var meta = getColumnMeta?.Invoke(vf.Column);
@@ -146,7 +147,7 @@ public static class ClayFilterDescriptionBuilder
     private static void CollectSegments(
         ClayFilterGroupNode group,
         Func<string, string> getDisplayName,
-        Func<string, ClayColumnMeta?>? getColumnMeta,
+        Func<string, ClayFilterColumnInfo?>? getColumnMeta,
         List<FilterSegment> result)
     {
         foreach (var node in group.Nodes)
@@ -183,7 +184,7 @@ public static class ClayFilterDescriptionBuilder
     private static void AddValueFilterSegments(
         ValueFilter vf,
         Func<string, string> getDisplayName,
-        Func<string, ClayColumnMeta?>? getColumnMeta,
+        Func<string, ClayFilterColumnInfo?>? getColumnMeta,
         List<FilterSegment> result)
     {
         var text = DescribeValueFilter(vf, getDisplayName, getColumnMeta);
@@ -201,7 +202,7 @@ public static class ClayFilterDescriptionBuilder
     private static string BuildGroupText(
         ClayFilterGroupNode group,
         Func<string, string> getDisplayName,
-        Func<string, ClayColumnMeta?>? getColumnMeta,
+        Func<string, ClayFilterColumnInfo?>? getColumnMeta,
         bool isRoot)
     {
         var logic = group.Logic == LogicalOperator.Or ? " ИЛИ " : " И ";

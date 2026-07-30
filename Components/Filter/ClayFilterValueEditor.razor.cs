@@ -1,7 +1,8 @@
+using Clayzor.Lib.Web.Controls.Components.Grid;
 using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes;
 using Microsoft.AspNetCore.Components;
 
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// Единый редактор значения фильтра по типу колонки.

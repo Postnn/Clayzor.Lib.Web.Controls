@@ -1,7 +1,8 @@
+using Clayzor.Lib.Web.Controls.Components.Grid;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// JSON-конвертер для полиморфного дерева фильтра (<see cref="IClayFilterNode"/>).

@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+using Clayzor.Lib.Web.Controls.Components.Filter;
 
 namespace Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 

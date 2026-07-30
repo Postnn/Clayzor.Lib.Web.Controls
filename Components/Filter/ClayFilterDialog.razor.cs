@@ -2,7 +2,7 @@ using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// Диалог настраиваемого (составного) фильтра.
@@ -31,7 +31,7 @@ public partial class ClayFilterDialog : ComponentBase
 
     /// <summary>Список доступных для фильтрации колонок.</summary>
     [Parameter, EditorRequired]
-    public IReadOnlyList<ClayColumnMeta> Columns { get; set; } = [];
+    public IReadOnlyList<ClayFilterColumnInfo> Columns { get; set; } = [];
 
     /// <summary>Необязательные варианты значений на колонку (SqlName → список).</summary>
     [Parameter]

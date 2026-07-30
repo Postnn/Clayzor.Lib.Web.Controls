@@ -1,7 +1,8 @@
+using Clayzor.Lib.Web.Controls.Components.Grid;
 using Clayzor.Lib.Web.Controls.Components.Grid.ColumnTypes;
 using Microsoft.AspNetCore.Components;
 
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// Редактор одного листового условия составного фильтра (<see cref="ColumnFilter"/>, <c>Source=CompositeDialog</c>).
@@ -17,7 +18,7 @@ public partial class ClayFilterExpression : ComponentBase
 
     /// <summary>Список доступных для фильтрации колонок.</summary>
     [Parameter, EditorRequired]
-    public IReadOnlyList<ClayColumnMeta> Columns { get; set; } = [];
+    public IReadOnlyList<ClayFilterColumnInfo> Columns { get; set; } = [];
 
     /// <summary>Необязательные варианты значений на колонку (SqlName → список).</summary>
     [Parameter]

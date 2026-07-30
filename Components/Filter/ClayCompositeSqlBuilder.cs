@@ -1,6 +1,7 @@
+using Clayzor.Lib.Web.Controls.Components.Grid;
 using Dapper;
 
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// Строит фрагмент WHERE (без слова WHERE) из дерева <see cref="ClayFilterGroupNode"/>.

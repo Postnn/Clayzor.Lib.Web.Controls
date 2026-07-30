@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+namespace Clayzor.Lib.Web.Controls.Components.Filter;
 
 /// <summary>
 /// Узел дерева составного фильтра: лист (<see cref="ColumnFilter"/>) или группа (<see cref="ClayFilterGroupNode"/>).

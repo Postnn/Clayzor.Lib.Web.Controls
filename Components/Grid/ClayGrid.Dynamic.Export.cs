@@ -1,6 +1,6 @@
 using Clayzor.Lib.Entities.DynamicGrid;
 using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
-using Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+using Clayzor.Lib.Web.Controls.Components.Filter;
 using Clayzor.Lib.Web.Controls.Services;
 using Dapper;
 using Microsoft.JSInterop;

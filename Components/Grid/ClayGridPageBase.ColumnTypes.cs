@@ -1,3 +1,4 @@
+using Clayzor.Lib.Web.Controls.Components.Filter;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
 using Clayzor.Lib.Entities;

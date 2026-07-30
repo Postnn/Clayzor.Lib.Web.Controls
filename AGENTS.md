@@ -6,6 +6,7 @@
 |---|---|
 | **ClayGrid** — грид, динрежим, группировка, фильтрация, codebehind | [`Components/Grid/AGENTS.md`](Components/Grid/AGENTS.md) |
 | **ClayTreeView** — дерево, заплатки CTF, кейсет-пагинация CTP | [`Components/Tree/AGENTS.md`](Components/Tree/AGENTS.md) |
+| **ClayFilter** — общий настраиваемый фильтр (дерево И/ИЛИ), серия CF | [`Components/Filter/AGENTS.md`](Components/Filter/AGENTS.md) |
 
 ## Shared components
 
@@ -19,21 +20,23 @@
 | **ClayDragState** — статическое хранилище SQL-имени перетаскиваемой колонки | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayGridPrintHtmlGenerator** — генератор HTML для печати | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayGridPrintStyles** — символы для печатных форм | — |
-| **ClayColumnFilterDialog** — диалог настройки фильтра по колонке | [docs/clay-column-filter-dialog.md](docs/clay-column-filter-dialog.md) |
-| **ClayColumnValueFilterDialog** — диалог фильтра по уникальным значениям (Excel-style) | [docs/clay-grid.md](docs/clay-grid.md) |
+| **ClayColumnFilterDialog** — диалог настройки фильтра по колонке (гридовый, в `Components/Grid/`) | [docs/clay-column-filter-dialog.md](docs/clay-column-filter-dialog.md) |
+| **ClayColumnValueFilterDialog** — диалог фильтра по уникальным значениям (гридовый) | [docs/clay-grid.md](docs/clay-grid.md) |
 | **OpenConditionRequest** — record для маршрутизации из диалога значений в форму условия | — |
-| **ClayFilterOption** — класс варианта для выпадающего списка значения фильтра | [docs/clay-grid.md](docs/clay-grid.md) |
-| **ClayFilterValueEditor** — единый редактор значения фильтра по типу колонки | [docs/clay-grid.md](docs/clay-grid.md) |
-| **ClayFilterOperatorLabels** — читаемые русские метки операторов фильтрации | — |
-| **ClayFilterStrings** — единый источник строковых констант UI фильтра | — |
-| **ClayFilterJsonConverter** — `JsonConverter<IClayFilterNode>` с дискриминатором `$type` | — |
-| **ClayFilterUrlHelper** — дерево → JSON → DeflateStream → Base64Url | — |
-| **ClayFilterExpression** — редактор одного листового условия составного фильтра | [docs/clay-grid.md](docs/clay-grid.md) |
-| **ClayFilterGroup** — рекурсивный узел-группа составного фильтра | [docs/clay-grid.md](docs/clay-grid.md) |
-| **ClayFilterDialog** — диалог настраиваемого (составного) фильтра | [docs/clay-grid.md](docs/clay-grid.md) |
-| **FilterSegment** — кликабельный сегмент в панели фильтра | — |
+| **ClayFilterDialog** — диалог настраиваемого фильтра (общий, `Components/Filter/`) | [docs/clay-grid.md](docs/clay-grid.md) |
+| **ClayFilterExpression** — редактор листового условия составного фильтра (`Components/Filter/`) | [docs/clay-grid.md](docs/clay-grid.md) |
+| **ClayFilterGroup** — рекурсивный узел-группа составного фильтра (`Components/Filter/`) | [docs/clay-grid.md](docs/clay-grid.md) |
+| **ClayFilterValueEditor** — единый редактор значения фильтра (`Components/Filter/`) | [docs/clay-grid.md](docs/clay-grid.md) |
+| **ClayFilterColumnInfo** — описание фильтруемого поля (контракт диалога, `Components/Filter/`) | — |
+| **ClayFilterDescriptionBuilder** — статический построитель сегментов/текста фильтра (`Components/Filter/`) | — |
+| **ClayFilterJsonConverter** — `JsonConverter<IClayFilterNode>` (`Components/Filter/`) | — |
+| **ClayFilterUrlHelper** — дерево → JSON → DeflateStream → Base64Url (`Components/Filter/`) | — |
+| **ClayFilterStrings** — единый источник строковых констант UI фильтра (`Components/Filter/`) | — |
+| **ClayFilterOperatorLabels** — читаемые русские метки операторов (`Components/Filter/`) | — |
+| **ClayCompositeSqlBuilder** — статический SQL-билдер фильтра (`Components/Filter/`) | — |
+| **ClayFilterOption** — вариант для выпадающего списка значения (`Components/Filter/`) | — |
+| **FilterSegment** — кликабельный сегмент в панели фильтра (`Components/Filter/`) | — |
 | **DistinctValuesResult** — результат `LoadDistinctValuesAsync` | [docs/clay-grid.md](docs/clay-grid.md) |
-| **ClayFilterDescriptionBuilder** — статический построитель сегментов/текста фильтра | — |
 | **ClayColumnSettingsDialog** — диалог настройки порядка, видимости, сортировки колонок | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayColumnSettingsPromptDialog** — лёгкий диалог с тремя исходами перед печатью/экспортом | — |
 | **ClayEditForm\<T>** — MudDialog с валидацией, сохранением, удалением | [docs/clay-edit-form.md](docs/clay-edit-form.md) |

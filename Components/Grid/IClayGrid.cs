@@ -1,4 +1,4 @@
-using Clayzor.Lib.Web.Controls.Components.Grid.Filter;
+using Clayzor.Lib.Web.Controls.Components.Filter;
 using Microsoft.AspNetCore.Components;
 
 namespace Clayzor.Lib.Web.Controls.Components.Grid;
