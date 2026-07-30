@@ -1528,6 +1528,15 @@ body {
     flex-shrink: 0;
 }
 
+.clay-tree-node-toggle-slot {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .clay-tree-node-text {
     cursor: pointer;
     white-space: nowrap;

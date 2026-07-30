@@ -69,6 +69,9 @@ public sealed class ClayTreeOptions
     /// <summary>Показывать индикатор загрузки при подгрузке уровня.</summary>
     public bool ShowLoadingIndicator { get; set; } = true;
 
+    /// <summary>Показывать глобальный оверлей .clay-busy при загрузке данных.</summary>
+    public bool ShowBusyOverlay { get; set; } = true;
+
     /// <summary>
     /// Дополнительный CSS-класс корневого контейнера. Конфигурация, а не данные —
     /// поэтому в options, а не атрибутом тега.
