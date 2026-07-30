@@ -2,8 +2,17 @@
 @using Clayzor.Lib.Web.Controls.Components.Tree.Models
 @using MudBlazor
 
-<div class="clay-tree-node">
-    <div class="clay-tree-node-row" style="padding-left:@(Node.Level * Tree.IndentPx)px">
+@{
+    var linesOn = Tree is ClayTreeView { Options.ShowLines: true };
+    var isLast  = Node.Parent is null || Node.Parent.Children.Count == 0
+                  || ReferenceEquals(Node.Parent.Children[^1], Node);
+    var nodeClass = "clay-tree-node"
+        + (linesOn ? " clay-tree-node--lines" : "")
+        + (linesOn && isLast ? " clay-tree-node--last" : "");
+}
+
+<div class="@nodeClass">
+    <div class="clay-tree-node-row" style="@(linesOn ? null : $"padding-left:{Node.Level * Tree.IndentPx}px")">
         @{
             var showSpinner = Node.IsLoading
                 && Tree is ClayTreeView { Options.ShowLoadingIndicator: true };
@@ -12,7 +21,7 @@
         @if (showSpinner)
         {
             <div class="clay-tree-node-toggle-slot">
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" Style="width:18px;height:18px" />
             </div>
         }
         else if (Node.HasChildren)
@@ -43,9 +52,11 @@
 
     @if (Node.IsExpanded && Node.Children.Count > 0)
     {
-        @foreach (var child in Node.Children)
-        {
-            <ClayTreeNodeView Node="child" Tree="Tree" NodeTemplate="NodeTemplate" />
-        }
+        <div class="@(linesOn ? "clay-tree-children clay-tree-children--lines" : "clay-tree-children")">
+            @foreach (var child in Node.Children)
+            {
+                <ClayTreeNodeView Node="child" Tree="Tree" NodeTemplate="NodeTemplate" />
+            }
+        </div>
     }
 </div>

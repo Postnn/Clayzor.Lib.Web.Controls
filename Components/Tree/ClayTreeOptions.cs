@@ -45,6 +45,13 @@ public sealed class ClayTreeOptions
     /// <summary>Идентификатор корневого узла. Если не задан — загружаются все корни.</summary>
     public object? RootId { get; set; }
 
+    /// <summary>
+    /// Имя строки подключения в web.config для этого дерева.
+    /// Если не задана — используется основная строка подключения приложения
+    /// (инжектированный <see cref="DbManager"/>).
+    /// </summary>
+    public string? ConnectionStringName { get; set; }
+
     // ── Загрузка ─────────────────────────────────────────────────────────────────
 
     /// <summary>Ленивая загрузка уровней. В CT1 поддерживается только <c>true</c>.</summary>
@@ -71,6 +78,9 @@ public sealed class ClayTreeOptions
 
     /// <summary>Показывать глобальный оверлей .clay-busy при загрузке данных.</summary>
     public bool ShowBusyOverlay { get; set; } = true;
+
+    /// <summary>Показывать направляющие линии иерархии (вертикали по уровням + ус к узлу).</summary>
+    public bool ShowLines { get; set; } = false;
 
     /// <summary>
     /// Дополнительный CSS-класс корневого контейнера. Конфигурация, а не данные —

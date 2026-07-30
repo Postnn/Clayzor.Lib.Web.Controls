@@ -1549,3 +1549,48 @@ body {
 .clay-tree-node-text:hover {
     color: var(--mud-palette-primary);
 }
+
+/* ── Направляющие линии дерева (ShowLines) ──────────────────────────────────── */
+
+/* Контейнер детей несёт отступ уровня и вертикальную линию слева */
+.clay-tree-children--lines {
+    margin-left: 11px;               /* центр слота шеврона (22px / 2) */
+    padding-left: 11px;
+    position: relative;
+}
+
+/* Вертикаль уровня: тянется на всю высоту контейнера детей */
+.clay-tree-children--lines::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--mud-palette-gray-400, #ccc);
+}
+
+/* Горизонтальный ус от вертикали к строке узла */
+.clay-tree-node--lines > .clay-tree-node-row {
+    position: relative;
+}
+.clay-tree-node--lines > .clay-tree-node-row::before {
+    content: "";
+    position: absolute;
+    left: -11px;                     /* до вертикали родительского контейнера */
+    top: 50%;
+    width: 11px;
+    height: 1px;
+    background: var(--mud-palette-gray-400, #ccc);
+}
+
+/* Обрыв у последнего ребёнка: маскируем нижнюю половину вертикали цветом фона */
+.clay-tree-node--lines.clay-tree-node--last > .clay-tree-node-row::after {
+    content: "";
+    position: absolute;
+    left: -11px;
+    top: 50%;
+    height: 50%;                     /* ниже середины — линии нет */
+    width: 1px;
+    background: var(--mud-palette-background, var(--mud-palette-surface));
+}

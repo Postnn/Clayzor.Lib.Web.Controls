@@ -3,6 +3,7 @@ using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Tree.DataSources;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
 using Clayzor.Lib.Web.Controls.Components.Tree.State;
+using Clayzor.Lib.Web.Settings;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -13,7 +14,7 @@ namespace Clayzor.Lib.Web.Controls.Components.Tree;
 /// <see cref="ClayTreeHierarchyMode.NestedSet"/> (вложенные множества) и
 /// <see cref="ClayTreeHierarchyMode.ParentKey"/> (ссылка на родителя).
 /// </summary>
-public partial class ClayTreeView : ComponentBase, IClayTreeView
+public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
 {
     // ── Parameters ───────────────────────────────────────────────────────────────
 
@@ -52,6 +53,8 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView
     private IClayTreeDataSource _dataSource = null!;
     private readonly List<ClayTreeNode> _roots = [];
     private string? _error;
+    private DbManager? _customDb;
+    private string? _resolvedCsName;
 
     // ── IClayTreeView ────────────────────────────────────────────────────────────
 
@@ -76,6 +79,40 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView
     /// <inheritdoc/>
     async Task IClayTreeView.CollapseAsync(string id) => await CollapseNodeAsync(id);
 
+    // ── DbManager resolution ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Если <see cref="ClayTreeOptions.ConnectionStringName"/> задан — читает строку
+    /// из web.config и создаёт собственный <see cref="DbManager"/>. Иначе возвращает
+    /// инжектированный.
+    /// </summary>
+    private DbManager ResolveDb()
+    {
+        if (string.IsNullOrEmpty(Options.ConnectionStringName))
+            return Db;
+
+        var cs = WebConfigExtensions.ReadConnectionStringFromWebConfig(Options.ConnectionStringName);
+        if (cs is null)
+            return Db;
+
+        if (_customDb is not null)
+        {
+            if (_customDb.ConnectionString == cs)
+                return _customDb;
+            _customDb.Dispose();
+        }
+
+        _customDb = new DbManager(cs);
+        _resolvedCsName = Options.ConnectionStringName;
+        return _customDb;
+    }
+
+    /// <summary>Освобождает собственный <see cref="DbManager"/>, если был создан.</summary>
+    public void Dispose()
+    {
+        _customDb?.Dispose();
+    }
+
     // ── Lifecycle ────────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
@@ -95,7 +132,7 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView
             Options.OrderBy,
             Options.RootId);
 
-        _dataSource = DataSource ?? new ClaySqlTreeDataSource(Db, _source);
+        _dataSource = DataSource ?? new ClaySqlTreeDataSource(ResolveDb(), _source);
     }
 
     /// <inheritdoc/>
@@ -105,12 +142,14 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView
         var selectSql = Options.SelectSql;
         var mode = Options.HierarchyMode;
         var rootId = Options.RootId;
+        var csName = Options.ConnectionStringName;
 
         if (_source is not null &&
-            (_source.SelectSql != selectSql || _source.Mode != mode || _source.RootId != rootId))
+            (_source.SelectSql != selectSql || _source.Mode != mode || _source.RootId != rootId
+             || _resolvedCsName != csName))
         {
             _source = new ClayTreeSource(selectSql, mode, Options.Schema, Options.OrderBy, rootId);
-            _dataSource = DataSource ?? new ClaySqlTreeDataSource(Db, _source);
+            _dataSource = DataSource ?? new ClaySqlTreeDataSource(ResolveDb(), _source);
             await LoadRootsAsync();
         }
     }

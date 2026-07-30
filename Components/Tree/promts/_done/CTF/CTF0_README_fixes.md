@@ -27,6 +27,7 @@ CT1 (решение 9) требовал: в `NestedSet` колонка уров�
 | CTF3 | `CTF3_reload_state_reset.md` | `LoadRootsAsync` не сбрасывает `_expanded`; при «Обновить» состояние раздваивается | счётчик раскрытых расходится с деревом, ключи копятся | средний |
 | CTF4 | `CTF4_key_robustness.md` | `ToKey(null/DBNull)` → пустой/мусорный ключ; ключ узла вычисляется в двух местах | коллизия ключей при NULL-id; хрупкость `ToggleAsync` на будущее | низкий |
 | CTF5 | `CTF5_node_loading_icon.md` | `IsLoading` не выставляется; спиннер загрузки узла отсутствует | нет per-node обратной связи при разворачивании; только глобальный оверлей | средний |
+| CTF6 | `CTF6_tree_lines.md` | нет направляющих линий иерархии (как в IDE) | дерево без линий выглядит плоским на глубоких уровнях | низкий |
 
 CTF1 и CTF2 — один корень (отсутствие Level), но чинятся в разных местах (SQL-предикат и
 вычисление уровня в маппере), поэтому разнесены — можно ревьюить и откатывать по отдельности.
@@ -38,6 +39,14 @@ CTF5 — индикатор загрузки узла. `IsLoading` не выст
 в `ClayTreeNodeView.razor` (спиннер / шеврон / распорка — взаимоисключающие). Глобальный
 оверлей сделан опциональным: `ClayTreeOptions.ShowBusyOverlay` (по умолчанию `true`).
 На тестовой странице `/tree-test` оверлей выключен.
+
+CTF6 — направляющие линии иерархии (guide lines): вертикали по уровням вложенности, горизонтальный
+«ус» к строке узла, обрыв у последнего ребёнка группы. Включается опцией `ClayTreeOptions.ShowLines`
+(по умолчанию `false` — без регрессии). Реализовано через двухрежимный рендер в
+`ClayTreeNodeView.razor` (плоский `padding-left` / вложенные `clay-tree-children--lines`)
+и CSS-псевдоэлементы (`::before` для вертикали/уса, `::after` для маски обрыва). Цвет линий —
+`var(--mud-palette-gray-400, #ccc)`. Попутно добавлена опция `ConnectionStringName` для
+подключения дерева к другой БД через имя строки в `web.config`.
 
 ## Снятый дефект
 
@@ -52,7 +61,8 @@ CTF5 — индикатор загрузки узла. `IsLoading` не выст
   `ClayTreeSchema`, `ClayTreeSource`, `ClayTreeRow`, `ClayTreeHierarchyMode`. **SQL — только тут.**
 - Controls: `Components/Tree/` — компонент (`ClayTreeView.*`), рендер узла (`ClayTreeNodeView`),
   источник `ClaySqlTreeDataSource`, состояние (`ClayTreeMemoryStateStore`), модели, интерфейсы.
-  `new DbManager` — нигде; `DbManager` приходит в конструктор `ClaySqlTreeDataSource`.
+  `DbManager` приходит в конструктор `ClaySqlTreeDataSource`; при заданном
+  `ConnectionStringName` дерево создаёт свой экземпляр через `ResolveDb()`.
 - `Validate()` в `NestedSet` требует `LeftColumn` и `RightColumn`, `LevelColumn` — нет. Это
   соответствует решению заказчика, не трогать.
 - `ClayTreeData.BuildParams` для NestedSet кладёт `@left`/`@right` всегда, `@level` — только
@@ -67,10 +77,10 @@ CTF5 — индикатор загрузки узла. `IsLoading` не выст
 
 - `dotnet build Clayzor.sln` — зелёный, без новых warning'ов;
 - `dotnet test tests\Clayzor.Lib.Web.Controls.Tests` — зелёный;
-- `grep -rn "new DbManager" src/Clayzor.Lib.Web.Controls/` → пусто;
+- `grep -rn "new DbManager" src/Clayzor.Lib.Web.Controls/` → только в `ResolveDb()` (создание по `ConnectionStringName`);
 - ручной прогон `/tree-test` в обоих режимах.
 
-## Итоговый чек-лист после CTF1–CTF4 (режим NestedSet, схема без `LevelColumn`)
+## Итоговый чек-лист после CTF1–CTF6 (режим NestedSet, схема без `LevelColumn`)
 
 - корни: «Оборудование», «Программное обеспечение», у обоих шеврон; у «Прочее» и «Лицензии» нет;
 - раскрыть «Оборудование» → **ровно** «Компьютерная техника», «Мебель», «Прочее», без внуков,
