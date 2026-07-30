@@ -23,6 +23,9 @@ public interface IClayTreeView
     /// <summary>Величина отступа на уровень в пикселях.</summary>
     int IndentPx { get; }
 
+    /// <summary>Размер порции пагинации уровня. 0 — пагинация выключена.</summary>
+    int LevelPageSize { get; }
+
     /// <summary>Полная перезагрузка дерева с сохранением раскрытого состояния.</summary>
     Task ReloadAsync();
 

@@ -38,6 +38,15 @@ public sealed class ClayTreeNode
     /// <summary>Идёт ли загрузка детей в данный момент.</summary>
     public bool IsLoading { get; set; }
 
+    /// <summary>Все прямые дети уровня загружены (пагинация дочитана или не применяется).</summary>
+    public bool LoadedAllChildren { get; set; } = true;
+
+    /// <summary>
+    /// Курсор пагинации — значение L последнего загруженного ребёнка.
+    /// Следующая порция берётся как дети с L строго больше этого значения. null — порций ещё не было.
+    /// </summary>
+    public long? LastChildCursor { get; set; }
+
     /// <summary>Загруженные дочерние узлы.</summary>
     public List<ClayTreeNode> Children { get; set; } = [];
 

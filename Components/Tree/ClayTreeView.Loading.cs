@@ -1,3 +1,4 @@
+using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Tree.DataSources;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
 
@@ -23,6 +24,11 @@ public partial class ClayTreeView
             _isBusy    = true;
             StateHasChanged();
             await Task.Delay(100);  // дать Blazor отрендерить оверлей до операции
+        }
+        else
+        {
+            // Без оверлея: дать рендеру отрисовать per-node спиннер (CTF5) или спиннер хвоста (CTP2)
+            await Task.Yield();
         }
 
         try
@@ -78,7 +84,8 @@ public partial class ClayTreeView
         {
             await RunBusyAsync("Загрузка…", async () =>
             {
-                var result = await _dataSource.LoadLevelAsync(new ClayTreeLoadRequest(node));
+                var ds = ResolveDataSourceForNode(node, cursor: null);
+                var result = await ds.LoadLevelAsync(new ClayTreeLoadRequest(node));
                 if (result.Error is not null)
                 {
                     _error = result.Error;
@@ -90,6 +97,8 @@ public partial class ClayTreeView
                     node.Children.AddRange(result.Nodes);
                     IndexNodes(result.Nodes, node);
                     node.IsLoaded = true;
+                    node.LoadedAllChildren = !result.HasMore;
+                    node.LastChildCursor = result.NextCursor;
                 }
             });
         }
@@ -98,6 +107,67 @@ public partial class ClayTreeView
             node.IsLoading = false;
             StateHasChanged();
         }
+    }
+
+    /// <summary>
+    /// Подгружает следующую порцию детей узла. No-op если уровень дочитан или
+    /// пагинация не настроена.
+    /// </summary>
+    public async Task LoadMoreChildrenAsync(ClayTreeNode node)
+    {
+        if (node.LoadedAllChildren) return;
+        if (node.IsLoading) return;
+
+        node.IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            await RunBusyAsync("Загрузка…", async () =>
+            {
+                var ds = ResolveDataSourceForNode(node, cursor: node.LastChildCursor);
+                var result = await ds.LoadLevelAsync(new ClayTreeLoadRequest(node));
+                if (result.Error is not null)
+                {
+                    _error = result.Error;
+                    await OnLoadError.InvokeAsync(result.Error);
+                }
+                else
+                {
+                    node.Children.AddRange(result.Nodes);
+                    IndexNodes(result.Nodes, node);
+                    node.LoadedAllChildren = !result.HasMore;
+                    node.LastChildCursor = result.NextCursor;
+                }
+            });
+        }
+        finally
+        {
+            node.IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Создаёт источник данных для загрузки уровня.
+    /// Если настроена пагинация и режим NestedSet — создаёт кейсет-источник с <c>PageSize</c> и <c>Cursor</c>.
+    /// Иначе возвращает основной <see cref="_dataSource"/>.
+    /// </summary>
+    private IClayTreeDataSource ResolveDataSourceForNode(ClayTreeNode node, long? cursor)
+    {
+        if (Options.LevelPageSize <= 0 || Options.HierarchyMode != ClayTreeHierarchyMode.NestedSet)
+            return _dataSource;
+
+        var pageSource = new ClayTreeSource(
+            Options.SelectSql,
+            Options.HierarchyMode,
+            Options.Schema,
+            Options.OrderBy,
+            Options.RootId,
+            PageSize: Options.LevelPageSize,
+            Cursor: cursor);
+
+        return new ClaySqlTreeDataSource(ResolveDb(), pageSource);
     }
 
     /// <summary>Раскрывает узел по строковому ключу (с ленивой загрузкой).</summary>

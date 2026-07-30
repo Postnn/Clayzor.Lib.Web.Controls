@@ -52,10 +52,47 @@
 
     @if (Node.IsExpanded && Node.Children.Count > 0)
     {
+        var paging = Tree is ClayTreeView { Options.LevelPagingMode: ClayTreeLevelPagingMode.Scroll }
+            ? ClayTreeLevelPagingMode.Scroll
+            : ClayTreeLevelPagingMode.Button;
+        var showPagingTail = !Node.LoadedAllChildren && Tree.LevelPageSize > 0;
+        var childLevel = Node.Level + 1;
+        var tailPadding = linesOn ? 0 : childLevel * Tree.IndentPx;
+
         <div class="@(linesOn ? "clay-tree-children clay-tree-children--lines" : "clay-tree-children")">
             @foreach (var child in Node.Children)
             {
                 <ClayTreeNodeView Node="child" Tree="Tree" NodeTemplate="NodeTemplate" />
+            }
+
+            @if (showPagingTail)
+            {
+                @if (paging == ClayTreeLevelPagingMode.Scroll)
+                {
+                    <div class="clay-tree-level-sentinel" @ref="_sentinel"
+                         style="@(linesOn ? null : $"padding-left:{tailPadding}px")">
+                        @if (Node.IsLoading)
+                        {
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" Style="width:18px;height:18px" />
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="clay-tree-level-more"
+                         style="@(linesOn ? null : $"padding-left:{tailPadding}px")">
+                        @if (Node.IsLoading)
+                        {
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" Style="width:18px;height:18px" />
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="HandleLoadMore">
+                                Загрузить ещё @Tree.LevelPageSize
+                            </MudButton>
+                        }
+                    </div>
+                }
             }
         </div>
     }

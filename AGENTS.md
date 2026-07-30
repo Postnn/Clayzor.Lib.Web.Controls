@@ -63,7 +63,7 @@
 ### Tree — компонент ClayTreeView (CT1+)
 
 Пакет `Components/Tree/` — дерево с серверной ленивой загрузкой уровней, две модели иерархии
-(NestedSet / ParentKey). План серии: [promts/_done/CT/CT1_tree_view_skeleton.md](Components/Tree/promts/_done/CT/CT1_tree_view_skeleton.md).
+(NestedSet / ParentKey). План серии CT: [promts/_done/CT/CT1_tree_view_skeleton.md](Components/Tree/promts/_done/CT/CT1_tree_view_skeleton.md). Заплатки CTF: [promts/_done/CTF/CTF0_README_fixes.md](Components/Tree/promts/_done/CTF/CTF0_README_fixes.md). Кейсет-пагинация CTP: [promts/_done/CTP/CTP0_README_level_paging.md](Components/Tree/promts/_done/CTP/CTP0_README_level_paging.md).
 
 **Аксиома имён колонок по умолчанию:** `LeftColumn = "L"`, `RightColumn = "R"`, `ParentColumn = "Parent"`.
 `LevelColumn` — может отсутствовать в источнике данных и является необязательной.
@@ -188,6 +188,10 @@
 - CTF4 — устойчивость ключей: `ToKey` нормализует `DBNull` → `""`, `ToggleAsync` берёт ключ из `node.Id` вместо пересчёта. 4 теста. Оркестратор: `Components/Tree/promts/_done/CTF/CTF0_README_fixes.md`.
 - CTF5 — per-node индикатор загрузки: установка `IsLoading` в `EnsureChildrenLoadedAsync`, трёхветочный рендер в `ClayTreeNodeView.razor` (спиннер на месте шеврона), опциональный `ShowBusyOverlay` (выключен на `/tree-test`).
 - CTF6 — направляющие линии иерархии: `ShowLines` в `ClayTreeOptions`, двухрежимный рендер (плоский/вложенный), CSS-псевдоэлементы для вертикалей/усов, маска обрыва у последнего ребёнка. Попутно: `ConnectionStringName` для подключения к другой БД. Оркестратор: `Components/Tree/promts/_done/CTF/CTF0_README_fixes.md`.
+
+**Выполненные шаги кейсет-пагинации уровня (CTP1–CTP2):**
+- CTP1 — модель и SQL: `LoadedAllChildren`/`LastChildCursor` в `ClayTreeNode`, `HasMore`/`NextCursor` в `ClayTreeLoadResult`, `PageSize`/`Cursor` в `ClayTreeSource`, `TOP (@pageSize+1)` + `AND [L] > @cursor` в `BuildNestedSetSql`, `LoadMoreChildrenAsync`, `ResolveDataSourceForNode`.
+- CTP2 — UI догрузки: кнопка «Загрузить ещё N» (Button) и автоподгрузка при скролле (Scroll, `IntersectionObserver`). JS `clayTreePaging.js`, `ClayTreeNodeView` — хвост уровня, `IDisposable` для снятия наблюдения. Оркестратор: `Components/Tree/promts/_done/CTP/CTP0_README_level_paging.md`.
 
 **Выполненные шаги «Поделиться» (SH2–SH3):**
 - SH2 — схема БД: таблица `ClayGridUserSharedParams`, колонка `КодНастройкиОбщей` в `ClayGridUserParams`, FK без каскада, перестроенный UNIQUE (3 колонки), переписанный триггер upsert, табличная функция `ClayGridUserParamsShared`, seed. Оркестратор: `Components/Grid/promts/_done/SH_share/SH0_README_share.md`.

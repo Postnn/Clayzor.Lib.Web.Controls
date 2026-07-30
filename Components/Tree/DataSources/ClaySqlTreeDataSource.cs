@@ -41,6 +41,25 @@ public sealed class ClaySqlTreeDataSource : IClayTreeDataSource
 
             var rows = await ClayTreeData.LoadLevelAsync(_db, _source, parentRow, ct);
             var nodes = rows.Select(r => MapRow(r, request.Parent)).ToList();
+
+            // Кейсет-пагинация: запрошено TOP(@n+1), проверяем «есть ещё»
+            if (_source.PageSize is not null && _source.Mode == ClayTreeHierarchyMode.NestedSet)
+            {
+                var pageSize = _source.PageSize.Value;
+                if (nodes.Count > pageSize)
+                {
+                    // Лишнюю (n+1)-ю строку отбросить, курсор = L последней оставленной
+                    nodes.RemoveAt(nodes.Count - 1);
+                    var lastNode = nodes[^1];
+                    return new ClayTreeLoadResult(nodes, HasMore: true, NextCursor: lastNode.Left);
+                }
+                else
+                {
+                    var lastNode = nodes.Count > 0 ? nodes[^1] : null;
+                    return new ClayTreeLoadResult(nodes, HasMore: false, NextCursor: lastNode?.Left);
+                }
+            }
+
             return new ClayTreeLoadResult(nodes);
         }
         catch (Exception ex)

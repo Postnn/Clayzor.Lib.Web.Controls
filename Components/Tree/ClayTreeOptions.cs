@@ -58,6 +58,15 @@ public sealed class ClayTreeOptions
     public bool LazyLoad { get; set; } = true;
 
     /// <summary>
+    /// Размер порции при постраничной загрузке уровня. 0 — пагинация выключена (уровень целиком).
+    /// Действует ТОЛЬКО в режиме NestedSet; в ParentKey игнорируется (нет ключа L для кейсета).
+    /// </summary>
+    public int LevelPageSize { get; set; } = 0;
+
+    /// <summary>Способ запроса следующей порции уровня: кнопкой или автоподгрузкой при скролле.</summary>
+    public ClayTreeLevelPagingMode LevelPagingMode { get; set; } = ClayTreeLevelPagingMode.Button;
+
+    /// <summary>
     /// Начальный уровень раскрытия (0 — только корни). Применяется только если
     /// нет сохранённого состояния.
     /// </summary>

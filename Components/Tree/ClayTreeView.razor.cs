@@ -71,6 +71,9 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     public int IndentPx => Options.IndentPx;
 
     /// <inheritdoc/>
+    public int LevelPageSize => Options.LevelPageSize;
+
+    /// <inheritdoc/>
     async Task IClayTreeView.ReloadAsync() => await LoadRootsAsync();
 
     /// <inheritdoc/>

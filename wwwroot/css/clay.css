@@ -1594,3 +1594,17 @@ body {
     width: 1px;
     background: var(--mud-palette-background, var(--mud-palette-surface));
 }
+
+/* ── Пагинация уровня дерева (CTP2) ────────────────────────────────────────── */
+
+.clay-tree-level-more {
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+}
+
+.clay-tree-level-sentinel {
+    display: flex;
+    align-items: center;
+    height: 1px;
+}
