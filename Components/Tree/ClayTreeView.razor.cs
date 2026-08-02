@@ -117,16 +117,25 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     private DbManager ResolveDb()
     {
         if (string.IsNullOrEmpty(Options.ConnectionStringName))
+        {
+            _resolvedCsName = null;
             return Db;
+        }
 
         var cs = WebConfigExtensions.ReadConnectionStringFromWebConfig(Options.ConnectionStringName);
         if (cs is null)
+        {
+            _resolvedCsName = null;
             return Db;
+        }
 
         if (_customDb is not null)
         {
             if (_customDb.ConnectionString == cs)
+            {
+                _resolvedCsName = Options.ConnectionStringName;
                 return _customDb;
+            }
             _customDb.Dispose();
         }
 
@@ -179,6 +188,8 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     /// <inheritdoc/>
     protected override async Task OnParametersSetAsync()
     {
+        _filterColumnsCache = null; // Options могли смениться — колонки фильтра пересоберутся лениво
+
         // Сравнение значимых значений для детекта смены источника
         var selectSql = Options.SelectSql;
         var mode = Options.HierarchyMode;

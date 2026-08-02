@@ -70,13 +70,18 @@ public partial class ClayTreeNodeView : ComponentBase, IDisposable
         }
     }
 
-    /// <summary>Освобождает JS-наблюдателя.</summary>
+    /// <summary>Освобождает JS-наблюдателя. Разрыв circuit'а — штатная ситуация, не ошибка.</summary>
     public void Dispose()
     {
         if (_observing)
         {
-            // Fire-and-forget: в Dispose нельзя await, но JS-вызов неприхотлив
-            _ = JS.InvokeVoidAsync("clayTreePaging.unobserve", _sentinel);
+            try
+            {
+                _ = JS.InvokeVoidAsync("clayTreePaging.unobserve", _sentinel);
+            }
+            catch (JSDisconnectedException) { /* circuit уже закрыт */ }
+            catch (ObjectDisposedException) { /* JS-рантайм освобождён */ }
+            catch (InvalidOperationException) { /* prerendering / нет JS */ }
         }
         _selfRef?.Dispose();
     }

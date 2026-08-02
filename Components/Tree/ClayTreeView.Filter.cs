@@ -53,13 +53,17 @@ public partial class ClayTreeView
 
     // ── BuildFilterColumns ───────────────────────────────────────────────────────
 
+    /// <summary>Кэш колонок фильтра — пересобирается при смене Options (см. OnParametersSetAsync).</summary>
+    private IReadOnlyList<ClayFilterColumnInfo>? _filterColumnsCache;
+
     /// <summary>
     /// Строит список фильтруемых полей дерева для диалога настраиваемого фильтра.
     /// Колонки из <see cref="ClayTreeOptions.FilterExcludedColumns"/> исключаются.
     /// Возвращает пустой список, если <see cref="ClayTreeOptions.FilterColumns"/> не задан.
+    /// Результат кешируется до смены Options.
     /// </summary>
     private IReadOnlyList<ClayFilterColumnInfo> BuildFilterColumns()
-        => ClayTreeFilterColumnBuilder.Build(Options.FilterColumns, Options.FilterExcludedColumns);
+        => _filterColumnsCache ??= ClayTreeFilterColumnBuilder.Build(Options.FilterColumns, Options.FilterExcludedColumns);
 
     /// <summary>Ищет DisplayName колонки по SqlName в FilterColumns.</summary>
     private string GetFilterColumnDisplayName(string sqlName)
