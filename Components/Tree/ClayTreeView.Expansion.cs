@@ -115,7 +115,7 @@ public partial class ClayTreeView
             // ParentKey: рекурсивный CTE вверх
             var idCol = $"[{_source.Schema.IdColumn}]";
             var parentCol = $"[{_source.Schema.ParentColumn}]";
-            var sql = $"WITH Chain AS (SELECT {idCol} AS Id, {parentCol} AS Parent FROM ({_source.SelectSql}) x WHERE {idCol} = @id UNION ALL SELECT p.{idCol}, p.{parentCol} FROM ({_source.SelectSql}) p INNER JOIN Chain c ON p.{idCol} = c.Parent) SELECT Id FROM Chain";
+            var sql = $"WITH Chain AS (SELECT {idCol} AS Id, {parentCol} AS Parent FROM ({_source.SelectSql}) x WHERE {idCol} = @id UNION ALL SELECT p.{idCol}, p.{parentCol} FROM ({_source.SelectSql}) p INNER JOIN Chain c ON p.{idCol} = c.Parent) SELECT Id FROM Chain OPTION (MAXRECURSION 200)";
             var dp = new Dapper.DynamicParameters();
             dp.Add("id", targetId);
             var rows = await Clayzor.Lib.Entities.DynamicGrid.DynamicSql.QueryRowsAsync(ResolveDb(), sql, dp);

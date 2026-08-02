@@ -9,6 +9,7 @@
 **Заплатки CTF:** [promts/_done/CTF/CTF0_README_fixes.md](promts/_done/CTF/CTF0_README_fixes.md).
 **Кейсет-пагинация CTP:** [promts/_done/CTP/CTP0_README_level_paging.md](promts/_done/CTP/CTP0_README_level_paging.md).
 **Фильтр и выделение TF:** [promts/_done/TF/TF0_README_tree_filter.md](promts/_done/TF/TF0_README_tree_filter.md).
+**Аудит TA (в процессе):** [promts/TA0_README_audit_tree.md](promts/TA0_README_audit_tree.md).
 
 ## Аксиома имён колонок по умолчанию
 
