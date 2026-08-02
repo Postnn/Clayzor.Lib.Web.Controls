@@ -171,11 +171,9 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
         // Пересчитать после query — forced-параметры могли сбросить дефолтный режим
         _isDefaultOnly = ComputeIsDefaultOnly();
 
-        if (_isDefaultOnly)
-        {
-            var (defWhere, defParams) = BuildDefaultWhere();
-            UpdateSourceExtraWhere(defWhere, defParams);
-        }
+        // Начальная загрузка: ApplyFilterAsync сам выбирает режим
+        // (нет фильтра / дефолтный ExtraWhere / полный фильтр из URL).
+        await ApplyFilterAsync();
     }
 
     /// <inheritdoc/>
@@ -185,15 +183,17 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
         var selectSql = Options.SelectSql;
         var mode = Options.HierarchyMode;
         var rootId = Options.RootId;
+        var orderBy = Options.OrderBy;
         var csName = Options.ConnectionStringName;
 
         if (_source is not null &&
-            (_source.SelectSql != selectSql || _source.Mode != mode || _source.RootId != rootId
-             || _resolvedCsName != csName))
+            (_source.SelectSql != selectSql || _source.Mode != mode || !Equals(_source.RootId, rootId)
+             || _source.OrderBy != orderBy || _resolvedCsName != csName))
         {
-            _source = new ClayTreeSource(selectSql, mode, Options.Schema, Options.OrderBy, rootId);
+            _source = new ClayTreeSource(selectSql, mode, Options.Schema, orderBy, rootId,
+                ExtraWhere: _source.ExtraWhere, ExtraWhereParams: _source.ExtraWhereParams);
             _dataSource = DataSource ?? new ClaySqlTreeDataSource(ResolveDb(), _source);
-            await LoadRootsAsync();
+            await ApplyFilterAsync();
         }
     }
 }

@@ -12,6 +12,7 @@
 **Аудит TA (в процессе):** [promts/TA0_README_audit_tree.md](promts/TA0_README_audit_tree.md).
 - TA1 — SQL-инъекция в `BuildOrderBy`, `MAXRECURSION` в CTE, `_hasmatchchildren` для узлов-совпадений.
 - TA2 — `ExtraWhereParams` в `ClayTreeSource`, проброс параметров дефолтного фильтра через `BuildParams`.
+- TA3 — `OnInitializedAsync`: вызов `ApplyFilterAsync` (начальная загрузка); `OnParametersSetAsync`: `Equals` для `RootId`, отслеживание `OrderBy`, сохранение `ExtraWhere`/`ExtraWhereParams`.
 
 ## Аксиома имён колонок по умолчанию
 
