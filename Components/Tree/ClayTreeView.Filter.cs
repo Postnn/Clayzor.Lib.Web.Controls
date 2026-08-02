@@ -1,4 +1,6 @@
+using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Filter;
+using Clayzor.Lib.Web.Controls.Components.Grid;
 using Clayzor.Lib.Web.Controls.Components.Tree.DataSources;
 using Clayzor.Lib.Web.Controls.Components.Tree.Helpers;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
@@ -24,11 +26,17 @@ public partial class ClayTreeView
     /// </summary>
     private ClayFilterGroupNode _filterRoot = new();
 
+    /// <summary>SqlName колонок, для которых заданы FilterDefaults — для определения «только дефолтный».</summary>
+    private HashSet<string> _defaultFilterColumns = [];
+
     /// <summary>Активен ли фильтр (есть хотя бы одно условие).</summary>
     private bool IsFilterActive => _filterRoot.Nodes.Count > 0;
 
+    /// <summary>Только дефолтный фильтр: все активные условия — нетронутые значения из FilterDefaults.</summary>
+    private bool _isDefaultOnly;
+
     /// <inheritdoc/>
-    bool IClayTreeView.MarksVisible => IsFilterActive;
+    bool IClayTreeView.MarksVisible => IsFilterActive && !_isDefaultOnly;
 
     /// <summary>Количество активных условий — для бейджа на кнопке.</summary>
     private int ActiveFilterCount => ClayFilterDescriptionBuilder.CountActiveLeaves(_filterRoot);
@@ -109,6 +117,118 @@ public partial class ClayTreeView
         }
     }
 
+    // ── Query parameters ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Применяет фильтр из query-параметров URL. Вызывается при инициализации.
+    /// Параметр без '_' — forced (пользовательский режим); с '_' — default (только если нет сохранённого).
+    /// Значение: простое (Equals) или "op~value" (Contains и др.).
+    /// </summary>
+    public void ApplyQueryFilter(string queryString)
+    {
+        if (string.IsNullOrWhiteSpace(queryString))
+            return;
+
+        var map = Options.FilterQueryParamMap;
+        if (map is not { Count: > 0 })
+            return;
+
+        // Убрать ведущий '?'
+        var qs = queryString.StartsWith('?') ? queryString[1..] : queryString;
+        var pairs = qs.Split('&', StringSplitOptions.RemoveEmptyEntries);
+
+        var filterCols = BuildFilterColumns();
+        var colBySqlName = filterCols.ToDictionary(c => c.SqlName, StringComparer.OrdinalIgnoreCase);
+        var colByQueryParam = new Dictionary<string, ClayFilterColumnInfo>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (sqlName, queryParam) in map)
+            colByQueryParam[queryParam] = filterCols.FirstOrDefault(c => c.SqlName.Equals(sqlName, StringComparison.OrdinalIgnoreCase));
+
+        var hasForced = false;
+        var forcedRoot = new ClayFilterGroupNode();
+        var defaultRoot = new ClayFilterGroupNode();
+
+        foreach (var pair in pairs)
+        {
+            var eqIdx = pair.IndexOf('=');
+            if (eqIdx < 0) continue;
+
+            var rawName = Uri.UnescapeDataString(pair[..eqIdx]);
+            var rawValue = Uri.UnescapeDataString(pair[(eqIdx + 1)..]);
+
+            if (string.IsNullOrEmpty(rawValue))
+                continue;
+
+            var isDefault = rawName.StartsWith('_');
+            var queryKey  = isDefault ? rawName[1..] : rawName;
+
+            if (!map.TryGetValue(queryKey, out var sqlName))
+                continue;
+
+            if (!colBySqlName.TryGetValue(sqlName, out var colInfo))
+                continue;
+
+            // Разбор "op~value" или просто "value"
+            var op = colInfo.Type.DefaultOperator != default
+                ? colInfo.Type.DefaultOperator
+                : ColumnFilterOperator.Contains;
+            var value = rawValue;
+            var tildeIdx = rawValue.IndexOf('~');
+            if (tildeIdx >= 0)
+            {
+                var opStr = rawValue[..tildeIdx];
+                op = ParseFilterOperator(opStr);
+                value = rawValue[(tildeIdx + 1)..];
+            }
+
+            var leaf = new ColumnFilter
+            {
+                Column   = sqlName,
+                Operator = op,
+                Value    = value,
+                Source   = ClayFilterSource.CompositeDialog,
+            };
+
+            if (isDefault)
+                defaultRoot.Nodes.Add(leaf);
+            else
+            {
+                forcedRoot.Nodes.Add(leaf);
+                hasForced = true;
+            }
+        }
+
+        // Forced перекрывают всё
+        if (hasForced)
+        {
+            _filterRoot = forcedRoot;
+            _defaultFilterColumns = [];
+        }
+        else if (_filterRoot.Nodes.Count == 0 && defaultRoot.Nodes.Count > 0)
+        {
+            // Нет сохранённого и нет forced — применить default из URL
+            _filterRoot = defaultRoot;
+            _defaultFilterColumns = [];
+        }
+        // Иначе: есть сохранённый фильтр — default URL не применяется
+    }
+
+    private static ColumnFilterOperator ParseFilterOperator(string op) => op.ToLowerInvariant() switch
+    {
+        "eq"          => ColumnFilterOperator.Equals,
+        "ne"          => ColumnFilterOperator.NotEquals,
+        "gt"          => ColumnFilterOperator.GreaterThan,
+        "ge"          => ColumnFilterOperator.GreaterThanOrEqual,
+        "lt"          => ColumnFilterOperator.LessThan,
+        "lte"         => ColumnFilterOperator.LessThanOrEqual,
+        "contains"    => ColumnFilterOperator.Contains,
+        "ncontains"   => ColumnFilterOperator.NotContains,
+        "startswith"  => ColumnFilterOperator.StartsWith,
+        "nstartswith" => ColumnFilterOperator.NotStartsWith,
+        "endswith"    => ColumnFilterOperator.EndsWith,
+        "nendswith"   => ColumnFilterOperator.NotEndsWith,
+        _             => ColumnFilterOperator.Contains,
+    };
+
     // ── Clear ────────────────────────────────────────────────────────────────────
 
     /// <summary>Убирает фильтр и перезагружает дерево в обычном режиме.</summary>
@@ -118,22 +238,161 @@ public partial class ClayTreeView
         await ApplyFilterAsync();
     }
 
+    // ── Default filter detection ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Определяет, является ли текущий _filterRoot «только дефолтным»:
+    /// все активные листья — из _defaultFilterColumns, и их значения не менялись.
+    /// </summary>
+    private bool ComputeIsDefaultOnly()
+    {
+        if (_filterRoot.Nodes.Count == 0)
+            return false;
+
+        var filterCols = BuildFilterColumns();
+        var colBySqlName = new Dictionary<string, ClayTreeFilterColumn>(StringComparer.OrdinalIgnoreCase);
+        if (Options.FilterColumns is not null)
+        {
+            foreach (var c in Options.FilterColumns)
+                colBySqlName[c.SqlName] = c;
+        }
+
+        foreach (var node in _filterRoot.Nodes)
+        {
+            if (node is not ColumnFilter leaf || !leaf.HasValue)
+                continue;
+
+            if (!_defaultFilterColumns.Contains(leaf.Column))
+                return false;
+
+            // Проверить, что значение не изменилось относительно FilterDefaults
+            if (!Options.FilterDefaults.TryGetValue(leaf.Column, out var defVal))
+                return false;
+
+            if (!Equals(leaf.Value?.ToString(), defVal?.ToString()))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Строит WHERE из FilterDefaults для тихого ограничения ленивой загрузки.
+    /// Возвращает (whereClause, parameters) или null если дефолтов нет.
+    /// </summary>
+    private (string? whereClause, DynamicParameters? dp) BuildDefaultWhere()
+    {
+        if (Options.FilterDefaults is not { Count: > 0 })
+            return (null, null);
+
+        var filterCols = BuildFilterColumns();
+        var colBySqlName = filterCols.ToDictionary(c => c.SqlName, StringComparer.OrdinalIgnoreCase);
+
+        var defRoot = new ClayFilterGroupNode();
+        _defaultFilterColumns = [];
+
+        foreach (var (sqlName, value) in Options.FilterDefaults)
+        {
+            if (value is null && colBySqlName.TryGetValue(sqlName, out var ci)
+                && ci.Type.Kind != ColumnType.Text)
+                continue;
+
+            var op = colBySqlName.TryGetValue(sqlName, out var col) && col.Type.DefaultOperator != default
+                ? col.Type.DefaultOperator
+                : ColumnFilterOperator.Contains;
+
+            defRoot.Nodes.Add(new ColumnFilter
+            {
+                Column   = sqlName,
+                Operator = op,
+                Value    = value,
+                Source   = ClayFilterSource.CompositeDialog,
+            });
+
+            _defaultFilterColumns.Add(sqlName);
+        }
+
+        if (defRoot.Nodes.Count == 0)
+            return (null, null);
+
+        var knownColumns = new HashSet<string>(filterCols.Select(c => c.SqlName), StringComparer.OrdinalIgnoreCase);
+        var dp = new DynamicParameters();
+        var whereClause = ClayCompositeSqlBuilder.Build(defRoot, dp, knownColumns);
+        return (whereClause, dp);
+    }
+
+    /// <summary>
+    /// Инициализирует дефолтный фильтр при старте (до первой загрузки данных).
+    /// Строит _filterRoot из FilterDefaults и помечает их дефолтными.
+    /// </summary>
+    public void InitializeDefaultFilter()
+    {
+        if (Options.FilterDefaults is not { Count: > 0 })
+            return;
+
+        var filterCols = BuildFilterColumns();
+        var colBySqlName = filterCols.ToDictionary(c => c.SqlName, StringComparer.OrdinalIgnoreCase);
+
+        _defaultFilterColumns = [];
+        _filterRoot = new ClayFilterGroupNode();
+
+        foreach (var (sqlName, value) in Options.FilterDefaults)
+        {
+            var op = colBySqlName.TryGetValue(sqlName, out var col) && col.Type.DefaultOperator != default
+                ? col.Type.DefaultOperator
+                : ColumnFilterOperator.Contains;
+
+            _filterRoot.Nodes.Add(new ColumnFilter
+            {
+                Column   = sqlName,
+                Operator = op,
+                Value    = value,
+                Source   = ClayFilterSource.CompositeDialog,
+            });
+
+            _defaultFilterColumns.Add(sqlName);
+        }
+
+        _isDefaultOnly = _filterRoot.Nodes.Count > 0;
+    }
+
     // ── Apply ────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Применяет текущий фильтр. Если есть активные условия — выполняет запрос
-    /// совпадений с предками и строит дерево из набора. Иначе — обычная ленивая загрузка.
+    /// Применяет текущий фильтр. Три режима:
+    /// нет условий → обычная ленивая загрузка;
+    /// только дефолтные → тихий WHERE в ленивом режиме (без пометок/счётчика);
+    /// пользовательские → полный режим фильтра с предками и пометками.
     /// </summary>
     private async Task ApplyFilterAsync()
     {
         if (_filterRoot.Nodes.Count == 0)
         {
-            _filterMatchCount = 0;
-            _filterCapped     = false;
+            _isDefaultOnly     = false;
+            _filterMatchCount  = 0;
+            _filterCapped      = false;
+            UpdateSourceExtraWhere(null);
             await LoadRootsAsync();
             StateHasChanged();
             return;
         }
+
+        _isDefaultOnly = ComputeIsDefaultOnly();
+
+        if (_isDefaultOnly)
+        {
+            // Дефолтный режим: тихий WHERE, без пометок/счётчика/предков
+            _filterMatchCount = 0;
+            _filterCapped     = false;
+            var (defWhere, _) = BuildDefaultWhere();
+            UpdateSourceExtraWhere(defWhere);
+            await LoadRootsAsync();
+            StateHasChanged();
+            return;
+        }
+
+        // Пользовательский режим: полный фильтр (TF_E)
+        UpdateSourceExtraWhere(null);
 
         var filterCols = BuildFilterColumns();
         var knownColumns = new HashSet<string>(
@@ -152,7 +411,7 @@ public partial class ClayTreeView
         }
 
         var max = Options.MaxFilterRecords;
-        if (max <= 0) max = 100; // защита от нуля
+        if (max <= 0) max = 100;
 
         _isFiltering = true;
         StateHasChanged();
@@ -173,7 +432,6 @@ public partial class ClayTreeView
 
                 var flatNodes = result.Nodes;
 
-                // Ловушка 5: пустой результат — показать корни
                 if (flatNodes.Count == 0)
                 {
                     _filterMatchCount = 0;
@@ -182,22 +440,18 @@ public partial class ClayTreeView
                     return;
                 }
 
-                // Подсчёт совпадений и capped
                 _filterMatchCount = flatNodes.Count(n => n.IsMatch);
                 _filterCapped     = _filterMatchCount > max;
 
-                // Построить дерево из плоского списка
                 BuildTreeFromFlatNodes(flatNodes);
 
-                // Правило 1: верхний уровень выводится всегда.
-                // Догружаем все корни; те, что уже в наборе — пропускаем.
                 var rootResult = await _dataSource.LoadLevelAsync(new ClayTreeLoadRequest(null));
                 if (rootResult.Error is null)
                 {
                     foreach (var root in rootResult.Nodes)
                     {
                         if (_byId.ContainsKey(root.Id))
-                            continue; // уже в фильтр-наборе
+                            continue;
 
                         root.Parent = null;
                         root.Level  = 0;
@@ -214,6 +468,28 @@ public partial class ClayTreeView
             _isFiltering = false;
             StateHasChanged();
         }
+    }
+
+    /// <summary>Обновляет ExtraWhere в _source и пересоздаёт _dataSource при изменении.</summary>
+    private void UpdateSourceExtraWhere(string? extraWhere)
+    {
+        if (_source is null)
+            return;
+
+        if (_source.ExtraWhere == extraWhere)
+            return;
+
+        _source = new ClayTreeSource(
+            Options.SelectSql,
+            Options.HierarchyMode,
+            Options.Schema,
+            Options.OrderBy,
+            Options.RootId,
+            _source.PageSize,
+            _source.Cursor,
+            extraWhere);
+
+        _dataSource = DataSource ?? new ClaySqlTreeDataSource(ResolveDb(), _source);
     }
 
     /// <summary>

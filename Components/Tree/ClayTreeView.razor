@@ -28,7 +28,7 @@
                         <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
                     }
                 </div>
-                @if (IsFilterActive)
+                @if (IsFilterActive && !_isDefaultOnly)
                 {
                     <div class="clay-tree-toolbar-info">
                         @if (_filterCapped)

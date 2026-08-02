@@ -46,6 +46,7 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
 
     [Inject] private DbManager Db { get; set; } = default!;
     [Inject] private IClayTreeStateStore StateStore { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     // ── Fields ───────────────────────────────────────────────────────────────────
 
@@ -136,6 +137,18 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
             Options.RootId);
 
         _dataSource = DataSource ?? new ClaySqlTreeDataSource(ResolveDb(), _source);
+
+        // TF_G: инициализировать дефолтный фильтр из FilterDefaults
+        InitializeDefaultFilter();
+
+        // TF_G: применить фильтр из query-параметров URL (перекрывает FilterDefaults)
+        ApplyQueryFilter(NavigationManager.Uri);
+
+        // Пересчитать после query — forced-параметры могли сбросить дефолтный режим
+        _isDefaultOnly = ComputeIsDefaultOnly();
+
+        if (_isDefaultOnly)
+            UpdateSourceExtraWhere(BuildDefaultWhere().whereClause);
     }
 
     /// <inheritdoc/>
