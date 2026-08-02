@@ -249,7 +249,7 @@ public partial class ClayTreeView
     /// Строит WHERE из FilterDefaults для тихого ограничения ленивой загрузки.
     /// Возвращает (whereClause, parameters) или null если дефолтов нет.
     /// </summary>
-    private (string? whereClause, DynamicParameters? dp) BuildDefaultWhere()
+    private (string? whereClause, IReadOnlyDictionary<string, object?>? prms) BuildDefaultWhere()
     {
         if (Options.FilterDefaults is not { Count: > 0 })
             return (null, null);
@@ -287,7 +287,13 @@ public partial class ClayTreeView
         var knownColumns = new HashSet<string>(filterCols.Select(c => c.SqlName), StringComparer.OrdinalIgnoreCase);
         var dp = new DynamicParameters();
         var whereClause = ClayCompositeSqlBuilder.Build(defRoot, dp, knownColumns);
-        return (whereClause, dp);
+        if (whereClause is null)
+            return (null, null);
+
+        var prms = new Dictionary<string, object?>();
+        foreach (var name in dp.ParameterNames)
+            prms[name] = dp.Get<object?>(name);
+        return (whereClause, prms);
     }
 
     /// <summary>
@@ -353,8 +359,8 @@ public partial class ClayTreeView
             // Дефолтный режим: тихий WHERE, без пометок/счётчика/предков
             _filterMatchCount = 0;
             _filterCapped     = false;
-            var (defWhere, _) = BuildDefaultWhere();
-            UpdateSourceExtraWhere(defWhere);
+            var (defWhere, defParams) = BuildDefaultWhere();
+            UpdateSourceExtraWhere(defWhere, defParams);
             await LoadRootsAsync();
             StateHasChanged();
             return;
@@ -443,7 +449,7 @@ public partial class ClayTreeView
     }
 
     /// <summary>Обновляет ExtraWhere в _source и пересоздаёт _dataSource при изменении.</summary>
-    private void UpdateSourceExtraWhere(string? extraWhere)
+    private void UpdateSourceExtraWhere(string? extraWhere, IReadOnlyDictionary<string, object?>? extraWhereParams = null)
     {
         if (_source is null)
             return;
@@ -459,7 +465,8 @@ public partial class ClayTreeView
             Options.RootId,
             _source.PageSize,
             _source.Cursor,
-            extraWhere);
+            extraWhere,
+            extraWhereParams);
 
         _dataSource = DataSource ?? new ClaySqlTreeDataSource(ResolveDb(), _source);
     }

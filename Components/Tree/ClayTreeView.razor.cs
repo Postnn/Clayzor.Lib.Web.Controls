@@ -172,7 +172,10 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
         _isDefaultOnly = ComputeIsDefaultOnly();
 
         if (_isDefaultOnly)
-            UpdateSourceExtraWhere(BuildDefaultWhere().whereClause);
+        {
+            var (defWhere, defParams) = BuildDefaultWhere();
+            UpdateSourceExtraWhere(defWhere, defParams);
+        }
     }
 
     /// <inheritdoc/>
