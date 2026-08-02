@@ -102,4 +102,41 @@ public sealed class ClayTreeOptions
     /// поэтому в options, а не атрибутом тега.
     /// </summary>
     public string? Style { get; set; }
+
+    // ── Фильтрация ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Максимум совпадений, показываемых при фильтре (предки не в счёт).
+    /// 0 — без лимита.
+    /// </summary>
+    public int MaxFilterRecords { get; set; } = 100;
+
+    /// <summary>SQL-имена колонок, исключённых из фильтрации (не предлагаются в диалоге).</summary>
+    public IReadOnlyList<string> FilterExcludedColumns { get; set; } = [];
+
+    /// <summary>
+    /// Значения фильтра по умолчанию: SqlName → значение.
+    /// Подставляются как WHERE в ленивом режиме загрузки уровней.
+    /// </summary>
+    public IReadOnlyDictionary<string, object?> FilterDefaults { get; set; } = new Dictionary<string, object?>();
+
+    /// <summary>
+    /// Сопоставление имён query-параметров строки запроса колонкам: имя параметра → SqlName.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> FilterQueryParamMap { get; set; } = new Dictionary<string, string>();
+
+    /// <summary>
+    /// Явный список колонок дерева, доступных для фильтрации.
+    /// Если не задан или после исключений пуст — кнопка фильтра не показывается.
+    /// </summary>
+    public IReadOnlyList<ClayTreeFilterColumn>? FilterColumns { get; set; }
+
+    // ── Выбор ───────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Режим выделения узлов.
+    /// <see cref="ClayTreeSelectionMode.Single"/> — одиночный клик подсвечивает узел.
+    /// <see cref="ClayTreeSelectionMode.Multiple"/> — задел, в текущей версии не реализовано.
+    /// </summary>
+    public ClayTreeSelectionMode SelectionMode { get; set; } = ClayTreeSelectionMode.Single;
 }

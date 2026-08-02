@@ -1,4 +1,5 @@
 using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
+using Clayzor.Lib.Web.Controls.Components.Tree;
 using Clayzor.Lib.Web.Controls.Components.Tree.State;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,10 +29,34 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>Регистрирует сервисы компонента ClayTreeView.</summary>
-    public static IServiceCollection AddClayTree(this IServiceCollection services)
+    /// <param name="services">Коллекция сервисов.</param>
+    /// <param name="config">Корневая конфигурация приложения.</param>
+    public static IServiceCollection AddClayTree(this IServiceCollection services, IConfiguration config)
     {
+        services.Configure<ClayTreeDynamicSettings>(config.GetSection("ClayTree:Dynamic"));
+        services.AddSingleton<IValidateOptions<ClayTreeDynamicSettings>, ValidateClayTreeDynamicSettings>();
         services.AddScoped<IClayTreeStateStore, ClayTreeMemoryStateStore>();
         return services;
+    }
+}
+
+/// <summary>
+/// Валидатор <see cref="ClayTreeDynamicSettings"/> при старте приложения.
+/// Вызывает <see cref="ClayTreeDynamicSettings.Validate"/> при первом резолве опций.
+/// </summary>
+internal sealed class ValidateClayTreeDynamicSettings : IValidateOptions<ClayTreeDynamicSettings>
+{
+    public ValidateOptionsResult Validate(string? name, ClayTreeDynamicSettings options)
+    {
+        try
+        {
+            options.Validate();
+            return ValidateOptionsResult.Success;
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ValidateOptionsResult.Fail(ex.Message);
+        }
     }
 }
 

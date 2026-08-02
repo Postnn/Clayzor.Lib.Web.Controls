@@ -8,6 +8,7 @@
 **План серии CT:** [promts/_done/CT/CT1_tree_view_skeleton.md](promts/_done/CT/CT1_tree_view_skeleton.md).
 **Заплатки CTF:** [promts/_done/CTF/CTF0_README_fixes.md](promts/_done/CTF/CTF0_README_fixes.md).
 **Кейсет-пагинация CTP:** [promts/_done/CTP/CTP0_README_level_paging.md](promts/_done/CTP/CTP0_README_level_paging.md).
+**Фильтр и выделение TF (в процессе):** [promts/TF0_README_tree_filter.md](promts/TF0_README_tree_filter.md).
 
 ## Аксиома имён колонок по умолчанию
 
@@ -38,6 +39,16 @@
 | Заплатки CTF (CTF0–CTF6) | [promts/_done/CTF/CTF0_README_fixes.md](promts/_done/CTF/CTF0_README_fixes.md) |
 | Кейсет-пагинация CTP (CTP0–CTP2) | [promts/_done/CTP/CTP0_README_level_paging.md](promts/_done/CTP/CTP0_README_level_paging.md) |
 | Будущие промты (CTP3, TF, …) | [promts/](promts/) |
+| Оркестратор TF | [promts/TF0_README_tree_filter.md](promts/TF0_README_tree_filter.md) |
+| TF_A — разведка | [promts/TF_A_discovery.md](promts/TF_A_discovery.md) |
+| TF_B — настройки | [promts/TF_B_settings_and_options.md](promts/TF_B_settings_and_options.md) |
+| TF_C — колонки фильтра | [promts/TF_C_filter_columns_from_sql.md](promts/TF_C_filter_columns_from_sql.md) |
+| TF_D — панель и диалог | [promts/TF_D_panel_and_dialog.md](promts/TF_D_panel_and_dialog.md) |
+| TF_E — SQL и загрузка | [promts/TF_E_filter_sql_and_load.md](promts/TF_E_filter_sql_and_load.md) |
+| TF_F — пометки | [promts/TF_F_marks.md](promts/TF_F_marks.md) |
+| TF_G — дефолты и query | [promts/TF_G_defaults_and_query.md](promts/TF_G_defaults_and_query.md) |
+| TF_H — тесты и документация | [promts/TF_H_tests_docs.md](promts/TF_H_tests_docs.md) |
+| TF_I — состояние и выделение | [promts/TF_I_state_and_selection.md](promts/TF_I_state_and_selection.md) |
 
 ## Выполненные заплатки (CTF1–CTF6)
 
@@ -52,3 +63,10 @@
 
 - CTP1 — модель и SQL: `LoadedAllChildren`/`LastChildCursor` в `ClayTreeNode`, `HasMore`/`NextCursor` в `ClayTreeLoadResult`, `PageSize`/`Cursor` в `ClayTreeSource`, `TOP (@pageSize+1)` + `AND [L] > @cursor` в `BuildNestedSetSql`, `LoadMoreChildrenAsync`, `ResolveDataSourceForNode`.
 - CTP2 — UI догрузки: кнопка «Загрузить ещё N» (Button) и автоподгрузка при скролле (Scroll, `IntersectionObserver`). JS `clayTreePaging.js`, `ClayTreeNodeView` — хвост уровня, `IDisposable` для снятия наблюдения. Оркестратор: `promts/_done/CTP/CTP0_README_level_paging.md`.
+
+## Выполненные шаги фильтра (TF_B–TF_D)
+
+- TF_B — `ClayTreeDynamicSettings` (уровень приложения, DI, секция `ClayTree:Dynamic`), `ClayTreeSelectionMode` (None|Single), расширение `ClayTreeOptions` (MaxFilterRecords, FilterExcludedColumns, FilterDefaults, FilterQueryParamMap, SelectionMode), регистрация в `AddClayTree(IConfiguration)`, `ValidateClayTreeDynamicSettings`, тесты.
+- TF_C — `ClayTreeFilterColumn` (SqlName, DisplayName, ColumnType, Options, BoolLabels), `ClayTreeFilterColumnBuilder.Build()` (маппинг → `ClayFilterColumnInfo`, исключения, дедупликация), `ClayTreeOptions.FilterColumns`, тесты.
+- TF_D — `ClayTreeView.Filter.cs` (partial: `_filterRoot`, `BuildFilterColumns`, `OpenTreeFilterDialogAsync`, `ClearTreeFilterAsync`, `ApplyFilterAsync`), панель `.clay-tree-toolbar` с кнопкой `FilterList` + бейдж + tooltip + кнопка удаления, заготовка счётчика. `ApplyFilterAsync` пока заглушка (TF_E).
+- TF_E — **запланирован, не реализован** (ядро: SQL совпадений + предков).

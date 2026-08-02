@@ -4,6 +4,39 @@
 
 <CascadingValue Value="(IClayTreeView)this" IsFixed="true">
     <div class="clay-tree @Options.Class" style="@Options.Style">
+        @* ── Панель фильтра ────────────────────────────────────────────── *@
+        @if (BuildFilterColumns().Count > 0)
+        {
+            <div class="clay-tree-toolbar">
+                <div class="clay-tree-toolbar-row">
+                    <MudTooltip Text="@(FilterTooltip ?? "Фильтр")">
+                        <MudBadge Content="@ActiveFilterCount"
+                                  Visible="@(ActiveFilterCount > 0)"
+                                  Color="Color.Primary"
+                                  Overlap="true">
+                            <MudIconButton Icon="@Icons.Material.Filled.FilterList"
+                                           OnClick="@OpenTreeFilterDialogAsync"
+                                           Size="Size.Small"
+                                           title="Фильтр" />
+                        </MudBadge>
+                    </MudTooltip>
+                    @if (IsFilterActive)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       OnClick="@ClearTreeFilterAsync"
+                                       Size="Size.Small"
+                                       title="Удалить фильтр" />
+                    }
+                </div>
+                @if (IsFilterActive)
+                {
+                    <div class="clay-tree-toolbar-info">
+                        @* TF_E: «Найдено записей: N» / «Найдено более N записей...» *@
+                    </div>
+                }
+            </div>
+        }
+
         @if (_error is not null)
         {
             <MudAlert Severity="Severity.Warning" Class="clay-tree-error mb-2" Variant="Variant.Outlined">

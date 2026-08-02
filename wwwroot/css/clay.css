@@ -1490,6 +1490,22 @@ body {
     color: var(--mud-palette-text-primary);
 }
 
+.clay-tree-toolbar {
+    margin-bottom: 6px;
+}
+
+.clay-tree-toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.clay-tree-toolbar-info {
+    padding: 2px 0 4px 0;
+    font-size: 0.75rem;
+    color: var(--mud-palette-text-secondary);
+}
+
 .clay-tree-error {
     color: var(--mud-palette-text-primary);
 }
