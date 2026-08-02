@@ -102,9 +102,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
         // SH8: разбор sharedId — если невалидный, отказ до загрузки данных
         var sharedId = ResolveSharedId();
         _isSharedMode = sharedId.HasValue;
-        if (_isSharedMode && sharedId.Value <= 0)
+        if (sharedId is int id && id <= 0)
         {
-            _dynamicError = $"Неверный код общей настройки «{sharedId}» — ссылка недействительна.";
+            _dynamicError = $"Неверный код общей настройки «{id}» — ссылка недействительна.";
             return;
         }
 

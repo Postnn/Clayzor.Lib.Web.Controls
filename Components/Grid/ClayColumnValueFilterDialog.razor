@@ -50,7 +50,7 @@ using Clayzor.Lib.Web.Controls.Components.Filter;
                                         continue;
 
                                     var captured = op;
-                                    <MudMenuItem Dense="true" OnClick="() => OpenCondition(captured)">
+                                    <MudMenuItem OnClick="() => OpenCondition(captured)">
                                         @ClayFilterOperatorLabels.Get(op)
                                     </MudMenuItem>
                                 }
