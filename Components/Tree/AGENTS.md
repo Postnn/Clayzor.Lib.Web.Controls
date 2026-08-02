@@ -13,6 +13,7 @@
 - TA1 — SQL-инъекция в `BuildOrderBy`, `MAXRECURSION` в CTE, `_hasmatchchildren` для узлов-совпадений.
 - TA2 — `ExtraWhereParams` в `ClayTreeSource`, проброс параметров дефолтного фильтра через `BuildParams`.
 - TA3 — `OnInitializedAsync`: вызов `ApplyFilterAsync` (начальная загрузка); `OnParametersSetAsync`: `Equals` для `RootId`, отслеживание `OrderBy`, сохранение `ExtraWhere`/`ExtraWhereParams`.
+- TA4 — `MapRow`: `Convert.ToInt64/Int32` вместо `as`-приведения; `ClaySqlTreeDataSource`: `catch (OperationCanceledException)`; `EnsureChildrenLoadedAsync`: guard `IsLoading`; `ResolveDataSourceForNode`: `DataSource` приоритетнее, `with` сохраняет `ExtraWhere`.
 
 ## Аксиома имён колонок по умолчанию
 

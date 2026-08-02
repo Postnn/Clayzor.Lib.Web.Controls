@@ -41,6 +41,10 @@ public sealed class ClaySqlTreeDataSource : IClayTreeDataSource
 
             return new ClayTreeLoadResult(nodes);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             return new ClayTreeLoadResult([], ex.Message);
@@ -72,6 +76,10 @@ public sealed class ClaySqlTreeDataSource : IClayTreeDataSource
                 return ClayTreeLoadResult.FromPagedRows(nodes, _source.PageSize.Value);
 
             return new ClayTreeLoadResult(nodes);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

@@ -76,6 +76,7 @@ public partial class ClayTreeView
     {
         if (node.IsLoaded) return;
         if (!node.HasChildren) return;
+        if (node.IsLoading) return;
 
         node.IsLoading = true;
         StateHasChanged();
@@ -155,17 +156,19 @@ public partial class ClayTreeView
     /// </summary>
     private IClayTreeDataSource ResolveDataSourceForNode(ClayTreeNode node, long? cursor)
     {
+        // Подменный источник (тесты, нестандартные данные) всегда главнее пагинации.
+        if (DataSource is not null)
+            return DataSource;
+
         if (Options.LevelPageSize <= 0 || Options.HierarchyMode != ClayTreeHierarchyMode.NestedSet)
             return _dataSource;
 
-        var pageSource = new ClayTreeSource(
-            Options.SelectSql,
-            Options.HierarchyMode,
-            Options.Schema,
-            Options.OrderBy,
-            Options.RootId,
-            PageSize: Options.LevelPageSize,
-            Cursor: cursor);
+        // Кейсет-источник строится ИЗ _source, чтобы не потерять ExtraWhere/ExtraWhereParams.
+        var pageSource = _source! with
+        {
+            PageSize = Options.LevelPageSize,
+            Cursor   = cursor,
+        };
 
         return new ClaySqlTreeDataSource(ResolveDb(), pageSource);
     }
