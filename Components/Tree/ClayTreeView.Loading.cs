@@ -189,7 +189,13 @@ public partial class ClayTreeView
         await EnsureChildrenLoadedAsync(node);
         node.IsExpanded = true;
         _expanded.Add(id);
-        await SaveStateAsync();
+
+        // TF_I: обновить якорь только при ручном раскрытии (не при восстановлении)
+        if (!_isRestoring)
+        {
+            _lastExpandedId = id;
+            await SaveStateAsync();
+        }
         await OnNodeExpanded.InvokeAsync(node);
         StateHasChanged();
     }

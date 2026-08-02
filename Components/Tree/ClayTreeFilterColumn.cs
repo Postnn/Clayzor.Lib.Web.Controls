@@ -16,6 +16,9 @@ public sealed class ClayTreeFilterColumn
     /// <summary>Отображаемое имя колонки (в диалоге, чипах, тексте фильтра).</summary>
     public required string DisplayName { get; init; }
 
+    /// <summary>Ключ для URL-параметра фильтра (формат грида: UrlKey=op~value). null — недоступна через query-строку.</summary>
+    public string? UrlKey { get; init; }
+
     /// <summary>Тип данных колонки — определяет доступные операторы и редактор значения.</summary>
     public ColumnType ColumnType { get; init; } = ColumnType.Text;
 

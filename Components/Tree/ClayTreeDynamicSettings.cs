@@ -18,9 +18,6 @@ public sealed class ClayTreeDynamicSettings
     /// <summary>Префикс имени параметра для сохранения состояния дерева (якорь + выделение).</summary>
     public string StateParamPrefix { get; set; } = "TreeState_";
 
-    /// <summary>Префикс query-параметра строки запроса для значений фильтра по умолчанию.</summary>
-    public string FilterQueryPrefix { get; set; } = "tree_flt_";
-
     /// <summary>
     /// Проверяет заполненность обязательных полей. Бросает <see cref="InvalidOperationException"/>
     /// с русским текстом и именем класса.
@@ -31,7 +28,5 @@ public sealed class ClayTreeDynamicSettings
             throw new InvalidOperationException("ClayTreeDynamicSettings.FilterParamPrefix пусто");
         if (string.IsNullOrWhiteSpace(StateParamPrefix))
             throw new InvalidOperationException("ClayTreeDynamicSettings.StateParamPrefix пусто");
-        if (string.IsNullOrWhiteSpace(FilterQueryPrefix))
-            throw new InvalidOperationException("ClayTreeDynamicSettings.FilterQueryPrefix пусто");
     }
 }

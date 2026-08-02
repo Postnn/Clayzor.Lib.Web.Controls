@@ -5,7 +5,8 @@
 | Подсистема | AGENTS.md |
 |---|---|
 | **ClayGrid** — грид, динрежим, группировка, фильтрация, codebehind | [`Components/Grid/AGENTS.md`](Components/Grid/AGENTS.md) |
-| **ClayTreeView** — дерево, заплатки CTF, кейсет-пагинация CTP | [`Components/Tree/AGENTS.md`](Components/Tree/AGENTS.md) |
+| **ClayTreeView** — дерево, фильтрация, состояние, выделение | [`Components/Tree/AGENTS.md`](Components/Tree/AGENTS.md) |
+| **Документация ClayTreeView** | [`docs/clay-tree-view.md`](docs/clay-tree-view.md) |
 | **ClayFilter** — общий настраиваемый фильтр (дерево И/ИЛИ), серия CF | [`Components/Filter/AGENTS.md`](Components/Filter/AGENTS.md) |
 
 ## Shared components

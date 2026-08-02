@@ -1535,6 +1535,11 @@ body {
     background-color: var(--mud-palette-action-default-hover);
 }
 
+.clay-tree-node--selected > .clay-tree-node-row {
+    background-color: var(--mud-palette-action-selected);
+    border-radius: 3px;
+}
+
 .clay-tree-node-toggle {
     color: var(--mud-palette-text-secondary) !important;
     flex-shrink: 0;

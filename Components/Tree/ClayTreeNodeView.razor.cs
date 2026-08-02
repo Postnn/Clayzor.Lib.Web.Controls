@@ -31,7 +31,7 @@ public partial class ClayTreeNodeView : ComponentBase, IDisposable
     private async Task HandleClick()
     {
         if (Tree is ClayTreeView view)
-            await view.OnNodeClick.InvokeAsync(Node);
+            await view.HandleNodeClick(Node);
     }
 
     private async Task HandleLoadMore()

@@ -57,6 +57,30 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     private DbManager? _customDb;
     private string? _resolvedCsName;
 
+    // ── Selection ────────────────────────────────────────────────────────────────
+
+    private readonly HashSet<string> _selectedIds = [];
+
+    /// <summary>Якорь последней раскрытой пользователем ноды.</summary>
+    private string? _lastExpandedId;
+
+    /// <inheritdoc/>
+    IReadOnlySet<string> IClayTreeView.SelectedIds => _selectedIds;
+
+    /// <summary>Обрабатывает клик по тексту узла: одиночное выделение + внешний callback.</summary>
+    internal async Task HandleNodeClick(ClayTreeNode node)
+    {
+        if (Options.SelectionMode == ClayTreeSelectionMode.Single)
+        {
+            _selectedIds.Clear();
+            _selectedIds.Add(node.Id);
+            await SaveStateAsync();
+            StateHasChanged();
+        }
+
+        await OnNodeClick.InvokeAsync(node);
+    }
+
     // ── IClayTreeView ────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>

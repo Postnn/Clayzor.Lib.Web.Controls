@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.Configure<ClayTreeDynamicSettings>(config.GetSection("ClayTree:Dynamic"));
         services.AddSingleton<IValidateOptions<ClayTreeDynamicSettings>, ValidateClayTreeDynamicSettings>();
         services.AddScoped<IClayTreeStateStore, ClayTreeMemoryStateStore>();
+        services.AddScoped<ClaySqlTreeStateStore>();
         return services;
     }
 }

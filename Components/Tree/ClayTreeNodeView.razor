@@ -11,7 +11,7 @@
         + (linesOn && isLast ? " clay-tree-node--last" : "");
 }
 
-<div class="@nodeClass">
+<div class="@nodeClass @(Tree.SelectedIds.Contains(Node.Id) ? "clay-tree-node--selected" : "")">
     <div class="clay-tree-node-row" style="@(linesOn ? null : $"padding-left:{Node.Level * Tree.IndentPx}px")">
         @{
             var showSpinner = Node.IsLoading

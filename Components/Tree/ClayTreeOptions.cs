@@ -121,11 +121,6 @@ public sealed class ClayTreeOptions
     public IReadOnlyDictionary<string, object?> FilterDefaults { get; set; } = new Dictionary<string, object?>();
 
     /// <summary>
-    /// Сопоставление имён query-параметров строки запроса колонкам: имя параметра → SqlName.
-    /// </summary>
-    public IReadOnlyDictionary<string, string> FilterQueryParamMap { get; set; } = new Dictionary<string, string>();
-
-    /// <summary>
     /// Явный список колонок дерева, доступных для фильтрации.
     /// Если не задан или после исключений пуст — кнопка фильтра не показывается.
     /// </summary>

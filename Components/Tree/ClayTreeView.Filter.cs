@@ -1,6 +1,7 @@
 using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Filter;
 using Clayzor.Lib.Web.Controls.Components.Grid;
+using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 using Clayzor.Lib.Web.Controls.Components.Tree.DataSources;
 using Clayzor.Lib.Web.Controls.Components.Tree.Helpers;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
@@ -121,27 +122,30 @@ public partial class ClayTreeView
 
     /// <summary>
     /// Применяет фильтр из query-параметров URL. Вызывается при инициализации.
-    /// Параметр без '_' — forced (пользовательский режим); с '_' — default (только если нет сохранённого).
-    /// Значение: простое (Equals) или "op~value" (Contains и др.).
+    /// Формат — как у грида: UrlKey=op~value (forced) или _UrlKey=op~value (default).
+    /// Переиспользует <see cref="ClayGridUrlFilterParser.Parse"/>.
     /// </summary>
     public void ApplyQueryFilter(string queryString)
     {
         if (string.IsNullOrWhiteSpace(queryString))
             return;
 
-        var map = Options.FilterQueryParamMap;
-        if (map is not { Count: > 0 })
+        if (Options.FilterColumns is not { Count: > 0 })
             return;
 
-        // Убрать ведущий '?'
+        // Строим urlKey → колонка (как в гриде)
+        var urlKeyToCol = Options.FilterColumns
+            .Where(c => !string.IsNullOrEmpty(c.UrlKey))
+            .ToDictionary(c => c.UrlKey!, StringComparer.OrdinalIgnoreCase);
+
+        if (urlKeyToCol.Count == 0)
+            return;
+
         var qs = queryString.StartsWith('?') ? queryString[1..] : queryString;
         var pairs = qs.Split('&', StringSplitOptions.RemoveEmptyEntries);
 
         var filterCols = BuildFilterColumns();
         var colBySqlName = filterCols.ToDictionary(c => c.SqlName, StringComparer.OrdinalIgnoreCase);
-        var colByQueryParam = new Dictionary<string, ClayFilterColumnInfo>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (sqlName, queryParam) in map)
-            colByQueryParam[queryParam] = filterCols.FirstOrDefault(c => c.SqlName.Equals(sqlName, StringComparison.OrdinalIgnoreCase));
 
         var hasForced = false;
         var forcedRoot = new ClayFilterGroupNode();
@@ -152,43 +156,28 @@ public partial class ClayTreeView
             var eqIdx = pair.IndexOf('=');
             if (eqIdx < 0) continue;
 
-            var rawName = Uri.UnescapeDataString(pair[..eqIdx]);
+            var rawName  = Uri.UnescapeDataString(pair[..eqIdx]);
             var rawValue = Uri.UnescapeDataString(pair[(eqIdx + 1)..]);
+            if (string.IsNullOrEmpty(rawValue)) continue;
 
-            if (string.IsNullOrEmpty(rawValue))
+            var cleanKey = rawName.StartsWith('_') ? rawName[1..] : rawName;
+            if (!urlKeyToCol.TryGetValue(cleanKey, out var col))
                 continue;
 
-            var isDefault = rawName.StartsWith('_');
-            var queryKey  = isDefault ? rawName[1..] : rawName;
-
-            if (!map.TryGetValue(queryKey, out var sqlName))
+            if (!colBySqlName.TryGetValue(col.SqlName, out var colInfo))
                 continue;
 
-            if (!colBySqlName.TryGetValue(sqlName, out var colInfo))
-                continue;
-
-            // Разбор "op~value" или просто "value"
-            var op = colInfo.Type.DefaultOperator != default
-                ? colInfo.Type.DefaultOperator
-                : ColumnFilterOperator.Contains;
-            var value = rawValue;
-            var tildeIdx = rawValue.IndexOf('~');
-            if (tildeIdx >= 0)
-            {
-                var opStr = rawValue[..tildeIdx];
-                op = ParseFilterOperator(opStr);
-                value = rawValue[(tildeIdx + 1)..];
-            }
+            var parsed = ClayGridUrlFilterParser.Parse(rawName, rawValue, colInfo.Type);
 
             var leaf = new ColumnFilter
             {
-                Column   = sqlName,
-                Operator = op,
-                Value    = value,
+                Column   = col.SqlName,
+                Operator = parsed.Operator,
+                Value    = parsed.Value,
                 Source   = ClayFilterSource.CompositeDialog,
             };
 
-            if (isDefault)
+            if (parsed.IsDefault)
                 defaultRoot.Nodes.Add(leaf);
             else
             {
@@ -197,7 +186,6 @@ public partial class ClayTreeView
             }
         }
 
-        // Forced перекрывают всё
         if (hasForced)
         {
             _filterRoot = forcedRoot;
@@ -205,29 +193,10 @@ public partial class ClayTreeView
         }
         else if (_filterRoot.Nodes.Count == 0 && defaultRoot.Nodes.Count > 0)
         {
-            // Нет сохранённого и нет forced — применить default из URL
             _filterRoot = defaultRoot;
             _defaultFilterColumns = [];
         }
-        // Иначе: есть сохранённый фильтр — default URL не применяется
     }
-
-    private static ColumnFilterOperator ParseFilterOperator(string op) => op.ToLowerInvariant() switch
-    {
-        "eq"          => ColumnFilterOperator.Equals,
-        "ne"          => ColumnFilterOperator.NotEquals,
-        "gt"          => ColumnFilterOperator.GreaterThan,
-        "ge"          => ColumnFilterOperator.GreaterThanOrEqual,
-        "lt"          => ColumnFilterOperator.LessThan,
-        "lte"         => ColumnFilterOperator.LessThanOrEqual,
-        "contains"    => ColumnFilterOperator.Contains,
-        "ncontains"   => ColumnFilterOperator.NotContains,
-        "startswith"  => ColumnFilterOperator.StartsWith,
-        "nstartswith" => ColumnFilterOperator.NotStartsWith,
-        "endswith"    => ColumnFilterOperator.EndsWith,
-        "nendswith"   => ColumnFilterOperator.NotEndsWith,
-        _             => ColumnFilterOperator.Contains,
-    };
 
     // ── Clear ────────────────────────────────────────────────────────────────────
 
@@ -458,6 +427,9 @@ public partial class ClayTreeView
                         _roots.Add(root);
                         _byId[root.Id] = root;
                     }
+
+                    // Восстановить сортировку корней по L (NestedSet) или Text (ParentKey)
+                    SortRoots();
                 }
 
                 await SaveStateAsync();
@@ -490,6 +462,17 @@ public partial class ClayTreeView
             extraWhere);
 
         _dataSource = DataSource ?? new ClaySqlTreeDataSource(ResolveDb(), _source);
+    }
+
+    /// <summary>Сортирует _roots по Left (NestedSet) или Text (ParentKey).</summary>
+    private void SortRoots()
+    {
+        if (_roots.Count <= 1) return;
+
+        if (Options.HierarchyMode == ClayTreeHierarchyMode.NestedSet)
+            _roots.Sort((a, b) => (a.Left ?? 0).CompareTo(b.Left ?? 0));
+        else
+            _roots.Sort((a, b) => string.CompareOrdinal(a.Text, b.Text));
     }
 
     /// <summary>

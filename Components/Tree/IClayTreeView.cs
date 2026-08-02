@@ -37,4 +37,7 @@ public interface IClayTreeView
 
     /// <summary>Показывать ли пометки «(!)»/«(отфильтровано)» на узлах. true в режиме фильтра.</summary>
     bool MarksVisible { get; }
+
+    /// <summary>Выделенные в данный момент идентификаторы узлов.</summary>
+    IReadOnlySet<string> SelectedIds { get; }
 }
