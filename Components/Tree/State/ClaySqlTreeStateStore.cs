@@ -95,18 +95,47 @@ public sealed class ClaySqlTreeStateStore : IClayTreeStateStore
         await _db.ExecuteAsync(sql, selDp, commandType: System.Data.CommandType.Text);
     }
 
-    /// <summary>Строит имена параметров: {prefix}{hash} и {prefix}{hash}_sel. Укладывается в varchar(20).</summary>
-    private (string anchor, string sel) BuildParamNames(string treeId)
+    /// <summary>
+    /// Стабильный (между запусками процесса) 32-битный хеш FNV-1a.
+    /// string.GetHashCode() использовать нельзя: в .NET он рандомизируется на каждый старт,
+    /// а имя параметра — персистентный ключ в БД.
+    /// </summary>
+    internal static uint StableHash(string s)
     {
-        var hash = Math.Abs(treeId.GetHashCode()).ToString("X6");
+        unchecked
+        {
+            uint hash = 2166136261;
+            foreach (var ch in s)
+            {
+                hash ^= ch;
+                hash *= 16777619;
+            }
+            return hash;
+        }
+    }
+
+    /// <summary>
+    /// Строит имена параметров: {prefix}{hash8} и {prefix}{hash8}_s. Гарантии:
+    /// длина ≤ 20 (varchar(20)), имена всегда различны — при нехватке места
+    /// усечению подлежит ПРЕФИКС, суффиксы хеша и «_s» сохраняются.
+    /// </summary>
+    /// <remarks>
+    /// Миграция: старые записи, сохранённые под рандомизированным хешем GetHashCode(),
+    /// прочитаны быть не могут — они и так были нечитаемы после рестарта.
+    /// Осиротевшие записи чистятся по префиксу StateParamPrefix в таблице параметров.
+    /// </remarks>
+    internal (string anchor, string sel) BuildParamNames(string treeId)
+    {
+        var hash = StableHash(treeId).ToString("X8"); // ровно 8 символов
         var prefix = _treeSettings.Value.StateParamPrefix;
-        var anchor = $"{prefix}{hash}";
-        var sel = $"{prefix}{hash}_s";
-        if (anchor.Length > 20)
-            anchor = anchor[..20];
-        if (sel.Length > 20)
-            sel = sel[..20];
-        return (anchor, sel);
+
+        const int maxLen = 20;
+        var selTail = hash + "_s";                       // 10 символов
+        var maxPrefixLen = maxLen - selTail.Length;      // 10
+        if (prefix.Length > maxPrefixLen)
+            prefix = prefix[..maxPrefixLen];
+
+        return (prefix + hash, prefix + selTail);
     }
 
     private string ResolveClid()

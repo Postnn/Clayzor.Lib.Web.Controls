@@ -14,6 +14,7 @@
 - TA2 — `ExtraWhereParams` в `ClayTreeSource`, проброс параметров дефолтного фильтра через `BuildParams`.
 - TA3 — `OnInitializedAsync`: вызов `ApplyFilterAsync` (начальная загрузка); `OnParametersSetAsync`: `Equals` для `RootId`, отслеживание `OrderBy`, сохранение `ExtraWhere`/`ExtraWhereParams`.
 - TA4 — `MapRow`: `Convert.ToInt64/Int32` вместо `as`-приведения; `ClaySqlTreeDataSource`: `catch (OperationCanceledException)`; `EnsureChildrenLoadedAsync`: guard `IsLoading`; `ResolveDataSourceForNode`: `DataSource` приоритетнее, `with` сохраняет `ExtraWhere`.
+- TA5 — `StableHash` (FNV-1a, детерминирован между запусками) вместо `GetHashCode`; `BuildParamNames`: усечение префикса под varchar(20), суффиксы хеша и `_s` всегда сохраняются; миграция старых записей не нужна.
 
 ## Аксиома имён колонок по умолчанию
 
