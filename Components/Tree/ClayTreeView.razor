@@ -9,29 +9,32 @@
         {
             <div class="clay-tree-toolbar">
                 <div class="clay-tree-toolbar-row">
-                    <MudTooltip Text="@(FilterTooltip ?? "Фильтр")">
-                        <MudBadge Content="@ActiveFilterCount"
-                                  Visible="@(ActiveFilterCount > 0)"
-                                  Color="Color.Primary"
-                                  Overlap="true">
-                            <MudIconButton Icon="@Icons.Material.Filled.FilterList"
-                                           OnClick="@OpenTreeFilterDialogAsync"
-                                           Size="Size.Small"
-                                           title="Фильтр" />
-                        </MudBadge>
-                    </MudTooltip>
+                    <MudBadge Content="@ActiveFilterCount"
+                              Visible="@(ActiveFilterCount > 0)"
+                              Color="Color.Primary"
+                              Overlap="true">
+                        <ClayButton Text="@(FilterTooltip ?? "Фильтр")"
+                                    Icon="@Icons.Material.Filled.FilterList"
+                                    OnClick="@OpenTreeFilterDialogAsync" />
+                    </MudBadge>
                     @if (IsFilterActive)
                     {
-                        <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                       OnClick="@ClearTreeFilterAsync"
-                                       Size="Size.Small"
-                                       title="Удалить фильтр" />
+                        <ClayButton Text="Удалить фильтр"
+                                    Icon="@Icons.Material.Filled.Close"
+                                    OnClick="@ClearTreeFilterAsync" />
                     }
                 </div>
                 @if (IsFilterActive)
                 {
                     <div class="clay-tree-toolbar-info">
-                        @* TF_E: «Найдено записей: N» / «Найдено более N записей...» *@
+                        @if (_filterCapped)
+                        {
+                            <span>Найдено более @Options.MaxFilterRecords записей. Отображаются только @Options.MaxFilterRecords, уточните критерии поиска.</span>
+                        }
+                        else
+                        {
+                            <span>Найдено записей: @_filterMatchCount</span>
+                        }
                     </div>
                 }
             </div>

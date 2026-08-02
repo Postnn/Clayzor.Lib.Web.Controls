@@ -1,6 +1,8 @@
 using Clayzor.Lib.Web.Controls.Components.Filter;
+using Clayzor.Lib.Web.Controls.Components.Tree.DataSources;
 using Clayzor.Lib.Web.Controls.Components.Tree.Helpers;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
+using Dapper;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using MudBlazor.Extensions;
@@ -27,6 +29,12 @@ public partial class ClayTreeView
 
     /// <summary>Количество активных условий — для бейджа на кнопке.</summary>
     private int ActiveFilterCount => ClayFilterDescriptionBuilder.CountActiveLeaves(_filterRoot);
+
+    /// <summary>Число совпадений фильтра (нод с IsMatch=true).</summary>
+    private int _filterMatchCount;
+
+    /// <summary>Сработал ли лимит MaxFilterRecords.</summary>
+    private bool _filterCapped;
 
     // ── BuildFilterColumns ───────────────────────────────────────────────────────
 
@@ -104,15 +112,129 @@ public partial class ClayTreeView
         await ApplyFilterAsync();
     }
 
-    // ── Apply (заглушка до TF_E) ─────────────────────────────────────────────────
+    // ── Apply ────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Применяет текущий фильтр. На этом шаге — просто перезагружает корни дерева
-    /// (без SQL-фильтрации). В TF_E будет заменено на загрузку по фильтру с предками.
+    /// Применяет текущий фильтр. Если есть активные условия — выполняет запрос
+    /// совпадений с предками и строит дерево из набора. Иначе — обычная ленивая загрузка.
     /// </summary>
     private async Task ApplyFilterAsync()
     {
-        await ((IClayTreeView)this).ReloadAsync();
+        if (_filterRoot.Nodes.Count == 0)
+        {
+            _filterMatchCount = 0;
+            _filterCapped     = false;
+            await LoadRootsAsync();
+            StateHasChanged();
+            return;
+        }
+
+        var filterCols = BuildFilterColumns();
+        var knownColumns = new HashSet<string>(
+            filterCols.Select(c => c.SqlName), StringComparer.OrdinalIgnoreCase);
+
+        var dp = new DynamicParameters();
+        var whereClause = ClayCompositeSqlBuilder.Build(_filterRoot, dp, knownColumns);
+
+        if (whereClause is null)
+        {
+            _filterMatchCount = 0;
+            _filterCapped     = false;
+            await LoadRootsAsync();
+            StateHasChanged();
+            return;
+        }
+
+        var max = Options.MaxFilterRecords;
+        if (max <= 0) max = 100; // защита от нуля
+
+        await RunBusyAsync("Поиск…", async () =>
+        {
+            var result = await _dataSource.LoadFilteredAsync(whereClause, dp, max);
+            if (result.Error is not null)
+            {
+                _error = result.Error;
+                await OnLoadError.InvokeAsync(result.Error);
+                _roots.Clear();
+                _byId.Clear();
+                StateHasChanged();
+                return;
+            }
+
+            var flatNodes = result.Nodes;
+
+            // Ловушка 5: пустой результат — показать корни
+            if (flatNodes.Count == 0)
+            {
+                _filterMatchCount = 0;
+                _filterCapped     = false;
+                await LoadRootsAsync();
+                StateHasChanged();
+                return;
+            }
+
+            // Подсчёт совпадений и capped
+            _filterMatchCount = flatNodes.Count(n => n.IsMatch);
+            _filterCapped     = _filterMatchCount > max;
+
+            // Построить дерево из плоского списка
+            BuildTreeFromFlatNodes(flatNodes);
+            await SaveStateAsync();
+        });
+
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Строит дерево из плоского списка узлов фильтра. Группирует по ParentId,
+    /// проставляет Parent/Level/Children. Заменяет <see cref="_roots"/> и <see cref="_byId"/>.
+    /// </summary>
+    private void BuildTreeFromFlatNodes(IReadOnlyList<ClayTreeNode> flatNodes)
+    {
+        _roots.Clear();
+        _byId.Clear();
+
+        // Индекс всех узлов по Id
+        foreach (var node in flatNodes)
+            _byId[node.Id] = node;
+
+        // Группировка по ParentId — дети к родителям
+        var byParent = new Dictionary<string, List<ClayTreeNode>>();
+        foreach (var node in flatNodes)
+        {
+            var parentKey = ClaySqlTreeDataSource.ToKey(node.ParentId);
+            if (!byParent.TryGetValue(parentKey, out var children))
+            {
+                children = [];
+                byParent[parentKey] = children;
+            }
+            children.Add(node);
+        }
+
+        // Корни: узлы, чей ParentId не в наборе (пустая строка или не найден среди flatNodes)
+        foreach (var node in flatNodes)
+        {
+            var parentKey = ClaySqlTreeDataSource.ToKey(node.ParentId);
+            if (parentKey.Length == 0 || !_byId.ContainsKey(parentKey))
+            {
+                node.Parent = null;
+                node.Level  = 0;
+                _roots.Add(node);
+            }
+        }
+
+        // Привязка детей к родителям
+        foreach (var (parentKey, children) in byParent)
+        {
+            if (parentKey.Length == 0 || !_byId.TryGetValue(parentKey, out var parentNode))
+                continue;
+
+            foreach (var child in children)
+            {
+                child.Parent = parentNode;
+                child.Level  = parentNode.Level + 1;
+                parentNode.Children.Add(child);
+            }
+        }
     }
 }

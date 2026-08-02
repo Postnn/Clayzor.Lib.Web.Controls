@@ -55,4 +55,10 @@ public sealed class ClayTreeNode
 
     /// <summary>Дополнительные колонки строки — задел на будущее (контекстное меню, фильтры).</summary>
     public IReadOnlyDictionary<string, object?> Raw { get; init; } = new Dictionary<string, object?>();
+
+    /// <summary>Узел сам удовлетворяет условиям фильтра (для пометки «(!)»).</summary>
+    public bool IsMatch { get; set; }
+
+    /// <summary>Среди потомков узла есть удовлетворяющие фильтру (для пометки «(отфильтровано)»).</summary>
+    public bool HasMatchChildren { get; set; }
 }

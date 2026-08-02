@@ -2,6 +2,7 @@ using System.Data;
 using Clayzor.Lib.DALC;
 using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
+using Dapper;
 
 namespace Clayzor.Lib.Web.Controls.Components.Tree.DataSources;
 
@@ -20,6 +21,30 @@ public sealed class ClaySqlTreeDataSource : IClayTreeDataSource
     {
         _db = db;
         _source = source;
+    }
+
+    /// <inheritdoc/>
+    public async Task<ClayTreeLoadResult> LoadFilteredAsync(string whereClause, DynamicParameters dp, int max, CancellationToken ct = default)
+    {
+        try
+        {
+            var rows = await ClayTreeData.LoadFilteredAsync(_db, _source, whereClause, dp, max, ct);
+            var nodes = rows.Select(r =>
+            {
+                var node = MapRow(r, null);
+                node.IsMatch          = r.IsMatch;
+                node.HasMatchChildren = r.HasMatchChildren;
+                node.IsLoaded         = true;
+                node.IsExpanded       = true;
+                return node;
+            }).ToList();
+
+            return new ClayTreeLoadResult(nodes);
+        }
+        catch (Exception ex)
+        {
+            return new ClayTreeLoadResult([], ex.Message);
+        }
     }
 
     /// <inheritdoc/>
