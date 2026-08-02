@@ -1562,6 +1562,18 @@ body {
     min-width: 0;
 }
 
+.clay-tree-mark {
+    font-size: 0.7rem;
+    margin-left: 4px;
+    opacity: 0.85;
+    white-space: nowrap;
+}
+
+.clay-tree-mark--match,
+.clay-tree-mark--filtered {
+    color: var(--lh-gold);
+}
+
 .clay-tree-node-text:hover {
     color: var(--mud-palette-primary);
 }

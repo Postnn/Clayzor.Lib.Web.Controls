@@ -34,4 +34,7 @@ public interface IClayTreeView
 
     /// <summary>Свернуть узел по строковому ключу.</summary>
     Task CollapseAsync(string id);
+
+    /// <summary>Показывать ли пометки «(!)»/«(отфильтровано)» на узлах. true в режиме фильтра.</summary>
+    bool MarksVisible { get; }
 }

@@ -23,6 +23,10 @@
                                     Icon="@Icons.Material.Filled.Close"
                                     OnClick="@ClearTreeFilterAsync" />
                     }
+                    @if (_isFiltering)
+                    {
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                    }
                 </div>
                 @if (IsFilterActive)
                 {

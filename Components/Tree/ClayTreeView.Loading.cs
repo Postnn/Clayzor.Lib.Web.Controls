@@ -176,6 +176,16 @@ public partial class ClayTreeView
         if (!_byId.TryGetValue(id, out var node)) return;
         if (node.IsExpanded) return;
 
+        // TF_F: ручной разворот отфильтрованной ноды — сбросить неполный набор,
+        // загрузить полный уровень, снять пометку «(отфильтровано)».
+        if (node.ChildrenAreFiltered)
+        {
+            node.IsLoaded = false;
+            node.Children.Clear();
+            node.ChildrenAreFiltered = false;
+            node.HasMatchChildren = false;
+        }
+
         await EnsureChildrenLoadedAsync(node);
         node.IsExpanded = true;
         _expanded.Add(id);

@@ -27,7 +27,7 @@ public sealed class ClayTreeNode
     public long? Right { get; init; }
 
     /// <summary>Есть ли у узла дочерние элементы.</summary>
-    public bool HasChildren { get; init; }
+    public bool HasChildren { get; set; }
 
     /// <summary>Раскрыт ли узел в данный момент.</summary>
     public bool IsExpanded { get; set; }
@@ -61,4 +61,10 @@ public sealed class ClayTreeNode
 
     /// <summary>Среди потомков узла есть удовлетворяющие фильтру (для пометки «(отфильтровано)»).</summary>
     public bool HasMatchChildren { get; set; }
+
+    /// <summary>
+    /// Дети пришли из фильтр-набора (не полный уровень).
+    /// При ручном развороте такой ноды — сброс и полная ленивая загрузка уровня.
+    /// </summary>
+    public bool ChildrenAreFiltered { get; set; }
 }

@@ -18,13 +18,18 @@
                 && Tree is ClayTreeView { Options.ShowLoadingIndicator: true };
         }
 
+        @{
+            var showChevron = Node.HasChildren
+                || (Node.ChildrenAreFiltered && Node.Children.Count > 0);
+        }
+
         @if (showSpinner)
         {
             <div class="clay-tree-node-toggle-slot">
                 <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" Style="width:18px;height:18px" />
             </div>
         }
-        else if (Node.HasChildren)
+        else if (showChevron)
         {
             <MudIconButton
                 Icon="@(Node.IsExpanded ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ChevronRight)"
@@ -47,6 +52,18 @@
             <span class="clay-tree-node-text" @onclick="HandleClick" @onclick:stopPropagation="true">
                 @Node.Text
             </span>
+        }
+
+        @if (Tree.MarksVisible)
+        {
+            @if (Node.IsMatch)
+            {
+                <span class="clay-tree-mark clay-tree-mark--match" title="@ClayTreeStrings.MatchTooltip">@ClayTreeStrings.MatchMark</span>
+            }
+            @if (Node.HasMatchChildren)
+            {
+                <span class="clay-tree-mark clay-tree-mark--filtered" title="@ClayTreeStrings.FilteredTooltip">@ClayTreeStrings.FilteredMark</span>
+            }
         }
     </div>
 

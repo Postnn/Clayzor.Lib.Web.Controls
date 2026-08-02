@@ -27,6 +27,9 @@ public partial class ClayTreeView
     /// <summary>Активен ли фильтр (есть хотя бы одно условие).</summary>
     private bool IsFilterActive => _filterRoot.Nodes.Count > 0;
 
+    /// <inheritdoc/>
+    bool IClayTreeView.MarksVisible => IsFilterActive;
+
     /// <summary>Количество активных условий — для бейджа на кнопке.</summary>
     private int ActiveFilterCount => ClayFilterDescriptionBuilder.CountActiveLeaves(_filterRoot);
 
@@ -35,6 +38,9 @@ public partial class ClayTreeView
 
     /// <summary>Сработал ли лимит MaxFilterRecords.</summary>
     private bool _filterCapped;
+
+    /// <summary>Идёт выполнение запроса фильтра — для индикатора загрузки в панели.</summary>
+    private bool _isFiltering;
 
     // ── BuildFilterColumns ───────────────────────────────────────────────────────
 
@@ -148,41 +154,66 @@ public partial class ClayTreeView
         var max = Options.MaxFilterRecords;
         if (max <= 0) max = 100; // защита от нуля
 
-        await RunBusyAsync("Поиск…", async () =>
-        {
-            var result = await _dataSource.LoadFilteredAsync(whereClause, dp, max);
-            if (result.Error is not null)
-            {
-                _error = result.Error;
-                await OnLoadError.InvokeAsync(result.Error);
-                _roots.Clear();
-                _byId.Clear();
-                StateHasChanged();
-                return;
-            }
-
-            var flatNodes = result.Nodes;
-
-            // Ловушка 5: пустой результат — показать корни
-            if (flatNodes.Count == 0)
-            {
-                _filterMatchCount = 0;
-                _filterCapped     = false;
-                await LoadRootsAsync();
-                StateHasChanged();
-                return;
-            }
-
-            // Подсчёт совпадений и capped
-            _filterMatchCount = flatNodes.Count(n => n.IsMatch);
-            _filterCapped     = _filterMatchCount > max;
-
-            // Построить дерево из плоского списка
-            BuildTreeFromFlatNodes(flatNodes);
-            await SaveStateAsync();
-        });
-
+        _isFiltering = true;
         StateHasChanged();
+
+        try
+        {
+            await RunBusyAsync("Поиск…", async () =>
+            {
+                var result = await _dataSource.LoadFilteredAsync(whereClause, dp, max);
+                if (result.Error is not null)
+                {
+                    _error = result.Error;
+                    await OnLoadError.InvokeAsync(result.Error);
+                    _roots.Clear();
+                    _byId.Clear();
+                    return;
+                }
+
+                var flatNodes = result.Nodes;
+
+                // Ловушка 5: пустой результат — показать корни
+                if (flatNodes.Count == 0)
+                {
+                    _filterMatchCount = 0;
+                    _filterCapped     = false;
+                    await LoadRootsAsync();
+                    return;
+                }
+
+                // Подсчёт совпадений и capped
+                _filterMatchCount = flatNodes.Count(n => n.IsMatch);
+                _filterCapped     = _filterMatchCount > max;
+
+                // Построить дерево из плоского списка
+                BuildTreeFromFlatNodes(flatNodes);
+
+                // Правило 1: верхний уровень выводится всегда.
+                // Догружаем все корни; те, что уже в наборе — пропускаем.
+                var rootResult = await _dataSource.LoadLevelAsync(new ClayTreeLoadRequest(null));
+                if (rootResult.Error is null)
+                {
+                    foreach (var root in rootResult.Nodes)
+                    {
+                        if (_byId.ContainsKey(root.Id))
+                            continue; // уже в фильтр-наборе
+
+                        root.Parent = null;
+                        root.Level  = 0;
+                        _roots.Add(root);
+                        _byId[root.Id] = root;
+                    }
+                }
+
+                await SaveStateAsync();
+            });
+        }
+        finally
+        {
+            _isFiltering = false;
+            StateHasChanged();
+        }
     }
 
     /// <summary>
@@ -234,6 +265,13 @@ public partial class ClayTreeView
                 child.Parent = parentNode;
                 child.Level  = parentNode.Level + 1;
                 parentNode.Children.Add(child);
+            }
+
+            // Нода с детьми из фильтр-набора — неполный уровень
+            if (parentNode.Children.Count > 0)
+            {
+                parentNode.ChildrenAreFiltered = true;
+                parentNode.HasChildren = true;
             }
         }
     }
