@@ -15,6 +15,16 @@ public static class GridStateSerializer
         Converters = { new ClayFilterJsonConverter() }
     };
 
+    // ── Экранирование разделителей формата ──
+
+    /// <summary>Экранирует разделители формата в значении токена: % , : → %25 %2C %3A.</summary>
+    private static string Esc(string s)
+        => s.Replace("%", "%25").Replace(",", "%2C").Replace(":", "%3A");
+
+    /// <summary>Обратное преобразование к <see cref="Esc"/>. Порядок важен: %25 последним.</summary>
+    private static string Unesc(string s)
+        => s.Replace("%3A", ":").Replace("%2C", ",").Replace("%25", "%");
+
     // ── Колонки: "sql1:0,sql2:1,sql3:0" (SqlName:Order; 0=скрыта, 1=видима) ──
 
     /// <summary>Сериализует видимость и порядок колонок.</summary>
@@ -26,7 +36,7 @@ public static class GridStateSerializer
         var parts = columnOrder
             .Select(id => columnById.TryGetValue(id, out var m) ? m.SqlName : null)
             .Where(name => name is not null)
-            .Select(name => $"{name}:{(hidden.Contains(name!) ? 0 : 1)}");
+            .Select(name => $"{Esc(name!)}:{(hidden.Contains(name!) ? 0 : 1)}");
         return string.Join(",", parts);
     }
 
@@ -37,9 +47,15 @@ public static class GridStateSerializer
             return [];
 
         return value.Split(',')
-            .Select(part => part.Split(':'))
-            .Where(p => p.Length == 2 && int.TryParse(p[1], out _))
-            .Select(p => (SqlName: p[0], Visible: int.Parse(p[1])))
+            .Select(part =>
+            {
+                var idx = part.LastIndexOf(':');
+                if (idx <= 0) return ((string?)null, 0);
+                var name = Unesc(part[..idx]);
+                return int.TryParse(part[(idx + 1)..], out var vis) ? (name, vis) : (null, 0);
+            })
+            .Where(t => t.Item1 is not null)
+            .Select(t => (SqlName: t.Item1!, Visible: t.Item2))
             .ToList();
     }
 
@@ -48,7 +64,7 @@ public static class GridStateSerializer
     /// <summary>Сериализует состояние сортировки.</summary>
     public static string SerializeSort(IReadOnlyList<SortColumn> sortState)
     {
-        var parts = sortState.Select(s => $"{s.Column}:{(s.Desc ? "desc" : "asc")}");
+        var parts = sortState.Select(s => $"{Esc(s.Column)}:{(s.Desc ? "desc" : "asc")}");
         return string.Join(",", parts);
     }
 
@@ -67,9 +83,14 @@ public static class GridStateSerializer
             return [];
 
         return value.Split(',')
-            .Select(part => part.Split(':'))
-            .Where(p => p.Length == 2)
-            .Select(p => new SortColumn(p[0], p[1] == "desc"))
+            .Select(part =>
+            {
+                var idx = part.LastIndexOf(':');
+                if (idx <= 0) return (null, false);
+                return ((string?)Unesc(part[..idx]), part[(idx + 1)..] == "desc");
+            })
+            .Where(t => t.Item1 is not null)
+            .Select(t => new SortColumn(t.Item1!, t.Item2))
             .Where(s => allowedColumns is null || allowedColumns.Contains(s.Column))
             .ToList();
     }
@@ -78,7 +99,7 @@ public static class GridStateSerializer
 
     /// <summary>Сериализует список сгруппированных колонок.</summary>
     public static string SerializeGroups(IReadOnlyList<string> groupColumns)
-        => string.Join(",", groupColumns);
+        => string.Join(",", groupColumns.Select(Esc));
 
     /// <summary>Десериализует список сгруппированных колонок.</summary>
     public static List<string> DeserializeGroups(string? value)
@@ -86,7 +107,7 @@ public static class GridStateSerializer
         if (string.IsNullOrWhiteSpace(value))
             return [];
 
-        return value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        return value.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(Unesc).ToList();
     }
 
     // ── Фильтр: ClayFilterGroupNode ↔ JSON ──
