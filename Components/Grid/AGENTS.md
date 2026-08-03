@@ -33,6 +33,9 @@
 | Быстрый поиск (QS) | [promts/_done/QS/QS0_README_quick_search.md](promts/_done/QS/QS0_README_quick_search.md) |
 | Рефакторинг опций (CGO) | [promts/_done/CGO/CGO0_README_grid_options.md](promts/_done/CGO/CGO0_README_grid_options.md) |
 | «Поделиться» (SH) | [promts/_done/SH_share/SH0_README_share.md](promts/_done/SH_share/SH0_README_share.md) |
+| Аудит безопасности (GA0–GA9) | [promts/GA0_README_audit_grid.md](promts/GA0_README_audit_grid.md) |
+| GA1 — ORDER BY / GROUP BY whitelist (выполнен) | [promts/GA1_orderby_groupby_whitelist.md](promts/GA1_orderby_groupby_whitelist.md) |
+| GA2 — детерминированные имена параметров (выполнен) | [promts/GA2_group_param_names.md](promts/GA2_group_param_names.md) |
 
 ## Модели и классы
 
@@ -190,3 +193,9 @@
 
 ### «Поделиться» (SH2–SH9)
 - SH2–SH9 — схема БД, конфигурация, реестр имён, кнопка «Поделиться», URL, список настроек, режим sharedId
+
+### Аудит безопасности (GA)
+- GA0 — сводка 14 находок, план исправлений (9 промтов)
+- GA1 — ✅ валидация ORDER BY / GROUP BY против белого списка `_columnBySqlName` (defence-in-depth: `BuildOrderBy` + `DeserializeSort` + `ApplySavedSort` / `ApplySavedGroups`)
+- GA2 — ✅ детерминированные индексы групп вместо `string.GetHashCode()` в именах Dapper-параметров
+- GA3–GA9 — ожидают выполнения

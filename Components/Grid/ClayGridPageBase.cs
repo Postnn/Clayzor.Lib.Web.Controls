@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using Clayzor.Lib.DALC;
 using Clayzor.Lib.Entities;
 using Clayzor.Lib.Web.Controls.Components.Filter;
@@ -231,13 +231,15 @@ public abstract partial class ClayGridPageBase<T> : ComponentBase, IClayGridData
         var baseWhere      = ClayDataQuery.CombineWhere(searchWhere, compositeWhere);
         var groupExprs     = query.GroupColumns;
 
-        foreach (var fullKey in groupFullKeys)
+        var groupList = groupFullKeys.ToList();
+        for (var gi = 0; gi < groupList.Count; gi++)
         {
+            var fullKey = groupList[gi];
             var keys = fullKey.Split('\u001F');
             var keyParts = new List<string>();
             for (int i = 0; i < keys.Length && i < groupExprs.Count; i++)
             {
-                var pName = $"gk_{fullKey.GetHashCode() & 0x7FFFFFFF}_{i}";
+                var pName = $"gk{gi}_{i}";   // детерминированный индекс группы (GA2)
                 dp.Add(pName, keys[i]);
                 keyParts.Add($"{groupExprs[i]} = @{pName}");
             }

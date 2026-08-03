@@ -38,6 +38,19 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         var exprs = query.GroupColumns.ToList();
 
+        // Защита: в GROUP BY попадают только выражения зарегистрированных группируемых колонок.
+        var groupableSql = _columnBySqlName.Values
+            .Where(m => m.Groupable)
+            .Select(m => m.SqlName)
+            .ToHashSet(StringComparer.Ordinal);
+        exprs = exprs.Where(e => groupableSql.Contains(e)).ToList();
+        if (exprs.Count == 0)
+        {
+            // Все группы отсеяны белым списком — вырождаемся в плоский режим.
+            await LoadDynamicFlatData(query, where, dp);
+            return;
+        }
+
         _dynamicGroupWhere  = where;
         _dynamicGroupParams = dp;
         _dynamicGroupExprs  = exprs;
@@ -75,7 +88,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
 
         // ── 4. Строки: заголовки групп + детали раскрытых групп ────────────────
-        var orderBy     = query.BuildOrderBy(_opt.DefaultOrder);
+        var orderBy     = query.BuildOrderBy(_opt.DefaultOrder, AllowedOrderExpressions());
         var detailOrder = ClayGroupingEngine.BuildDetailOrder(orderBy, query.GroupColumns, _opt.DefaultOrder);
         var newRows     = new List<TEntity>();
 
@@ -246,14 +259,16 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (!_dynamicKnownColumns.Contains(idColumn))
             return result;
 
-        foreach (var fullKey in groupFullKeys)
+        var groupList = groupFullKeys.ToList();
+        for (var gi = 0; gi < groupList.Count; gi++)
         {
+            var fullKey = groupList[gi];
             var keys = fullKey.Split('');
             // Пустой сегмент FullKey — это NULL-ключ (GN2). Восстанавливаем его как null,
             // чтобы BuildGroupKeyWhere дал IS NULL, а не сравнение с пустой строкой.
             var rawKeys = keys.Select(k => k.Length == 0 ? null : (object?)k).ToList();
 
-            var prefix   = $"gk_{fullKey.GetHashCode() & 0x7FFFFFFF}_";
+            var prefix   = $"gk{gi}_";   // детерминированный индекс группы (GA2)
             var keyWhere = ClayGroupingEngine.BuildGroupKeyWhere(
                 _dynamicGroupExprs, rawKeys, prefix, out var keyParams);
 

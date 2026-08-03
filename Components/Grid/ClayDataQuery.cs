@@ -330,15 +330,22 @@ public sealed class ClayDataQuery
     /// Если сортировка не задана, используется <paramref name="defaultOrder"/>.
     /// </summary>
     /// <param name="defaultOrder">Порядок сортировки по умолчанию, например "Порядок, НазваниеАнализа".</param>
-    /// <returns>Строка для вставки в ORDER BY.</returns>
-    public string BuildOrderBy(string defaultOrder)
+    /// <param name="allowedColumns">
+    /// Белый список допустимых выражений ORDER BY (SortName зарегистрированных колонок).
+    /// Если задан — колонки вне списка отбрасываются. <c>null</c> — без фильтрации.
+    /// </param>
+    /// <returns>Строка для вставки в ORDER BY. Если после фильтрации список пуст, возвращается <paramref name="defaultOrder"/>.</returns>
+    public string BuildOrderBy(string defaultOrder, ISet<string>? allowedColumns = null)
     {
+        bool Allowed(string col) => allowedColumns is null || allowedColumns.Contains(col);
+
         var clauses = new List<string>();
 
         if (GroupEnabled && GroupColumns.Count > 0)
         {
             foreach (var gc in GroupColumns)
             {
+                if (!Allowed(gc)) continue;
                 var sortCol = SortColumns.Find(s => s.Column == gc);
                 if (sortCol is not null)
                     clauses.Add($"{gc} {(sortCol.Desc ? "DESC" : "ASC")}");
@@ -353,6 +360,7 @@ public sealed class ClayDataQuery
             {
                 if (GroupEnabled && GroupColumns.Contains(col))
                     continue;
+                // defaultOrder — из определения грида, доверенная строка; проверка Allowed не требуется.
                 clauses.Add(col);
             }
         }
@@ -360,13 +368,14 @@ public sealed class ClayDataQuery
         {
             foreach (var s in SortColumns)
             {
+                if (!Allowed(s.Column)) continue;
                 if (GroupEnabled && GroupColumns.Contains(s.Column))
                     continue;
                 clauses.Add($"{s.Column} {(s.Desc ? "DESC" : "ASC")}");
             }
         }
 
-        return string.Join(", ", clauses);
+        return clauses.Count > 0 ? string.Join(", ", clauses) : defaultOrder;
     }
 
     /// <summary>

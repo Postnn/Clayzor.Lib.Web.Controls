@@ -52,8 +52,16 @@ public static class GridStateSerializer
         return string.Join(",", parts);
     }
 
-    /// <summary>Десериализует состояние сортировки.</summary>
-    public static List<SortColumn> DeserializeSort(string? value)
+    /// <summary>
+    /// Десериализует состояние сортировки.
+    /// Если задан <paramref name="allowedColumns"/> — колонки вне белого списка
+    /// отбрасываются: в ORDER BY могут попасть только SortName зарегистрированных
+    /// колонок (защита от инъекции через shared-ссылку, где значение параметра
+    /// контролируется автором ссылки).
+    /// </summary>
+    /// <param name="value">Строка вида "col1:asc,col2:desc".</param>
+    /// <param name="allowedColumns">Белый список допустимых имён колонок или null (без фильтрации).</param>
+    public static List<SortColumn> DeserializeSort(string? value, ISet<string>? allowedColumns = null)
     {
         if (string.IsNullOrWhiteSpace(value))
             return [];
@@ -62,6 +70,7 @@ public static class GridStateSerializer
             .Select(part => part.Split(':'))
             .Where(p => p.Length == 2)
             .Select(p => new SortColumn(p[0], p[1] == "desc"))
+            .Where(s => allowedColumns is null || allowedColumns.Contains(s.Column))
             .ToList();
     }
 

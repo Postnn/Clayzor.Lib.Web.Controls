@@ -532,7 +532,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _dynamicGroupParams      = null;
         _dynamicGroupExprs       = [];
 
-        var orderBy = query.BuildOrderBy(_opt.DefaultOrder);
+        var orderBy = query.BuildOrderBy(_opt.DefaultOrder, AllowedOrderExpressions());
 
         var rows = await DynamicSql.QueryPagedRowsAsync(
             Db, _opt.SelectSql, where, orderBy, dp, query.PageNumber, query.PageSize);
@@ -779,7 +779,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private void ApplySavedSort(string value)
     {
-        var sort = GridStateSerializer.DeserializeSort(value);
+        // Белый список SortName всех зарегистрированных колонок — защита от инъекции
+        // через shared-ссылку (значение параметра контролируется автором ссылки).
+        var sort = GridStateSerializer.DeserializeSort(value, AllowedOrderExpressions());
         if (sort.Count == 0) return;
 
         _sortState.Clear();
@@ -794,12 +796,17 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _groupColumns.Clear();
         foreach (var sqlName in groups)
         {
-            if (_columnBySqlName.ContainsKey(sqlName))
+            // Белый список: только зарегистрированные группируемые колонки (Groupable=true).
+            if (_columnBySqlName.TryGetValue(sqlName, out var meta) && meta.Groupable)
                 _groupColumns.Add(sqlName);
         }
         if (_groupColumns.Count > 0)
             _trayExpanded = true;
     }
+
+    /// <summary>Белый список выражений, допустимых в ORDER BY: SortName всех зарегистрированных колонок.</summary>
+    private ISet<string> AllowedOrderExpressions()
+        => _columnBySqlName.Values.Select(m => m.SortName).ToHashSet(StringComparer.Ordinal);
 
     /// <summary>Разбирает URL-параметры фильтра и колонок, применяет к состоянию грида.</summary>
     private void ApplyUrlParams(ClayGridDynamicSettings opt)
