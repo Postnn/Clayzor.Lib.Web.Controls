@@ -37,6 +37,7 @@
 | GA1 — ORDER BY / GROUP BY whitelist (выполнен) | [promts/GA1_orderby_groupby_whitelist.md](promts/GA1_orderby_groupby_whitelist.md) |
 | GA2 — детерминированные имена параметров (выполнен) | [promts/GA2_group_param_names.md](promts/GA2_group_param_names.md) |
 | GA3 — экранирование разделителей (выполнен) | [promts/GA3_state_serializer_escaping.md](promts/GA3_state_serializer_escaping.md) |
+| GA4 — сброс состояния перед shared (выполнен) | [promts/GA4_shared_reset_and_async.md](promts/GA4_shared_reset_and_async.md) |
 
 ## Модели и классы
 
@@ -200,4 +201,5 @@
 - GA1 — ✅ валидация ORDER BY / GROUP BY против белого списка `_columnBySqlName` (defence-in-depth: `BuildOrderBy` + `DeserializeSort` + `ApplySavedSort` / `ApplySavedGroups`)
 - GA2 — ✅ детерминированные индексы групп вместо `string.GetHashCode()` в именах Dapper-параметров
 - GA3 — ✅ экранирование разделителей `,` `:` `%` в `GridStateSerializer` (процентное кодирование, `LastIndexOf` вместо `Split`)
-- GA4–GA9 — ожидают выполнения
+- GA4 — ✅ сброс личного состояния к дефолтам перед применением shared-настроек (`ApplySharedParams` async, `ResetColumnsToDefinitionDefault`, `await RefreshQuickSearchEffective`)
+- GA5–GA9 — ожидают выполнения

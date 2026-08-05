@@ -76,6 +76,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private HashSet<string> _dynamicQuickSearchCols = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<string> _quickSearchEffective = [];
 
+    /// <summary>Снапшот дефолтной раскладки колонок — для сброса при применении shared-настроек.</summary>
+    private List<int> _defaultColumnOrder = [];
+    private HashSet<string> _defaultHiddenNames = [];
+
     /// <summary>
     /// Инициализация динамического режима при первом рендере.
     /// </summary>
@@ -326,6 +330,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _dynamicNewUrl    = ClayGridLinkResolver.Resolve(_dynamicDef.NewForm, Config);
         _dynamicDeleteSql = string.IsNullOrWhiteSpace(_dynamicDef.SqlDelete) ? null : _dynamicDef.SqlDelete;
 
+        // Снапшот дефолтной раскладки колонок — для сброса при применении shared-настроек.
+        _defaultColumnOrder = _columnOrder.ToList();
+        _defaultHiddenNames = _hiddenSqlNames.ToHashSet();
+
         // Восстановление сохранённого состояния пользователя
         await RestoreDynamicState(opt);
 
@@ -350,7 +358,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         {
             var sharedParams = await LoadAndValidateSharedParamsAsync(sharedId.Value, opt);
             if (sharedParams is not null)
-                ApplySharedParams(sharedParams, opt);
+                await ApplySharedParams(sharedParams, opt);
             // Если null — _dynamicError уже установлен, грид не загрузится
         }
         else
@@ -611,9 +619,20 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// Применяет чужие параметры к состоянию грида теми же методами десериализации,
     /// что и <see cref="RestoreDynamicState"/>. НЕ заполняет <see cref="_dynamicSavedParams"/>
     /// (кеш «что в БД») — чтобы choke point не думал, что параметры уже сохранены.
+    /// Перед применением сбрасывает ВСЁ состояние к дефолтам — чужая ссылка должна
+    /// давать воспроизводимый результат, а не гибрид личных и чужих настроек.
     /// </summary>
-    private void ApplySharedParams(IReadOnlyDictionary<string, string> sharedParams, ClayGridDynamicSettings opt)
+    private async Task ApplySharedParams(IReadOnlyDictionary<string, string> sharedParams, ClayGridDynamicSettings opt)
     {
+        // Сброс к дефолтам: снимаем личные настройки, накопленные RestoreDynamicState.
+        _sortState.Clear();
+        _groupColumns.Clear();
+        _filterRoot = new ClayFilterGroupNode();
+        _dynamicQuickSearchCols.Clear();
+        _trayExpanded = false;
+        ResetColumnsToDefinitionDefault();
+        _pageSize = _opt.PageSize;
+
         var p = (string prefix) => ClayGridUserParamsData.BuildParamName(prefix, _dynamicGridId);
 
         // Колонки
@@ -650,8 +669,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (sharedParams.TryGetValue(qksName, out var qksVal))
             ApplySavedQuickSearch(qksVal);
 
-        // Применить ограничения грида поверх чужих значений (п. 4)
-        _ = RefreshQuickSearchEffective(opt);
+        await RefreshQuickSearchEffective(opt);
     }
 
     /// <summary>Переходит на текущий грид без sharedId (полная перезагрузка).</summary>
@@ -807,6 +825,16 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Белый список выражений, допустимых в ORDER BY: SortName всех зарегистрированных колонок.</summary>
     private ISet<string> AllowedOrderExpressions()
         => _columnBySqlName.Values.Select(m => m.SortName).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>Сбрасывает порядок и видимость колонок к дефолту определения грида.</summary>
+    private void ResetColumnsToDefinitionDefault()
+    {
+        _columnOrder.Clear();
+        _columnOrder.AddRange(_defaultColumnOrder);
+        _hiddenSqlNames.Clear();
+        foreach (var n in _defaultHiddenNames) _hiddenSqlNames.Add(n);
+        _dataKey++;
+    }
 
     /// <summary>Разбирает URL-параметры фильтра и колонок, применяет к состоянию грида.</summary>
     private void ApplyUrlParams(ClayGridDynamicSettings opt)
