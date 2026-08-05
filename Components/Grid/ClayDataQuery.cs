@@ -157,7 +157,7 @@ public static class ColumnFilterOperatorList
 /// <summary>
 /// Текущее состояние запроса к данным (поиск, группировка, сортировка, фильтрация по колонкам).
 /// Предоставляет методы <see cref="BuildOrderBy"/>, <see cref="BuildWhereClause"/>
-/// и <see cref="BuildColumnFilterClause"/> для генерации фрагментов SQL.
+/// и <see cref="BuildOrderBy"/> для генерации фрагментов SQL.
 /// </summary>
 public sealed class ClayDataQuery
 {
@@ -187,70 +187,9 @@ public sealed class ClayDataQuery
 
     /// <summary>
     /// Дерево условий составного фильтра.
-    /// Единый источник истины фильтрации; заменяет прежний словарь <c>ColumnFilters</c>.
-    /// null или пустой корень — без фильтрации.
+    /// Единый источник истины фильтрации. null или пустой корень — без фильтрации.
     /// </summary>
     public Filter.ClayFilterGroupNode? CompositeFilter { get; set; }
-
-    /// <summary>
-    /// Условия фильтрации по отдельным колонкам. Ключ — SQL-имя колонки, значение — условие фильтра.
-    /// Управляется страницей; ClayGrid не изменяет этот словарь.
-    /// </summary>
-    [Obsolete("Используйте CompositeFilter. ColumnFilters упраздняется в задаче 10.")]
-    public Dictionary<string, ColumnFilter> ColumnFilters { get; set; } = [];
-
-    /// <summary>
-    /// Строит фрагмент WHERE для фильтрации по колонкам из <see cref="ColumnFilters"/>.
-    /// Поддерживает до двух условий на колонку, объединяемых через <see cref="ColumnFilter.LogicalOperator"/>.
-    /// Возвращает null, если нет активных фильтров.
-    /// Параметры добавляются в <paramref name="parameters"/> через Dapper <c>DynamicParameters</c>.
-    /// </summary>
-    /// <param name="parameters">Объект DynamicParameters, в который добавляются параметры фильтра.</param>
-    /// <param name="columnNameMap">
-    /// Необязательный маппинг SQL-имён колонок: ключ — имя из <see cref="ColumnFilter.Column"/>,
-    /// значение — имя для подстановки в SQL-выражение.
-    /// Используется в плоском режиме, где имена колонок отличаются от подзапросного режима
-    /// (например, <c>"TestTypeName"</c> → <c>"t.ТипМедицинскогоАнализа"</c>).
-    /// </param>
-    /// <returns>Строка для вставки в WHERE (без ключевого слова WHERE), либо null.</returns>
-    [Obsolete("Используйте ClayCompositeSqlBuilder.Build с CompositeFilter.")]
-#pragma warning disable CS0618
-    public string? BuildColumnFilterClause(DynamicParameters parameters,
-        Dictionary<string, string>? columnNameMap = null)
-    {
-        var parts = new List<string>();
-        foreach (var cf in ColumnFilters.Values)
-        {
-            if (!cf.HasValue) continue;
-            // Применяем маппинг имён если задан
-            var colName = columnNameMap is not null && columnNameMap.TryGetValue(cf.Column, out var mapped)
-                ? mapped
-                : cf.Column;
-
-            var clause1 = BuildSingleClause(colName, cf.ParamName, cf.Operator, cf.Value, parameters);
-            if (clause1 is null) continue;
-
-            if (cf.HasSecondClause)
-            {
-                var clause2 = BuildSingleClause(colName, cf.SecondParamName, cf.SecondOperator, cf.SecondValue, parameters);
-                if (clause2 is not null)
-                {
-                    var logic = cf.LogicalOperator == LogicalOperator.Or ? "OR" : "AND";
-                    parts.Add($"({clause1} {logic} {clause2})");
-                }
-                else
-                {
-                    parts.Add(clause1);
-                }
-            }
-            else
-            {
-                parts.Add(clause1);
-            }
-        }
-        return parts.Count > 0 ? string.Join(" AND ", parts) : null;
-    }
-#pragma warning restore CS0618
 
     /// <summary>
     /// Строит SQL-выражение для одного условия фильтрации.
@@ -400,7 +339,7 @@ public sealed class ClayDataQuery
     /// Если оба не null — возвращает <c>({a}) AND ({b})</c>.
     /// </summary>
     /// <param name="a">Первый WHERE-фрагмент (например, из <see cref="BuildWhereClause"/>).</param>
-    /// <param name="b">Второй WHERE-фрагмент (например, из <see cref="BuildColumnFilterClause"/>).</param>
+    /// <param name="b">Второй WHERE-фрагмент (например, из <c>ClayCompositeSqlBuilder.Build</c>).</param>
     public static string? CombineWhere(string? a, string? b)
     {
         if (a is null && b is null) return null;

@@ -33,12 +33,8 @@
 | Быстрый поиск (QS) | [promts/_done/QS/QS0_README_quick_search.md](promts/_done/QS/QS0_README_quick_search.md) |
 | Рефакторинг опций (CGO) | [promts/_done/CGO/CGO0_README_grid_options.md](promts/_done/CGO/CGO0_README_grid_options.md) |
 | «Поделиться» (SH) | [promts/_done/SH_share/SH0_README_share.md](promts/_done/SH_share/SH0_README_share.md) |
-| Аудит безопасности (GA0–GA9) | [promts/GA0_README_audit_grid.md](promts/GA0_README_audit_grid.md) |
-| GA1 — ORDER BY / GROUP BY whitelist (выполнен) | [promts/GA1_orderby_groupby_whitelist.md](promts/GA1_orderby_groupby_whitelist.md) |
-| GA2 — детерминированные имена параметров (выполнен) | [promts/GA2_group_param_names.md](promts/GA2_group_param_names.md) |
-| GA3 — экранирование разделителей (выполнен) | [promts/GA3_state_serializer_escaping.md](promts/GA3_state_serializer_escaping.md) |
-| GA4 — сброс состояния перед shared (выполнен) | [promts/GA4_shared_reset_and_async.md](promts/GA4_shared_reset_and_async.md) |
-| GA5 — кламп, поиск, батч сохранения (выполнен) | [promts/GA5_paging_search_batch.md](promts/GA5_paging_search_batch.md) |
+| Аудит безопасности (GA0–GA9, GA1–GA6 выполнены) | [promts/GA0_README_audit_grid.md](promts/GA0_README_audit_grid.md) |
+| GA1–GA6 — выполненные промты аудита | [promts/_done/GA/](promts/_done/GA/) |
 
 ## Модели и классы
 
@@ -204,4 +200,5 @@
 - GA3 — ✅ экранирование разделителей `,` `:` `%` в `GridStateSerializer` (процентное кодирование, `LastIndexOf` вместо `Split`)
 - GA4 — ✅ сброс личного состояния к дефолтам перед применением shared-настроек (`ApplySharedParams` async, `ResetColumnsToDefinitionDefault`, `await RefreshQuickSearchEffective`)
 - GA5 — ✅ кламп страницы (Count до данных), поиск по DateTimeLocal/TimeLocal (CONVERT 121), батч-сохранение `SaveManyAsync` вместо 6 отдельных INSERT
-- GA6–GA9 — ожидают выполнения
+- GA6 — ✅ единый разбор query-строки (ленивое свойство `Query`), обработка `OperationCanceledException` в справочниках и `CreateSharedLinkAsync`, удаление мёртвого `[Obsolete]`-кода (`ColumnFilters`, `BuildColumnFilterClause`)
+- GA7–GA9 — ожидают выполнения

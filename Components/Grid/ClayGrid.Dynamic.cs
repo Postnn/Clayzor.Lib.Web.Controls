@@ -11,6 +11,7 @@ using MudBlazor;
 using MudBlazor.Extensions;
 using MudBlazor.Extensions.Options;
 using Dapper;
+using System.Diagnostics;
 using System.Web;
 
 namespace Clayzor.Lib.Web.Controls.Components.Grid;
@@ -75,6 +76,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private HashSet<string> _dynamicForcedParamNames = [];
     private HashSet<string> _dynamicQuickSearchCols = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<string> _quickSearchEffective = [];
+
+    /// <summary>Кеш разобранной query-строки — единая точка разбора URL для всех резолверов.</summary>
+    private System.Collections.Specialized.NameValueCollection? _queryCache;
+    private System.Collections.Specialized.NameValueCollection Query
+        => _queryCache ??= System.Web.HttpUtility.ParseQueryString(new Uri(Nav.Uri).Query);
 
     /// <summary>Снапшот дефолтной раскладки колонок — для сброса при применении shared-настроек.</summary>
     private List<int> _defaultColumnOrder = [];
@@ -159,7 +165,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
                         .Where(p => p.Value is not null)
                         .ToDictionary(p => p.Value?.ToString() ?? "", p => p.Text ?? "");
                 }
-                catch { /* справочник не загрузился — покажем value как есть */ }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ClayGrid] Справочник колонки '{col.Column}' не загружен: {ex.Message}");
+                }
             }
         }
 
@@ -175,7 +185,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
                         .Where(t => t.Value is not null)
                         .ToDictionary(t => t.Value?.ToString() ?? "", t => (t.Text ?? "", t.Icon ?? ""));
                 }
-                catch { /* справочник иконок не загрузился */ }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ClayGrid] Справочник иконки '{col.Column}' не загружен: {ex.Message}");
+                }
             }
         }
 
@@ -474,13 +488,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (_opt.DynamicGridId.HasValue && _opt.DynamicGridId.Value != 0)
             return _opt.DynamicGridId.Value;
 
-        var uri  = new Uri(Nav.Uri);
-        var qs   = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        var val  = qs[opt.GridIdQueryParam];
-        if (val is not null && int.TryParse(val, out var gid))
-            return gid;
-
-        return 0;
+        var val = Query[opt.GridIdQueryParam];
+        return val is not null && int.TryParse(val, out var gid) ? gid : 0;
     }
 
     /// <summary>
@@ -566,12 +575,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     // ── Персистенция состояния ─────────────────────────────────────────────────
 
     private int ResolveClientId(ClayGridDynamicSettings opt)
-    {
-        var uri  = new Uri(Nav.Uri);
-        var qs   = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        var val  = qs[opt.ClientIdQueryParam];
-        return val is not null && int.TryParse(val, out var clid) ? clid : 0;
-    }
+        => int.TryParse(Query[opt.ClientIdQueryParam], out var clid) ? clid : 0;
 
     /// <summary>
     /// Разбирает sharedId из URL.
@@ -581,9 +585,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private int? ResolveSharedId()
     {
-        var uri = new Uri(Nav.Uri);
-        var qs  = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        var val = qs[ClayShareUrlBuilder.SharedIdParam];
+        var val = Query[ClayShareUrlBuilder.SharedIdParam];
         if (string.IsNullOrEmpty(val)) return null;
         if (!int.TryParse(val, out var sid)) return -1; // не число → ошибка
         if (sid == 0) return null;                       // 0 = обычный режим
@@ -853,8 +855,6 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Разбирает URL-параметры фильтра и колонок, применяет к состоянию грида.</summary>
     private void ApplyUrlParams(ClayGridDynamicSettings opt)
     {
-        var uri = new Uri(Nav.Uri);
-        var qs  = System.Web.HttpUtility.ParseQueryString(uri.Query);
 
         // --- Фильтры ---
         var urlKeyToCol = _dynamicCols
@@ -862,7 +862,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             .ToDictionary(c => c.UrlKey!, c => c);
 
         var urlFilters = new List<ParsedUrlFilter>();
-        foreach (string? key in qs.Keys)
+        foreach (string? key in Query.Keys)
         {
             if (key is null) continue;
             var cleanKey = key.StartsWith('_') ? key[1..] : key;
@@ -871,7 +871,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             var desc = ClayColumnTypeMap.Resolve(col.Type);
             if (desc is null) continue;
 
-            var rawValue = qs[key] ?? "";
+            var rawValue = Query[key] ?? "";
             var pf = ClayGridUrlFilterParser.Parse(key, rawValue, desc);
             urlFilters.Add(pf);
 
@@ -890,16 +890,16 @@ public partial class ClayGrid<TEntity> where TEntity : class
         var defColsParamName = "_" + colsParamName;
 
         // Forced (без '_'): применить всегда
-        var forcedCols = qs[colsParamName];
+        var forcedCols = Query[colsParamName];
         if (!string.IsNullOrEmpty(forcedCols))
         {
             _dynamicForcedParamNames.Add(colsParamName);
             ApplyColumnsState(forcedCols);
         }
         // Default (с '_'): только если нет сохранённого
-        else if (!string.IsNullOrEmpty(qs[defColsParamName]) && !_dynamicSavedParams.ContainsKey(colsParamName))
+        else if (!string.IsNullOrEmpty(Query[defColsParamName]) && !_dynamicSavedParams.ContainsKey(colsParamName))
         {
-            ApplyColumnsState(qs[defColsParamName]!);
+            ApplyColumnsState(Query[defColsParamName]!);
         }
     }
 
@@ -1170,6 +1170,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 }
             });
         }
+        catch (OperationCanceledException) { throw; }
         catch
         {
             // DbManager уже передал ошибку в ISqlErrorHandler → ClayErrorBar.
