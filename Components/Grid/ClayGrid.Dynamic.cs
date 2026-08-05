@@ -542,11 +542,25 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         var orderBy = query.BuildOrderBy(_opt.DefaultOrder, AllowedOrderExpressions());
 
+        TotalCount = await DynamicSql.QueryCountAsync(Db, _opt.SelectSql, where, dp);
+
+        // Кламп страницы: после сужающего фильтра PageNumber мог уйти за диапазон
+        var totalPages = query.PageSize > 0 && TotalCount > 0
+            ? (int)Math.Ceiling((double)TotalCount / query.PageSize) : 1;
+        if (query.PageNumber > totalPages)
+        {
+            query.PageNumber = totalPages;
+            _pageNumber      = totalPages;
+        }
+        if (query.PageNumber < 1)
+        {
+            query.PageNumber = 1;
+            _pageNumber      = 1;
+        }
+
         var rows = await DynamicSql.QueryPagedRowsAsync(
             Db, _opt.SelectSql, where, orderBy, dp, query.PageNumber, query.PageSize);
-
-        TotalCount = await DynamicSql.QueryCountAsync(Db, _opt.SelectSql, where, dp);
-        Items      = rows.Select(r => (TEntity)(object)new ClayDynamicRow(r)).ToList();
+        Items = rows.Select(r => (TEntity)(object)new ClayDynamicRow(r)).ToList();
     }
 
     // ── Персистенция состояния ─────────────────────────────────────────────────
@@ -891,22 +905,35 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task SaveDynamicState()
     {
+        // SH8: choke point — в режиме sharedId личные параметры не сохраняются.
+        if (_isSharedMode) return;
+
         var opt = DynamicOpts.Value;
         var p   = (string prefix) => ClayGridUserParamsData.BuildParamName(prefix, _dynamicGridId);
 
-        await SaveParamIfChanged(p(opt.ColumnsParamPrefix),
-            GridStateSerializer.SerializeColumns(_columnOrder, _columnById, _hiddenSqlNames), opt);
-        await SaveParamIfChanged(p(opt.SortingParamPrefix),
-            GridStateSerializer.SerializeSort(_sortState), opt);
-        await SaveParamIfChanged(p(opt.GroupingParamPrefix),
-            GridStateSerializer.SerializeGroups(_groupColumns), opt);
-        await SaveParamIfChanged(p(opt.PageSizeParamPrefix),
-            GridStateSerializer.SerializePageSize(_pageSize), opt);
+        var candidates = new List<(string Name, string Value)>
+        {
+            (p(opt.ColumnsParamPrefix),  GridStateSerializer.SerializeColumns(_columnOrder, _columnById, _hiddenSqlNames)),
+            (p(opt.SortingParamPrefix),  GridStateSerializer.SerializeSort(_sortState)),
+            (p(opt.GroupingParamPrefix), GridStateSerializer.SerializeGroups(_groupColumns)),
+            (p(opt.PageSizeParamPrefix), GridStateSerializer.SerializePageSize(_pageSize)),
+            (p(opt.FilterParamPrefix),   GridStateSerializer.SerializeFilter(_filterRoot) ?? string.Empty),
+        };
         var qksValue = SerializeQuickSearchColumns();
         if (qksValue is not null)
-            await SaveParamIfChanged(p(opt.QuickSearchParamPrefix), qksValue, opt);
-        await SaveParamIfChanged(p(opt.FilterParamPrefix),
-            GridStateSerializer.SerializeFilter(_filterRoot) ?? string.Empty, opt);
+            candidates.Add((p(opt.QuickSearchParamPrefix), qksValue));
+
+        var toSave = candidates
+            .Where(c => !_dynamicForcedParamNames.Contains(c.Name))
+            .Where(c => !(_dynamicSavedParams.TryGetValue(c.Name, out var cur) && cur == c.Value))
+            .ToList();
+
+        if (toSave.Count == 0) return;
+
+        await ClayGridUserParamsData.SaveManyAsync(Db, _dynamicClid, toSave, opt.UserParamsTable, opt.Schema, sharedId: 0);
+
+        foreach (var (name, value) in toSave)
+            _dynamicSavedParams[name] = value;
     }
 
     /// <summary>
@@ -967,22 +994,6 @@ public partial class ClayGrid<TEntity> where TEntity : class
     }
 
     /// <summary>
-    /// Пишет параметр, только если значение отличается от того, что уже в БД
-    /// (по кешу <see cref="_dynamicSavedParams"/>). Forced-параметры (из URL) не сохраняются.
-    /// </summary>
-    private async Task SaveParamIfChanged(string name, string value, ClayGridDynamicSettings opt)
-    {
-        // SH8: choke point — в режиме sharedId личные параметры не сохраняются.
-        // Записи с ненулевым sharedId (общие настройки) проходят через ClayGridSharedParamsData.
-        if (_isSharedMode) return;
-        if (_dynamicForcedParamNames.Contains(name)) return;
-        if (_dynamicSavedParams.TryGetValue(name, out var current) && current == value) return;
-
-        await ClayGridUserParamsData.SaveAsync(Db, _dynamicClid, name, value, opt.UserParamsTable, opt.Schema, sharedId: 0);
-        _dynamicSavedParams[name] = value;   // кеш обновляем ТОЛЬКО после успешной записи
-    }
-
-    /// <summary>
     /// Экранирует метасимволы LIKE в пользовательском вводе:
     /// <c>%</c> → <c>\%</c>, <c>_</c> → <c>\_</c>, <c>[</c> → <c>\[</c>.
     /// </summary>
@@ -999,12 +1010,15 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <returns>Выражение LIKE с CAST/CONVERT и ESCAPE.</returns>
     public static string BuildSearchLikeExpr(string column, int type, string? format)
     {
-        // Дата: CONVERT(nvarchar(30), col, 104) — формат dd.mm.yyyy
-        if (type == (int)ClayColumnKind.Date || type == (int)ClayColumnKind.DateTimeLocal
-            || type == (int)ClayColumnKind.TimeLocal)
+        // Дата без времени: CONVERT(nvarchar(30), col, 104) — формат dd.mm.yyyy
+        if (type == (int)ClayColumnKind.Date)
             return $"CONVERT(nvarchar(30), {column}, 104) LIKE @q ESCAPE '\\'";
 
-        // Число: CAST(col AS nvarchar(50))
+        // Дата+время / время: CONVERT(nvarchar(30), col, 121) — формат yyyy-mm-dd hh:mi:ss
+        if (type == (int)ClayColumnKind.DateTimeLocal || type == (int)ClayColumnKind.TimeLocal)
+            return $"CONVERT(nvarchar(30), {column}, 121) LIKE @q ESCAPE '\\'";
+
+        // Число (int/long/decimal): CAST в строку
         if (type == (int)ClayColumnKind.Number)
             return $"CAST({column} AS nvarchar(50)) LIKE @q ESCAPE '\\'";
 

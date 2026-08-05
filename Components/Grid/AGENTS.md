@@ -38,6 +38,7 @@
 | GA2 — детерминированные имена параметров (выполнен) | [promts/GA2_group_param_names.md](promts/GA2_group_param_names.md) |
 | GA3 — экранирование разделителей (выполнен) | [promts/GA3_state_serializer_escaping.md](promts/GA3_state_serializer_escaping.md) |
 | GA4 — сброс состояния перед shared (выполнен) | [promts/GA4_shared_reset_and_async.md](promts/GA4_shared_reset_and_async.md) |
+| GA5 — кламп, поиск, батч сохранения (выполнен) | [promts/GA5_paging_search_batch.md](promts/GA5_paging_search_batch.md) |
 
 ## Модели и классы
 
@@ -202,4 +203,5 @@
 - GA2 — ✅ детерминированные индексы групп вместо `string.GetHashCode()` в именах Dapper-параметров
 - GA3 — ✅ экранирование разделителей `,` `:` `%` в `GridStateSerializer` (процентное кодирование, `LastIndexOf` вместо `Split`)
 - GA4 — ✅ сброс личного состояния к дефолтам перед применением shared-настроек (`ApplySharedParams` async, `ResetColumnsToDefinitionDefault`, `await RefreshQuickSearchEffective`)
-- GA5–GA9 — ожидают выполнения
+- GA5 — ✅ кламп страницы (Count до данных), поиск по DateTimeLocal/TimeLocal (CONVERT 121), батч-сохранение `SaveManyAsync` вместо 6 отдельных INSERT
+- GA6–GA9 — ожидают выполнения
