@@ -134,4 +134,48 @@ public sealed class ClayTreeOptions
     /// <see cref="ClayTreeSelectionMode.Multiple"/> — задел, в текущей версии не реализовано.
     /// </summary>
     public ClayTreeSelectionMode SelectionMode { get; set; } = ClayTreeSelectionMode.Single;
+
+    // ── Изменение данных (CTM) ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Включает drag-and-drop: переупорядочивание (только NestedSet) и переподчинение.
+    /// Требует зарегистрированного <see cref="IClayTreeMutations"/>. По умолчанию выключено.
+    /// </summary>
+    public bool EnableDragDrop { get; set; }
+
+    /// <summary>Включает пункт «Редактировать» в контекстном меню узла. По умолчанию выключено.</summary>
+    public bool EnableEdit { get; set; }
+
+    /// <summary>Включает пункт «Добавить дочерний» в контекстном меню узла. По умолчанию выключено.</summary>
+    public bool EnableAddChild { get; set; }
+
+    /// <summary>Включает пункт «Удалить» в контекстном меню узла. По умолчанию выключено.</summary>
+    public bool EnableDelete { get; set; }
+
+    /// <summary>
+    /// SQL-имя редактируемого поля — значение названия узла для диалогов «Редактировать»
+    /// и «Добавить дочерний». Обязателен при <see cref="EnableEdit"/> или <see cref="EnableAddChild"/>.
+    /// Пример: <c>"НазваниеРасположения"</c>.
+    /// </summary>
+    public string? EditColumn { get; set; }
+
+    /// <summary>
+    /// Имя скалярной SQL-функции полного пути к узлу. Функция принимает два параметра:
+    /// <c>@Code int</c> (идентификатор) и <c>@PathType bit</c> (направление). Показывается
+    /// в диалоге редактирования/добавления. Если не задано — блок пути в диалоге скрыт.
+    /// Пример: <c>"dbo.fnПутьРасположения"</c>.
+    /// </summary>
+    public string? NodePathFunction { get; set; }
+
+    /// <summary>
+    /// Направление построения пути (второй параметр функции). По умолчанию
+    /// <see cref="ClayTreePathDirection.ParentToChild"/> (=1).
+    /// </summary>
+    public ClayTreePathDirection NodePathDirection { get; set; } = ClayTreePathDirection.ParentToChild;
+
+    /// <summary>
+    /// Кастомные пункты контекстного меню узла. Добавляются к стандартным
+    /// (редактировать/добавить/удалить). Каждый пункт вызывает свой делегат.
+    /// </summary>
+    public IReadOnlyList<ClayTreeMenuItem> CustomMenuItems { get; set; } = [];
 }

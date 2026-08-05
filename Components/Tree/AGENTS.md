@@ -55,6 +55,8 @@
 | TF_G — дефолты и query | [promts/_done/TF/TF_G_defaults_and_query.md](promts/_done/TF/TF_G_defaults_and_query.md) |
 | TF_H — тесты и документация | [promts/_done/TF/TF_H_tests_docs.md](promts/_done/TF/TF_H_tests_docs.md) |
 | TF_I — состояние и выделение | [promts/_done/TF/TF_I_state_and_selection.md](promts/_done/TF/TF_I_state_and_selection.md) |
+| Оркестратор CTM | [promts/CTM0_orchestrator.md](promts/CTM0_orchestrator.md) |
+| CTM1–CTM3 — выполненные промты изменения данных | [promts/_done/CTM/](promts/_done/CTM/) |
 
 ## Выполненные заплатки (CTF1–CTF6)
 
@@ -89,6 +91,12 @@
 
 Два ключа: `LastExpandedId` (якорь) и `SelectedIds` (выделение). Хранятся в `vwНастройки` по CLID.
 Восстановление — **один путь** до выделенной ноды (или якоря). Причина отказа от набора раскрытых веток — производительность на большом дереве.
+
+## Выполненные шаги изменения данных (CTM1–CTM3)
+
+- CTM1 — ✅ контракт `IClayTreeMutations` (ReorderAsync, ReparentAsync, AddChildAsync, UpdateNodeAsync, DeleteAsync, GetNodePathAsync, IsDescendantAsync) и enum `ClayTreePathDirection`
+- CTM2 — ✅ опции `ClayTreeOptions`: `EnableDragDrop`, `EnableEdit`, `EnableAddChild`, `EnableDelete`, `EditColumn`, `NodePathFunction`, `NodePathDirection`, `CustomMenuItems`; модель `ClayTreeMenuItem`
+- CTM3 — ✅ регистрация `AddClayTreeMutations<TImpl>()` в DI, ленивый резолв `Mutations` в `ClayTreeView` через `IServiceProvider`
 
 ## Выделение
 

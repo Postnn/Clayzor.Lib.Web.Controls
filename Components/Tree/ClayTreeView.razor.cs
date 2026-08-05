@@ -48,6 +48,9 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     [Inject] private IClayTreeStateStore StateStore { get; set; } = default!;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
+    // Опционально: нужен только когда включены функции изменения данных.
+    [Inject] private IServiceProvider Services { get; set; } = default!;
+
     // ── Fields ───────────────────────────────────────────────────────────────────
 
     private ClayTreeSource? _source;
@@ -56,6 +59,25 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     private string? _error;
     private DbManager? _customDb;
     private string? _resolvedCsName;
+    private IClayTreeMutations? _mutationsCached;
+
+    /// <summary>
+    /// Сервис изменения данных. Резолвится по требованию. Если функции изменения включены,
+    /// но сервис не зарегистрирован — кидает информативное исключение.
+    /// </summary>
+    private IClayTreeMutations Mutations
+    {
+        get
+        {
+            _mutationsCached ??= Services.GetService(typeof(IClayTreeMutations)) as IClayTreeMutations;
+            if (_mutationsCached is null)
+                throw new InvalidOperationException(
+                    "Для операций изменения данных дерева не зарегистрирован IClayTreeMutations. " +
+                    "Вызовите services.AddClayTreeMutations<ВашаРеализация>() в Program.cs, " +
+                    "либо отключите EnableDragDrop/EnableEdit/EnableAddChild/EnableDelete.");
+            return _mutationsCached;
+        }
+    }
 
     // ── Selection ────────────────────────────────────────────────────────────────
 

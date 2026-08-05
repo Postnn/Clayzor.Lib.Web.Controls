@@ -39,6 +39,18 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ClaySqlTreeStateStore>();
         return services;
     }
+
+    /// <summary>
+    /// Регистрирует реализацию <see cref="IClayTreeMutations"/> для операций изменения данных дерева
+    /// (drag-and-drop, редактирование, добавление, удаление). Вызывается приложением, если для
+    /// какого-либо дерева включены соответствующие опции.
+    /// </summary>
+    public static IServiceCollection AddClayTreeMutations<TImpl>(this IServiceCollection services)
+        where TImpl : class, IClayTreeMutations
+    {
+        services.AddScoped<IClayTreeMutations, TImpl>();
+        return services;
+    }
 }
 
 /// <summary>
