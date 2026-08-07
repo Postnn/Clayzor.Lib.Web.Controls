@@ -1,0 +1,57 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Tree
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(Path))
+        {
+            <div class="clay-tree-edit-path mb-3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Путь:</MudText>
+                <MudText Typo="Typo.body2">@Path</MudText>
+            </div>
+        }
+        <MudTextField T="string" @bind-Value="_value" Label="@FieldLabel"
+                      Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Ok" Color="Color.Primary" Variant="Variant.Filled">ОК</MudButton>
+        <MudButton OnClick="Refresh">Обновить</MudButton>
+        <MudButton OnClick="Cancel">Отмена</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>Заголовок поля (например «Название»).</summary>
+    [Parameter] public string FieldLabel { get; set; } = "Название";
+
+    /// <summary>Начальное значение поля (для редактирования; при добавлении — пусто).</summary>
+    [Parameter] public string? InitialValue { get; set; }
+
+    /// <summary>Полный путь к ноде (редактирование) или к родителю (добавление). null — блок скрыт.</summary>
+    [Parameter] public string? Path { get; set; }
+
+    /// <summary>
+    /// Колбэк «Обновить»: перечитать путь/значение из БД. Возвращает (value, path).
+    /// Для добавления value обычно остаётся как есть, обновляется только path родителя.
+    /// </summary>
+    [Parameter] public Func<Task<(string? Value, string? Path)>>? OnRefresh { get; set; }
+
+    private string _value = "";
+
+    protected override void OnInitialized() => _value = InitialValue ?? "";
+
+    private void Ok() => MudDialog?.Close(DialogResult.Ok(_value));
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private async Task Refresh()
+    {
+        if (OnRefresh is null) return;
+        var (value, path) = await OnRefresh();
+        if (value is not null) _value = value;
+        Path = path;
+        StateHasChanged();
+    }
+}

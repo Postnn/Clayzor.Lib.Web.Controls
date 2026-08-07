@@ -100,6 +100,7 @@
 - CTM4 — ✅ липкая панель фильтра: grid-раскладка (`auto 1fr`), `.clay-tree-scroll` с `overflow-y: auto`, тулбар вне скролла; попутный фикс `DBNull.Value` → `null` в `ClaySqlTreeStateStore.SaveAsync`
 - CTM5 — ✅ tooltip обрезанного названия (`clayTree.isTextTruncated` + нативный `title`), выделение ноды (navy-фон, белый текст/шеврон/спиннер), `clayTree.js`
 - CTM6 — ✅ ядро обновления: `ClayTreeView.Mutations.cs` — `FindNodeById`, `ReloadLevelAsync` (корень/родитель с восстановлением раскрытости), `RefreshNodeTextAsync` (через `ClayTreeData.LoadNodeAsync`)
+- CTM7 — ✅ контекстное меню узла: `ClayTreeNodeEditDialog.razor` (диалог редактирования/добавления), `EditNodeAsync`/`AddChildAsync`/`DeleteNodeAsync`/`BuildPathAsync`/`ConfirmAsync` в `ClayTreeView.Mutations.cs`, кнопка `MoreVert` в `ClayTreeNodeView.razor` (появляется по hover), стили `.clay-tree-node-menu`
 
 ## Выделение
 

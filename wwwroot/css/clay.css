@@ -1603,6 +1603,22 @@ body {
     color: var(--mud-palette-primary);
 }
 
+/* ── Контекстное меню узла ────────────────────────────────────────────────── */
+
+.clay-tree-node-menu {
+    opacity: 0;
+    transition: opacity 0.15s;
+    margin-left: auto;
+}
+
+.clay-tree-node-row:hover .clay-tree-node-menu {
+    opacity: 1;
+}
+
+.clay-tree-node--selected .clay-tree-node-menu {
+    opacity: 1;
+}
+
 /* ── Направляющие линии дерева (ShowLines) ──────────────────────────────────── */
 
 /* Контейнер детей несёт отступ уровня и вертикальную линию слева */

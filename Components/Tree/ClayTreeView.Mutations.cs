@@ -1,5 +1,9 @@
 using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
+using Clayzor.Lib.Web.Controls.Components;
+using MudBlazor;
+using MudBlazor.Extensions;
+using MudBlazor.Extensions.Options;
 
 namespace Clayzor.Lib.Web.Controls.Components.Tree;
 
@@ -114,4 +118,123 @@ public partial class ClayTreeView
             StateHasChanged();
         }
     }
+
+    // ── Операции контекстного меню ───────────────────────────────────────────────
+
+    /// <summary>Открывает диалог редактирования названия узла.</summary>
+    private async Task EditNodeAsync(ClayTreeNode node)
+    {
+        if (string.IsNullOrEmpty(Options.EditColumn))
+            throw new InvalidOperationException("ClayTreeOptions.EditColumn не задан — редактирование невозможно.");
+
+        var path = await BuildPathAsync(node.RawId);
+
+        var parameters = new DialogParameters
+        {
+            ["FieldLabel"]   = "Название",
+            ["InitialValue"] = node.Text,
+            ["Path"]         = path,
+            ["OnRefresh"]    = (Func<Task<(string?, string?)>>)(async () =>
+            {
+                var freshText = await ReadNodeTextAsync(node);
+                var freshPath = await BuildPathAsync(node.RawId);
+                return (freshText, freshPath);
+            }),
+        };
+
+        var options = new DialogOptionsEx { DragMode = MudDialogDragMode.Simple };
+        var dlg = await DialogService.ShowExAsync<ClayTreeNodeEditDialog>("Редактирование", parameters, options);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
+
+        var newValue = (string?)result.Data ?? "";
+        await Mutations.UpdateNodeAsync(node.RawId!, Options.EditColumn, newValue);
+        await RefreshNodeTextAsync(node);
+    }
+
+    /// <summary>Открывает диалог добавления дочернего узла.</summary>
+    private async Task AddChildAsync(ClayTreeNode parent)
+    {
+        if (string.IsNullOrEmpty(Options.EditColumn))
+            throw new InvalidOperationException("ClayTreeOptions.EditColumn не задан — добавление невозможно.");
+
+        var path = await BuildPathAsync(parent.RawId);
+
+        var parameters = new DialogParameters
+        {
+            ["FieldLabel"]   = "Название",
+            ["InitialValue"] = "",
+            ["Path"]         = path,
+            ["OnRefresh"]    = (Func<Task<(string?, string?)>>)(async () =>
+            {
+                var freshPath = await BuildPathAsync(parent.RawId);
+                return (null, freshPath);
+            }),
+        };
+
+        var options = new DialogOptionsEx { DragMode = MudDialogDragMode.Simple };
+        var dlg = await DialogService.ShowExAsync<ClayTreeNodeEditDialog>("Добавление узла", parameters, options);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
+
+        var value = (string?)result.Data ?? "";
+        await Mutations.AddChildAsync(parent.RawId, Options.EditColumn!, value);
+
+        parent.HasChildren = true;
+        if (!parent.IsExpanded)
+        {
+            parent.IsExpanded = true;
+            _expanded.Add(parent.Id);
+        }
+        await ReloadLevelAsync(parent);
+    }
+
+    /// <summary>Удаляет узел после подтверждения.</summary>
+    private async Task DeleteNodeAsync(ClayTreeNode node)
+    {
+        var confirmed = await ConfirmAsync($"Вы уверены, что хотите удалить {node.Text}?");
+        if (!confirmed) return;
+
+        var parent = node.Parent;
+        await Mutations.DeleteAsync(node.RawId!);
+        _selectedIds.Remove(node.Id);
+        await ReloadLevelAsync(parent);
+    }
+
+    /// <summary>Выполняет кастомную операцию меню.</summary>
+    private static async Task ExecuteCustomAsync(ClayTreeMenuItem item, ClayTreeNode node)
+        => await item.OnExecute(node);
+
+    /// <summary>
+    /// Строит полный путь к узлу через сервис мутаций и настроенную SQL-функцию.
+    /// Возвращает null, если RawId == null или NodePathFunction не задана.
+    /// </summary>
+    private async Task<string?> BuildPathAsync(object? rawId)
+    {
+        if (rawId is null || string.IsNullOrEmpty(Options.NodePathFunction))
+            return null;
+        return await Mutations.GetNodePathAsync(rawId, Options.NodePathFunction!, Options.NodePathDirection);
+    }
+
+    /// <summary>
+    /// Диалог подтверждения действия. Возвращает true, если пользователь нажал «Да».
+    /// </summary>
+    private async Task<bool> ConfirmAsync(string message)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Message, message }
+        };
+        var options = new DialogOptionsEx { DragMode = MudDialogDragMode.Simple };
+        var dialog = await DialogService.ShowExAsync<ConfirmDialog>("Подтверждение", parameters, options);
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    // ── Публичные обёртки для ClayTreeNodeView ──────────────────────────────────
+
+    internal Task InvokeEditAsync(ClayTreeNode node)      => EditNodeAsync(node);
+    internal Task InvokeAddChildAsync(ClayTreeNode node)  => AddChildAsync(node);
+    internal Task InvokeDeleteAsync(ClayTreeNode node)    => DeleteNodeAsync(node);
+    internal Task InvokeCustomAsync(ClayTreeMenuItem item, ClayTreeNode node) => ExecuteCustomAsync(item, node);
 }
