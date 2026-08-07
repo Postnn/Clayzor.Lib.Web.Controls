@@ -99,6 +99,7 @@
 - CTM3 — ✅ регистрация `AddClayTreeMutations<TImpl>()` в DI, ленивый резолв `Mutations` в `ClayTreeView` через `IServiceProvider`
 - CTM4 — ✅ липкая панель фильтра: grid-раскладка (`auto 1fr`), `.clay-tree-scroll` с `overflow-y: auto`, тулбар вне скролла; попутный фикс `DBNull.Value` → `null` в `ClaySqlTreeStateStore.SaveAsync`
 - CTM5 — ✅ tooltip обрезанного названия (`clayTree.isTextTruncated` + нативный `title`), выделение ноды (navy-фон, белый текст/шеврон/спиннер), `clayTree.js`
+- CTM6 — ✅ ядро обновления: `ClayTreeView.Mutations.cs` — `FindNodeById`, `ReloadLevelAsync` (корень/родитель с восстановлением раскрытости), `RefreshNodeTextAsync` (через `ClayTreeData.LoadNodeAsync`)
 
 ## Выделение
 
