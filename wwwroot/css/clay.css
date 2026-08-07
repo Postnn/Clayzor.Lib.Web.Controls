@@ -1546,8 +1546,18 @@ body {
 }
 
 .clay-tree-node--selected > .clay-tree-node-row {
-    background-color: var(--mud-palette-action-selected);
-    border-radius: 3px;
+    background: var(--lh-navy, #05164D);
+    border-radius: 4px;
+}
+.clay-tree-node--selected > .clay-tree-node-row .clay-tree-node-text {
+    color: var(--lh-white, #fff);
+    font-weight: 600;
+}
+.clay-tree-node--selected > .clay-tree-node-row .clay-tree-node-toggle {
+    color: var(--lh-white, #fff) !important;
+}
+.clay-tree-node--selected > .clay-tree-node-row .clay-tree-node-toggle-slot .mud-progress-circular {
+    color: var(--lh-white, #fff) !important;
 }
 
 .clay-tree-node-toggle {

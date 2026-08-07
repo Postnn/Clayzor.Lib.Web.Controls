@@ -19,6 +19,8 @@ public partial class ClayTreeNodeView : ComponentBase, IDisposable
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
     private ElementReference _sentinel;
+    private ElementReference _textRef;
+    private bool _isTruncated;
     private DotNetObjectReference<ClayTreeNodeView>? _selfRef;
     private bool _observing;
 
@@ -51,6 +53,20 @@ public partial class ClayTreeNodeView : ComponentBase, IDisposable
     /// <inheritdoc/>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Проверка обрезки текста для tooltip
+        try
+        {
+            var truncated = await JS.InvokeAsync<bool>("clayTree.isTextTruncated", _textRef);
+            if (truncated != _isTruncated)
+            {
+                _isTruncated = truncated;
+                StateHasChanged();
+            }
+        }
+        catch (JSDisconnectedException) { }
+        catch (ObjectDisposedException) { }
+
+        // IntersectionObserver для автоподгрузки уровня при скролле
         if (Tree is ClayTreeView { Options.LevelPagingMode: ClayTreeLevelPagingMode.Scroll }
             && !Node.LoadedAllChildren && Tree.LevelPageSize > 0)
         {

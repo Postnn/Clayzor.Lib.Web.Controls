@@ -49,7 +49,10 @@
         }
         else
         {
-            <span class="clay-tree-node-text" @onclick="HandleClick" @onclick:stopPropagation="true">
+            <span class="clay-tree-node-text"
+                  @ref="_textRef"
+                  @onclick="HandleClick" @onclick:stopPropagation="true"
+                  title="@(_isTruncated ? Node.Text : null)">
                 @Node.Text
             </span>
         }
