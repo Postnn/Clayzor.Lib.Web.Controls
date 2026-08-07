@@ -1486,11 +1486,16 @@ body {
 /* ── ClayTreeView ────────────────────────────────────────────────────────── */
 
 .clay-tree {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-height: 0;
     font-size: var(--clay-font-size, 0.8rem);
     color: var(--mud-palette-text-primary);
 }
 
 .clay-tree-toolbar {
+    z-index: 2;
+    background: var(--mud-palette-surface, #fff);
     margin-bottom: 6px;
 }
 
@@ -1504,6 +1509,11 @@ body {
     padding: 2px 0 4px 0;
     font-size: 0.75rem;
     color: var(--mud-palette-text-secondary);
+}
+
+.clay-tree-scroll {
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .clay-tree-error {

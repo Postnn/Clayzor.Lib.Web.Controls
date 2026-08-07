@@ -81,7 +81,7 @@ public sealed class ClaySqlTreeStateStore : IClayTreeStateStore
         var anchorDp = new Dapper.DynamicParameters();
         anchorDp.Add("clid", clid);
         anchorDp.Add("name", anchorName);
-        anchorDp.Add("value", (object?)state.LastExpandedId ?? DBNull.Value);
+        anchorDp.Add("value", (object?)state.LastExpandedId);
         anchorDp.Add("shid", shid);
         await _db.ExecuteAsync(sql, anchorDp, commandType: System.Data.CommandType.Text);
 

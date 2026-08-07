@@ -44,29 +44,31 @@
             </div>
         }
 
-        @if (_error is not null)
-        {
-            <MudAlert Severity="Severity.Warning" Class="clay-tree-error mb-2" Variant="Variant.Outlined">
-                @_error
-            </MudAlert>
-        }
-        else if (_roots.Count == 0 && !_isBusy)
-        {
-            <div class="clay-tree-empty">Нет данных</div>
-        }
-        else
-        {
-            @foreach (var node in _roots)
+        <div class="clay-tree-scroll">
+            @if (_error is not null)
             {
-                <ClayTreeNodeView Node="node" Tree="this" NodeTemplate="NodeTemplate" />
+                <MudAlert Severity="Severity.Warning" Class="clay-tree-error mb-2" Variant="Variant.Outlined">
+                    @_error
+                </MudAlert>
             }
-        }
+            else if (_roots.Count == 0 && !_isBusy)
+            {
+                <div class="clay-tree-empty">Нет данных</div>
+            }
+            else
+            {
+                @foreach (var node in _roots)
+                {
+                    <ClayTreeNodeView Node="node" Tree="this" NodeTemplate="NodeTemplate" />
+                }
+            }
 
-        <MudOverlay Visible="@_isBusy" DarkBackground="true">
-            <div class="clay-busy">
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
-                <span>@_busyLabel</span>
-            </div>
-        </MudOverlay>
+            <MudOverlay Visible="@_isBusy" DarkBackground="true">
+                <div class="clay-busy">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                    <span>@_busyLabel</span>
+                </div>
+            </MudOverlay>
+        </div>
     </div>
 </CascadingValue>

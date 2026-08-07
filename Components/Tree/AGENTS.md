@@ -97,6 +97,7 @@
 - CTM1 — ✅ контракт `IClayTreeMutations` (ReorderAsync, ReparentAsync, AddChildAsync, UpdateNodeAsync, DeleteAsync, GetNodePathAsync, IsDescendantAsync) и enum `ClayTreePathDirection`
 - CTM2 — ✅ опции `ClayTreeOptions`: `EnableDragDrop`, `EnableEdit`, `EnableAddChild`, `EnableDelete`, `EditColumn`, `NodePathFunction`, `NodePathDirection`, `CustomMenuItems`; модель `ClayTreeMenuItem`
 - CTM3 — ✅ регистрация `AddClayTreeMutations<TImpl>()` в DI, ленивый резолв `Mutations` в `ClayTreeView` через `IServiceProvider`
+- CTM4 — ✅ липкая панель фильтра: grid-раскладка (`auto 1fr`), `.clay-tree-scroll` с `overflow-y: auto`, тулбар вне скролла; попутный фикс `DBNull.Value` → `null` в `ClaySqlTreeStateStore.SaveAsync`
 
 ## Выделение
 
