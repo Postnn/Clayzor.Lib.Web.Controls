@@ -153,6 +153,14 @@ public sealed class ClayTreeOptions
     public bool EnableDelete { get; set; }
 
     /// <summary>
+    /// Имя таблицы (или представления) для операций изменения данных.
+    /// Обязателен при включении любого из EnableEdit/EnableAddChild/EnableDelete/EnableDragDrop.
+    /// Пример: <c>"[Ресурсы]"</c> или <c>"[dbo].[Таблица]"</c>.
+    /// Если не задан — используется прямой резолв <see cref="IClayTreeMutations"/> из DI.
+    /// </summary>
+    public string? TableName { get; set; }
+
+    /// <summary>
     /// SQL-имя редактируемого поля — значение названия узла для диалогов «Редактировать»
     /// и «Добавить дочерний». Обязателен при <see cref="EnableEdit"/> или <see cref="EnableAddChild"/>.
     /// Пример: <c>"НазваниеРасположения"</c>.

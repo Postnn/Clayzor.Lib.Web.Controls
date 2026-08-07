@@ -1,5 +1,6 @@
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
 namespace Clayzor.Lib.Web.Controls.Components.Tree;
@@ -18,6 +19,7 @@ public partial class ClayTreeNodeView : ComponentBase, IDisposable
 
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
+    private ElementReference _rowRef;
     private ElementReference _sentinel;
     private ElementReference _textRef;
     private bool _isTruncated;
@@ -40,6 +42,30 @@ public partial class ClayTreeNodeView : ComponentBase, IDisposable
     {
         if (Tree is ClayTreeView view)
             await view.LoadMoreChildrenAsync(Node);
+    }
+
+    private void HandleDragStart()
+    {
+        if (Tree is ClayTreeView view)
+            view.OnDragStart(Node);
+    }
+
+    private void HandleDragEnd()
+    {
+        if (Tree is ClayTreeView view)
+            view.OnDragEnd();
+    }
+
+    private async Task HandleDragOverAsync(DragEventArgs e)
+    {
+        if (Tree is ClayTreeView view)
+            await view.OnDragOverAsync(Node, e.ClientY, _rowRef);
+    }
+
+    private async Task HandleDropAsync()
+    {
+        if (Tree is ClayTreeView view)
+            await view.OnDropAsync(Node);
     }
 
     /// <summary>Вызывается из JS IntersectionObserver при попадании сентинела во вьюпорт.</summary>

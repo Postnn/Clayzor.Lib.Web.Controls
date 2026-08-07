@@ -11,8 +11,26 @@
         + (linesOn && isLast ? " clay-tree-node--last" : "");
 }
 
+@{
+    var dndOn = (Tree as ClayTreeView)?.Options.EnableDragDrop == true;
+    var tv = Tree as ClayTreeView;
+    var isDropTarget = tv is not null && tv.IsCurrentDropTarget(Node);
+    var dropClass = !dndOn ? "" :
+        isDropTarget ? (tv!.IsCurrentDropAllowed ? $" clay-tree-drop-{tv.CurrentDropZone}" : " clay-tree-drop-forbidden") : "";
+}
+
 <div class="@nodeClass @(Tree.SelectedIds.Contains(Node.Id) ? "clay-tree-node--selected" : "")">
-    <div class="clay-tree-node-row" style="@(linesOn ? null : $"padding-left:{Node.Level * Tree.IndentPx}px")">
+    <div class="@($"clay-tree-node-row{dropClass}")"
+         @ref="_rowRef"
+         draggable="@dndOn.ToString().ToLowerInvariant()"
+         @ondragstart="HandleDragStart"
+         @ondragstart:preventDefault="false"
+         @ondragend="HandleDragEnd"
+         @ondragover="HandleDragOverAsync"
+         @ondragover:preventDefault="true"
+         @ondrop="HandleDropAsync"
+         @ondrop:preventDefault="true"
+         style="@(linesOn ? null : $"padding-left:{Node.Level * Tree.IndentPx}px")">
         @{
             var showSpinner = Node.IsLoading
                 && Tree is ClayTreeView { Options.ShowLoadingIndicator: true };

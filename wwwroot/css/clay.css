@@ -1619,6 +1619,14 @@ body {
     opacity: 1;
 }
 
+/* ── Drag-and-drop индикаторы ──────────────────────────────────────────────── */
+
+.clay-tree-drop-before { box-shadow: inset 0 2px 0 0 var(--lh-gold, #FFAD00); }
+.clay-tree-drop-after  { box-shadow: inset 0 -2px 0 0 var(--lh-gold, #FFAD00); }
+.clay-tree-drop-on     { outline: 2px solid var(--lh-gold, #FFAD00); outline-offset: -2px; }
+.clay-tree-drop-forbidden { outline: 2px dashed #d32f2f; outline-offset: -2px; cursor: not-allowed; }
+.clay-tree-node-row[draggable="true"] { cursor: grab; }
+
 /* ── Направляющие линии дерева (ShowLines) ──────────────────────────────────── */
 
 /* Контейнер детей несёт отступ уровня и вертикальную линию слева */

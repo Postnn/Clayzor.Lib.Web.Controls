@@ -92,7 +92,7 @@
 Два ключа: `LastExpandedId` (якорь) и `SelectedIds` (выделение). Хранятся в `vwНастройки` по CLID.
 Восстановление — **один путь** до выделенной ноды (или якоря). Причина отказа от набора раскрытых веток — производительность на большом дереве.
 
-## Выполненные шаги изменения данных (CTM1–CTM3)
+## Выполненные шаги изменения данных (CTM1–CTM8)
 
 - CTM1 — ✅ контракт `IClayTreeMutations` (ReorderAsync, ReparentAsync, AddChildAsync, UpdateNodeAsync, DeleteAsync, GetNodePathAsync, IsDescendantAsync) и enum `ClayTreePathDirection`
 - CTM2 — ✅ опции `ClayTreeOptions`: `EnableDragDrop`, `EnableEdit`, `EnableAddChild`, `EnableDelete`, `EditColumn`, `NodePathFunction`, `NodePathDirection`, `CustomMenuItems`; модель `ClayTreeMenuItem`
@@ -101,6 +101,13 @@
 - CTM5 — ✅ tooltip обрезанного названия (`clayTree.isTextTruncated` + нативный `title`), выделение ноды (navy-фон, белый текст/шеврон/спиннер), `clayTree.js`
 - CTM6 — ✅ ядро обновления: `ClayTreeView.Mutations.cs` — `FindNodeById`, `ReloadLevelAsync` (корень/родитель с восстановлением раскрытости), `RefreshNodeTextAsync` (через `ClayTreeData.LoadNodeAsync`)
 - CTM7 — ✅ контекстное меню узла: `ClayTreeNodeEditDialog.razor` (диалог редактирования/добавления), `EditNodeAsync`/`AddChildAsync`/`DeleteNodeAsync`/`BuildPathAsync`/`ConfirmAsync` в `ClayTreeView.Mutations.cs`, `ClayMenu` в `ClayTreeNodeView.razor` (по hover), стили `.clay-tree-node-menu`. Рефайнмент: `RemoveFromIndex` в `ClayTreeView.Loading.cs` (рекурсивная очистка `_byId`), вызов перед зачисткой детей в `ReloadLevelAsync`, `HasChildren` после перезагрузки, `FindParentNode` (обёртка `node.Parent`)
+- CTM8 — ✅ drag-and-drop: `ClayTreeDragDrop.cs` (DnD-состояние, `OnDragStart/Over/Drop`, `DoReparentAsync`/`DoReorderAsync`, `ComputeNewLeft`, `IsDropAllowedAsync`), `clayTreeDnd.js` (зона `before/on/after`), `ClayTreeNodeView.razor` (атрибуты `draggable`, обработчики `HandleDragStart/DragOver/Drop`), `_rowRef` в `ClayTreeNodeView.razor.cs`, стили `.clay-tree-drop-*`, регистрация JS в `App.razor`. Рефайнмент: обработчики — методы вместо лямбд, `try/catch` на JS-исключения в `OnDragOverAsync`/`DoReparentAsync`/`DoReorderAsync`
+
+### Универсальная реализация мутаций
+
+`ClaySqlTreeMutations` — готовая реализация `IClayTreeMutations`, выполняет DML над таблицей из `ClayTreeOptions.TableName`. Подключается автоматически при задании `TableName` в настройках дерева — DI не требуется.
+
+Если `TableName` не задан — `ClayTreeView` ищет `IClayTreeMutations` в DI (обратная совместимость).
 
 ## Выделение
 

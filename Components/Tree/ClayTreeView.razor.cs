@@ -62,18 +62,32 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     private IClayTreeMutations? _mutationsCached;
 
     /// <summary>
-    /// Сервис изменения данных. Резолвится по требованию. Если функции изменения включены,
-    /// но сервис не зарегистрирован — кидает информативное исключение.
+    /// Сервис изменения данных. Если <see cref="ClayTreeOptions.TargetObject"/> задан —
+    /// создаёт <see cref="ClaySqlTreeMutations"/> напрямую. Иначе резолвит из DI
+    /// (для кастомных реализаций и обратной совместимости).
     /// </summary>
     private IClayTreeMutations Mutations
     {
         get
         {
-            _mutationsCached ??= Services.GetService(typeof(IClayTreeMutations)) as IClayTreeMutations;
+            if (_mutationsCached is not null) return _mutationsCached;
+
+            // Путь 1: TableName задан — создаём универсальную реализацию.
+            if (!string.IsNullOrEmpty(Options.TableName))
+            {
+                _mutationsCached = new ClaySqlTreeMutations(
+                    ResolveDb(), Options.TableName!, Options.Schema);
+                return _mutationsCached;
+            }
+
+            // Путь 2: прямой резолв из DI (кастомные реализации, заглушки).
+            _mutationsCached = Services.GetService(typeof(IClayTreeMutations)) as IClayTreeMutations;
             if (_mutationsCached is null)
                 throw new InvalidOperationException(
-                    "Для операций изменения данных дерева не зарегистрирован IClayTreeMutations. " +
-                    "Вызовите services.AddClayTreeMutations<ВашаРеализация>() в Program.cs, " +
+                    "ClayTreeOptions.TableName не задан, и IClayTreeMutations не зарегистрирован в DI. " +
+                    "Укажите TableName в настройках дерева (рекомендуется), " +
+                    "либо зарегистрируйте свою реализацию через " +
+                    "services.AddClayTreeMutations<ВашаРеализация>() в Program.cs, " +
                     "либо отключите EnableDragDrop/EnableEdit/EnableAddChild/EnableDelete.");
             return _mutationsCached;
         }
