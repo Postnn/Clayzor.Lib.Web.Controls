@@ -77,9 +77,9 @@
 
         @if (showMenu && Tree is ClayTreeView treeView)
         {
-            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small"
-                     Class="clay-tree-node-menu" Dense="true"
-                     AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
+            <ClayMenu Icon="@Icons.Material.Filled.MoreVert"
+                      Class="clay-tree-node-menu" Dense="true"
+                      AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
                 @if (opt!.EnableEdit)
                 {
                     <MudMenuItem Icon="@Icons.Material.Filled.Edit"
@@ -100,7 +100,7 @@
                     <MudMenuItem Icon="@item.Icon"
                                  OnClick="@(() => treeView.InvokeCustomAsync(item, Node))">@item.Label</MudMenuItem>
                 }
-            </MudMenu>
+            </ClayMenu>
         }
     </div>
 

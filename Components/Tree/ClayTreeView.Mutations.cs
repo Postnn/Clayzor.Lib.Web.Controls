@@ -36,6 +36,9 @@ public partial class ClayTreeView
         return null;
     }
 
+    /// <summary>Возвращает родителя узла (null для корневых узлов).</summary>
+    private static ClayTreeNode? FindParentNode(ClayTreeNode node) => node.Parent;
+
     // ── Перезагрузка уровня одного родителя ──────────────────────────────────────
 
     /// <summary>
@@ -72,11 +75,14 @@ public partial class ClayTreeView
         else
         {
             // Сбросить загрузку уровня и перезагрузить лениво.
+            foreach (var ch in parent.Children)
+                RemoveFromIndex(ch);
             parent.IsLoaded = false;
             parent.Children.Clear();
             parent.LoadedAllChildren = true;
             parent.LastChildCursor = null;
             await EnsureChildrenLoadedAsync(parent);
+            parent.HasChildren = parent.Children.Count > 0;
 
             // Восстановить раскрытость тех детей, что снова присутствуют и были раскрыты.
             foreach (var ch in parent.Children)
@@ -195,7 +201,7 @@ public partial class ClayTreeView
         var confirmed = await ConfirmAsync($"Вы уверены, что хотите удалить {node.Text}?");
         if (!confirmed) return;
 
-        var parent = node.Parent;
+        var parent = FindParentNode(node);
         await Mutations.DeleteAsync(node.RawId!);
         _selectedIds.Remove(node.Id);
         await ReloadLevelAsync(parent);

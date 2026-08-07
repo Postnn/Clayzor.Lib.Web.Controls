@@ -236,4 +236,12 @@ public partial class ClayTreeView
                 IndexNodes(node.Children, node);
         }
     }
+
+    /// <summary>Удаляет узел и всё его поддерево из <see cref="_byId"/> (узел больше не в дереве).</summary>
+    private void RemoveFromIndex(ClayTreeNode node)
+    {
+        _byId.Remove(node.Id);
+        foreach (var child in node.Children)
+            RemoveFromIndex(child);
+    }
 }
