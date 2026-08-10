@@ -121,7 +121,8 @@
 	- CTMF2 — ✅ глубокая раскрытость при `ReloadLevelAsync`: `CollectExpandedIds` (рекурсивный сбор), `RestoreExpandedAsync` (рекурсивное восстановление); NRE fix: защита `Options is null` в `IsDescendantOfAsync`
 	- CTMF3 — ✅ исключён stale `newParent` после reparent: стабильные Id до reload, `FindNodeById` для свежего экземпляра, сравнение родителей по Id вместо `ReferenceEquals`
 	- CTMF4 — ✅ сужена область подавления исключений: `catch (Exception)` только вокруг SQL-мутации, reload/state вне catch; `BuildPathAsync` — catch упрощён (путь необязателен); убран `using Microsoft.JSInterop`
-	- CTMF5.1 — ✅ `catch (Exception)` → `catch (SqlException)` в `EditNodeAsync`/`AddChildAsync`/`DeleteNodeAsync`/`BuildPathAsync`; добавлен `using Microsoft.Data.SqlClient`; программные ошибки кастомных мутаций больше не проглатываются
+	- CTMF5.1 — ✅ `catch (Exception)` → `catch (SqlException)` в `EditNodeAsync`/`AddChildAsync`/`DeleteNodeAsync`/`BuildPathAsync`; добавлен `using Microsoft.Data.SqlClient`
+	- CTMF5.2 — ✅ `catch (SqlException)` только вокруг SQL в `DoReparentAsync`/`DoReorderAsync`; удалены все blanket-catch вокруг DnD операций; `OnDragOverAsync` сохранён как JS boundary
 
 ### Универсальная реализация мутаций
 

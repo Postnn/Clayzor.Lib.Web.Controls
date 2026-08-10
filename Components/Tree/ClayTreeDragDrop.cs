@@ -1,6 +1,7 @@
 using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Data.SqlClient;
 using Microsoft.JSInterop;
 
 namespace Clayzor.Lib.Web.Controls.Components.Tree;
@@ -173,29 +174,23 @@ public partial class ClayTreeView
         var draggedId  = dragged.Id;
         var sameParent = oldParentId == newParentId;
 
-        try
+        await RunBusyAsync("Перемещение…", async () =>
         {
-            await RunBusyAsync("Перемещение…", async () =>
+            try { await Mutations.ReparentAsync(dragged.RawId!, newParent?.RawId); }
+            catch (SqlException) { return; }
+
+            await ReloadLevelAsync(oldParent);
+
+            if (!sameParent)
             {
-                await Mutations.ReparentAsync(dragged.RawId!, newParent?.RawId);
+                // newParent мог быть уничтожен первой перезагрузкой — найти актуальный экземпляр.
+                var freshNewParent = newParentId is null ? null : FindNodeById(newParentId);
+                if (freshNewParent is not null || newParentId is null)
+                    await ReloadLevelAsync(freshNewParent);
+            }
 
-                await ReloadLevelAsync(oldParent);
-
-                if (!sameParent)
-                {
-                    // newParent мог быть уничтожен первой перезагрузкой — найти актуальный экземпляр.
-                    var freshNewParent = newParentId is null ? null : FindNodeById(newParentId);
-                    if (freshNewParent is not null || newParentId is null)
-                        await ReloadLevelAsync(freshNewParent);
-                }
-
-                RestoreFocus(draggedId);
-            });
-        }
-        catch (JSDisconnectedException) { /* circuit уже закрыт */ }
-        catch (ObjectDisposedException) { /* JS-рантайм освобождён */ }
-        catch (InvalidOperationException) { /* prerendering / нет JS */ }
-        catch (Exception) { /* ошибка уже сохранена ISqlErrorHandler */ }
+            RestoreFocus(draggedId);
+        });
     }
 
     private async Task DoReorderAsync(ClayTreeNode dragged, ClayTreeNode target, string zone)
@@ -212,22 +207,16 @@ public partial class ClayTreeView
         var confirmed = await ConfirmAsync(message);
         if (!confirmed) return;
 
-        try
+        await RunBusyAsync("Перемещение…", async () =>
         {
-            await RunBusyAsync("Перемещение…", async () =>
-            {
-                long newL = ComputeNewLeft(siblings, dragged, target, zone);
+            long newL = ComputeNewLeft(siblings, dragged, target, zone);
 
-                await Mutations.ReorderAsync(dragged.RawId!, dragged.Parent?.RawId, newL);
+            try { await Mutations.ReorderAsync(dragged.RawId!, dragged.Parent?.RawId, newL); }
+            catch (SqlException) { return; }
 
-                await ReloadLevelAsync(dragged.Parent);
-                RestoreFocus(dragged.Id);
-            });
-        }
-        catch (JSDisconnectedException) { /* circuit уже закрыт */ }
-        catch (ObjectDisposedException) { /* JS-рантайм освобождён */ }
-        catch (InvalidOperationException) { /* prerendering / нет JS */ }
-        catch (Exception) { /* ошибка уже сохранена ISqlErrorHandler */ }
+            await ReloadLevelAsync(dragged.Parent);
+            RestoreFocus(dragged.Id);
+        });
     }
 
     /// <summary>
