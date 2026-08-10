@@ -166,19 +166,30 @@ public partial class ClayTreeView
             $"Вы уверены, что хотите сделать {draggedName} дочерним по отношению к {parentName}?");
         if (!confirmed) return;
 
+        // Сохранить стабильные идентификаторы до любых reload.
+        var oldParent  = dragged.Parent;
+        var oldParentId = oldParent?.Id;
+        var newParentId = newParent?.Id;
+        var draggedId  = dragged.Id;
+        var sameParent = oldParentId == newParentId;
+
         try
         {
             await RunBusyAsync("Перемещение…", async () =>
             {
-                var oldParent = dragged.Parent;
                 await Mutations.ReparentAsync(dragged.RawId!, newParent?.RawId);
 
-                // Перезагрузить старый и новый уровни, сохранить фокус на перемещённом.
                 await ReloadLevelAsync(oldParent);
-                if (!ReferenceEquals(oldParent, newParent))
-                    await ReloadLevelAsync(newParent);
 
-                RestoreFocus(dragged.Id);
+                if (!sameParent)
+                {
+                    // newParent мог быть уничтожен первой перезагрузкой — найти актуальный экземпляр.
+                    var freshNewParent = newParentId is null ? null : FindNodeById(newParentId);
+                    if (freshNewParent is not null || newParentId is null)
+                        await ReloadLevelAsync(freshNewParent);
+                }
+
+                RestoreFocus(draggedId);
             });
         }
         catch (JSDisconnectedException) { /* circuit уже закрыт */ }
