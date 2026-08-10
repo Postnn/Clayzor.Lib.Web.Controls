@@ -53,6 +53,7 @@ public partial class ClayTreeView
         catch (JSDisconnectedException) { /* circuit уже закрыт */ }
         catch (ObjectDisposedException) { /* JS-рантайм освобождён */ }
         catch (InvalidOperationException) { /* prerendering / нет JS */ }
+        catch (NullReferenceException) { /* circuit закрывается, параметры сброшены */ }
     }
 
     /// <summary>Выполняет дроп: reorder или reparent, с подтверждением и обновлением.</summary>
@@ -114,6 +115,8 @@ public partial class ClayTreeView
     /// <summary>candidate является потомком ancestor?</summary>
     private async Task<bool> IsDescendantOfAsync(ClayTreeNode candidate, ClayTreeNode ancestor)
     {
+        if (Options is null) return false;
+
         if (Options.HierarchyMode == ClayTreeHierarchyMode.NestedSet
             && candidate.Left.HasValue && candidate.Right.HasValue
             && ancestor.Left.HasValue && ancestor.Right.HasValue)

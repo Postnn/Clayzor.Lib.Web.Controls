@@ -49,11 +49,17 @@ public partial class ClayTreeView
     /// </summary>
     private async Task ReloadLevelAsync(ClayTreeNode? parent)
     {
-        // Запомнить, какие дети были раскрыты (по Id), чтобы восстановить после перезагрузки.
+        // Собрать Id всех раскрытых узлов в поддереве перед перезагрузкой.
         var previouslyExpanded = new HashSet<string>();
-        var childrenBefore = parent?.Children ?? _roots;
-        foreach (var ch in childrenBefore)
-            if (ch.IsExpanded) previouslyExpanded.Add(ch.Id);
+        if (parent is not null)
+        {
+            foreach (var ch in parent.Children)
+                if (ch.IsExpanded)
+                {
+                    previouslyExpanded.Add(ch.Id);
+                    CollectExpandedIds(ch, previouslyExpanded);
+                }
+        }
 
         if (parent is null)
         {
@@ -85,19 +91,39 @@ public partial class ClayTreeView
             await EnsureChildrenLoadedAsync(parent);
             parent.HasChildren = parent.Children.Count > 0;
 
-            // Восстановить раскрытость тех детей, что снова присутствуют и были раскрыты.
-            foreach (var ch in parent.Children)
-            {
-                if (previouslyExpanded.Contains(ch.Id) && ch.HasChildren)
-                {
-                    ch.IsExpanded = true;
-                    _expanded.Add(ch.Id);
-                    await EnsureChildrenLoadedAsync(ch);
-                }
-            }
+            // Рекурсивно восстановить раскрытость потомков на любой глубине.
+            await RestoreExpandedAsync(parent, previouslyExpanded);
         }
 
         StateHasChanged();
+    }
+
+    /// <summary>Рекурсивно собирает Id раскрытых узлов в поддереве.</summary>
+    private static void CollectExpandedIds(ClayTreeNode node, HashSet<string> ids)
+    {
+        foreach (var child in node.Children)
+        {
+            if (child.IsExpanded)
+            {
+                ids.Add(child.Id);
+                CollectExpandedIds(child, ids);
+            }
+        }
+    }
+
+    /// <summary>Рекурсивно восстанавливает раскрытость узлов по сохранённым Id.</summary>
+    private async Task RestoreExpandedAsync(ClayTreeNode node, HashSet<string> ids)
+    {
+        foreach (var child in node.Children)
+        {
+            if (ids.Contains(child.Id) && child.HasChildren)
+            {
+                child.IsExpanded = true;
+                _expanded.Add(child.Id);
+                await EnsureChildrenLoadedAsync(child);
+                await RestoreExpandedAsync(child, ids);
+            }
+        }
     }
 
     // ── Перечитывание текста одного узла ─────────────────────────────────────────

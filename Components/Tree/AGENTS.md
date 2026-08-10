@@ -118,6 +118,7 @@
 	### Багфиксы CTM (серия CTMF)
 
 	- CTMF1 — ✅ исправлен no-op при DnD reorder: `IsReorderNoOp` (проверка по индексам), вызов до `ConfirmAsync`, удалена ветка `ReferenceEquals(afterSibling, dragged)` в `ComputeNewLeft`
+	- CTMF2 — ✅ глубокая раскрытость при `ReloadLevelAsync`: `CollectExpandedIds` (рекурсивный сбор), `RestoreExpandedAsync` (рекурсивное восстановление); NRE fix: защита `Options is null` в `IsDescendantOfAsync`, `catch (NullReferenceException)` в `OnDragOverAsync`
 
 ### Универсальная реализация мутаций
 
