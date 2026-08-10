@@ -53,7 +53,6 @@ public partial class ClayTreeView
         catch (JSDisconnectedException) { /* circuit уже закрыт */ }
         catch (ObjectDisposedException) { /* JS-рантайм освобождён */ }
         catch (InvalidOperationException) { /* prerendering / нет JS */ }
-        catch (NullReferenceException) { /* circuit закрывается, параметры сброшены */ }
     }
 
     /// <summary>Выполняет дроп: reorder или reparent, с подтверждением и обновлением.</summary>
