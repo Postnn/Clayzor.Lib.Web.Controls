@@ -130,6 +130,30 @@ public partial class ClayTreeView
     private static bool NodesShareParent(ClayTreeNode a, ClayTreeNode b)
         => ReferenceEquals(a.Parent, b.Parent);
 
+    /// <summary>
+    /// True, если перетаскиваемый узел уже находится в требуемой позиции относительно цели.
+    /// No-op: узел уже непосредственно перед/после target — перемещение не меняет порядок.
+    /// </summary>
+    private static bool IsReorderNoOp(
+        IReadOnlyList<ClayTreeNode> siblings,
+        ClayTreeNode dragged,
+        ClayTreeNode target,
+        string zone)
+    {
+        var draggedIdx = -1;
+        var targetIdx = -1;
+        for (var i = 0; i < siblings.Count; i++)
+        {
+            if (ReferenceEquals(siblings[i], dragged)) draggedIdx = i;
+            if (ReferenceEquals(siblings[i], target)) targetIdx = i;
+        }
+        if (draggedIdx < 0 || targetIdx < 0) return false;
+
+        if (zone == "before" && draggedIdx + 1 == targetIdx) return true;
+        if (zone == "after" && draggedIdx == targetIdx + 1) return true;
+        return false;
+    }
+
     // ── Операции ───────────────────────────────────────────────────────────────
 
     private async Task DoReparentAsync(ClayTreeNode dragged, ClayTreeNode? newParent)
@@ -163,6 +187,12 @@ public partial class ClayTreeView
 
     private async Task DoReorderAsync(ClayTreeNode dragged, ClayTreeNode target, string zone)
     {
+        var siblings = dragged.Parent?.Children ?? _roots;
+
+        // No-op: узел уже в требуемой позиции.
+        if (IsReorderNoOp(siblings, dragged, target, zone))
+            return;
+
         var message = dragged.Parent is null
             ? "Вы уверены, что хотите изменить порядок в рамках корневого уровня?"
             : $"Вы уверены, что хотите изменить порядок в рамках одной группы {dragged.Parent.Text}?";
@@ -173,8 +203,6 @@ public partial class ClayTreeView
         {
             await RunBusyAsync("Перемещение…", async () =>
             {
-                // Определить сиблинга, ПОСЛЕ которого встаёт узел, и взять его L.
-                var siblings = dragged.Parent?.Children ?? _roots;
                 long newL = ComputeNewLeft(siblings, dragged, target, zone);
 
                 await Mutations.ReorderAsync(dragged.RawId!, dragged.Parent?.RawId, newL);
@@ -215,10 +243,6 @@ public partial class ClayTreeView
             var first = siblings.Count > 0 ? siblings[0] : null;
             return first?.Left ?? 0L;
         }
-
-        // Если "после которого" оказался сам перетаскиваемый — возвращаем L цели.
-        if (ReferenceEquals(afterSibling, dragged))
-            return target.Left ?? 0L;
 
         return afterSibling.Left ?? 0L;
     }

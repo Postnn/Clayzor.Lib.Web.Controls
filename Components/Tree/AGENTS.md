@@ -115,6 +115,10 @@
 	7. Дерево схлопывается на узких экранах — `min-width:200px` на `.clay-tree`
 	8. Диалог на узких экранах — обёртка `min-width:340px`, кнопки с `flex-wrap:wrap`
 
+	### Багфиксы CTM (серия CTMF)
+
+	- CTMF1 — ✅ исправлен no-op при DnD reorder: `IsReorderNoOp` (проверка по индексам), вызов до `ConfirmAsync`, удалена ветка `ReferenceEquals(afterSibling, dragged)` в `ComputeNewLeft`
+
 ### Универсальная реализация мутаций
 
 `ClaySqlTreeMutations` — готовая реализация `IClayTreeMutations`, выполняет DML над таблицей из `ClayTreeOptions.TableName`. Подключается автоматически при задании `TableName` в настройках дерева — DI не требуется.
