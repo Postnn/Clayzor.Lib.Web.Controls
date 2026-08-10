@@ -1,7 +1,6 @@
 using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
 using Clayzor.Lib.Web.Controls.Components;
-using Microsoft.JSInterop;
 using MudBlazor;
 using MudBlazor.Extensions;
 using MudBlazor.Extensions.Options;
@@ -188,19 +187,12 @@ public partial class ClayTreeView
         if (result is null || result.Canceled) return;
 
         var newValue = (string?)result.Data ?? "";
-        try
+        await RunBusyAsync("Сохранение…", async () =>
         {
-            await RunBusyAsync("Сохранение…", async () =>
-            {
-                await Mutations.UpdateNodeAsync(node.RawId!, Options.EditColumn, newValue);
-                await RefreshNodeTextAsync(node);
-            });
-        }
-        catch (Exception ex) when (ex is not JSDisconnectedException and not ObjectDisposedException
-            and not InvalidOperationException)
-        {
-            // ошибка уже сохранена ISqlErrorHandler внутри DbManager
-        }
+            try { await Mutations.UpdateNodeAsync(node.RawId!, Options.EditColumn, newValue); }
+            catch (Exception) { return; /* ошибка сохранена ISqlErrorHandler */ }
+            await RefreshNodeTextAsync(node);
+        });
     }
 
     /// <summary>Открывает диалог добавления дочернего узла.</summary>
@@ -236,26 +228,19 @@ public partial class ClayTreeView
         if (result is null || result.Canceled) return;
 
         var value = (string?)result.Data ?? "";
-        try
+        await RunBusyAsync("Добавление…", async () =>
         {
-            await RunBusyAsync("Добавление…", async () =>
-            {
-                await Mutations.AddChildAsync(parent.RawId, Options.EditColumn!, value);
+            try { await Mutations.AddChildAsync(parent.RawId, Options.EditColumn!, value); }
+            catch (Exception) { return; /* ошибка сохранена ISqlErrorHandler */ }
 
-                parent.HasChildren = true;
-                if (!parent.IsExpanded)
-                {
-                    parent.IsExpanded = true;
-                    _expanded.Add(parent.Id);
-                }
-                await ReloadLevelAsync(parent);
-            });
-        }
-        catch (Exception ex) when (ex is not JSDisconnectedException and not ObjectDisposedException
-            and not InvalidOperationException)
-        {
-            // ошибка уже сохранена ISqlErrorHandler внутри DbManager
-        }
+            parent.HasChildren = true;
+            if (!parent.IsExpanded)
+            {
+                parent.IsExpanded = true;
+                _expanded.Add(parent.Id);
+            }
+            await ReloadLevelAsync(parent);
+        });
     }
 
     /// <summary>Удаляет узел после подтверждения.</summary>
@@ -265,20 +250,13 @@ public partial class ClayTreeView
         if (!confirmed) return;
 
         var parent = FindParentNode(node);
-        try
+        await RunBusyAsync("Удаление…", async () =>
         {
-            await RunBusyAsync("Удаление…", async () =>
-            {
-                await Mutations.DeleteAsync(node.RawId!);
-                _selectedIds.Remove(node.Id);
-                await ReloadLevelAsync(parent);
-            });
-        }
-        catch (Exception ex) when (ex is not JSDisconnectedException and not ObjectDisposedException
-            and not InvalidOperationException)
-        {
-            // ошибка уже сохранена ISqlErrorHandler внутри DbManager
-        }
+            try { await Mutations.DeleteAsync(node.RawId!); }
+            catch (Exception) { return; /* ошибка сохранена ISqlErrorHandler */ }
+            _selectedIds.Remove(node.Id);
+            await ReloadLevelAsync(parent);
+        });
     }
 
     /// <summary>Выполняет кастомную операцию меню.</summary>
@@ -293,16 +271,8 @@ public partial class ClayTreeView
     {
         if (rawId is null || string.IsNullOrEmpty(Options.NodePathFunction))
             return null;
-        try
-        {
-            return await Mutations.GetNodePathAsync(rawId, Options.NodePathFunction!, Options.NodePathDirection);
-        }
-        catch (Exception ex) when (ex is not JSDisconnectedException and not ObjectDisposedException
-            and not InvalidOperationException)
-        {
-            // ошибка уже сохранена ISqlErrorHandler внутри DbManager
-            return null;
-        }
+        try { return await Mutations.GetNodePathAsync(rawId, Options.NodePathFunction!, Options.NodePathDirection); }
+        catch (Exception) { return null; /* путь необязателен */ }
     }
 
     /// <summary>

@@ -120,6 +120,7 @@
 	- CTMF1 — ✅ исправлен no-op при DnD reorder: `IsReorderNoOp` (проверка по индексам), вызов до `ConfirmAsync`, удалена ветка `ReferenceEquals(afterSibling, dragged)` в `ComputeNewLeft`
 	- CTMF2 — ✅ глубокая раскрытость при `ReloadLevelAsync`: `CollectExpandedIds` (рекурсивный сбор), `RestoreExpandedAsync` (рекурсивное восстановление); NRE fix: защита `Options is null` в `IsDescendantOfAsync`
 	- CTMF3 — ✅ исключён stale `newParent` после reparent: стабильные Id до reload, `FindNodeById` для свежего экземпляра, сравнение родителей по Id вместо `ReferenceEquals`
+	- CTMF4 — ✅ сужена область подавления исключений: `catch (Exception)` только вокруг SQL-мутации, reload/state вне catch; `BuildPathAsync` — catch упрощён (путь необязателен); убран `using Microsoft.JSInterop`
 
 ### Универсальная реализация мутаций
 
