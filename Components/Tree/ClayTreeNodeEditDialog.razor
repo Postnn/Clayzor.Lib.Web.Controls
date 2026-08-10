@@ -3,20 +3,24 @@
 
 <MudDialog>
     <DialogContent>
-        @if (!string.IsNullOrEmpty(Path))
-        {
-            <div class="clay-tree-edit-path mb-3">
-                <MudText Typo="Typo.caption" Class="mud-text-secondary">Путь:</MudText>
-                <MudText Typo="Typo.body2">@Path</MudText>
-            </div>
-        }
-        <MudTextField T="string" @bind-Value="_value" Label="@FieldLabel"
-                      Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <div style="min-width: 340px">
+            @if (!string.IsNullOrEmpty(Path))
+            {
+                <div class="clay-tree-edit-path mb-3">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Путь:</MudText>
+                    <MudText Typo="Typo.body2">@Path</MudText>
+                </div>
+            }
+            <MudTextField T="string" @bind-Value="_value" Label="@FieldLabel"
+                          Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Ok" Color="Color.Primary" Variant="Variant.Filled">ОК</MudButton>
-        <MudButton OnClick="Refresh">Обновить</MudButton>
-        <MudButton OnClick="Cancel">Отмена</MudButton>
+        <MudStack Row="true" Justify="Justify.FlexEnd" Style="flex-wrap:wrap">
+            <MudButton OnClick="Ok" Color="Color.Primary" Variant="Variant.Filled" Class="mx-1" Style="min-width:120px">ОК</MudButton>
+            <MudButton OnClick="Refresh" Variant="Variant.Outlined" Class="mx-1" Style="min-width:120px">Обновить</MudButton>
+            <MudButton OnClick="Cancel" Variant="Variant.Outlined" Class="mx-1" Style="min-width:120px">Отмена</MudButton>
+        </MudStack>
     </DialogActions>
 </MudDialog>
 

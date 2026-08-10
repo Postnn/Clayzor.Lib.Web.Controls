@@ -50,6 +50,7 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
 
     // Опционально: нужен только когда включены функции изменения данных.
     [Inject] private IServiceProvider Services { get; set; } = default!;
+    [Inject] private ISqlErrorHandler ErrorHandler { get; set; } = default!;
 
     // ── Fields ───────────────────────────────────────────────────────────────────
 
@@ -175,7 +176,7 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
             _customDb.Dispose();
         }
 
-        _customDb = new DbManager(cs);
+        _customDb = new DbManager(cs, ErrorHandler);
         _resolvedCsName = Options.ConnectionStringName;
         return _customDb;
     }

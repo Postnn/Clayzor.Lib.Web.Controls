@@ -1,3 +1,4 @@
+using Clayzor.Lib.Web.Controls.Components;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -19,6 +20,7 @@ public partial class ClayTreeNodeView : ComponentBase, IDisposable
 
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
+    private ClayMenu _menuRef = default!;
     private ElementReference _rowRef;
     private ElementReference _sentinel;
     private ElementReference _textRef;

@@ -95,28 +95,28 @@
 
         @if (showMenu && Tree is ClayTreeView treeView)
         {
-            <ClayMenu Icon="@Icons.Material.Filled.MoreVert"
+            <ClayMenu @ref="_menuRef" Icon="@Icons.Material.Filled.MoreVert"
                       Class="clay-tree-node-menu" Dense="true"
                       AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
                 @if (opt!.EnableEdit)
                 {
                     <MudMenuItem Icon="@Icons.Material.Filled.Edit"
-                                 OnClick="@(() => treeView.InvokeEditAsync(Node))">Редактировать</MudMenuItem>
+                                 OnClick="@(async () => { await _menuRef.CloseAsync(); await treeView.InvokeEditAsync(Node); })">Редактировать</MudMenuItem>
                 }
                 @if (opt.EnableAddChild)
                 {
                     <MudMenuItem Icon="@Icons.Material.Filled.Add"
-                                 OnClick="@(() => treeView.InvokeAddChildAsync(Node))">Добавить дочерний</MudMenuItem>
+                                 OnClick="@(async () => { await _menuRef.CloseAsync(); await treeView.InvokeAddChildAsync(Node); })">Добавить дочерний</MudMenuItem>
                 }
                 @if (opt.EnableDelete)
                 {
                     <MudMenuItem Icon="@Icons.Material.Filled.Delete"
-                                 OnClick="@(() => treeView.InvokeDeleteAsync(Node))">Удалить</MudMenuItem>
+                                 OnClick="@(async () => { await _menuRef.CloseAsync(); await treeView.InvokeDeleteAsync(Node); })">Удалить</MudMenuItem>
                 }
                 @foreach (var item in opt.CustomMenuItems)
                 {
                     <MudMenuItem Icon="@item.Icon"
-                                 OnClick="@(() => treeView.InvokeCustomAsync(item, Node))">@item.Label</MudMenuItem>
+                                 OnClick="@(async () => { await _menuRef.CloseAsync(); await treeView.InvokeCustomAsync(item, Node); })">@item.Label</MudMenuItem>
                 }
             </ClayMenu>
         }

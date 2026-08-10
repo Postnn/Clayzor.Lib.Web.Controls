@@ -56,7 +56,7 @@
 | TF_H — тесты и документация | [promts/_done/TF/TF_H_tests_docs.md](promts/_done/TF/TF_H_tests_docs.md) |
 | TF_I — состояние и выделение | [promts/_done/TF/TF_I_state_and_selection.md](promts/_done/TF/TF_I_state_and_selection.md) |
 | Оркестратор CTM | [promts/CTM0_orchestrator.md](promts/CTM0_orchestrator.md) |
-| CTM1–CTM3 — выполненные промты изменения данных | [promts/_done/CTM/](promts/_done/CTM/) |
+| CTM1–CTM9 — все промты изменения данных | [promts/_done/CTM/](promts/_done/CTM/) |
 
 ## Выполненные заплатки (CTF1–CTF6)
 
@@ -92,7 +92,7 @@
 Два ключа: `LastExpandedId` (якорь) и `SelectedIds` (выделение). Хранятся в `vwНастройки` по CLID.
 Восстановление — **один путь** до выделенной ноды (или якоря). Причина отказа от набора раскрытых веток — производительность на большом дереве.
 
-## Выполненные шаги изменения данных (CTM1–CTM8)
+## Выполненные шаги изменения данных (CTM1–CTM9)
 
 - CTM1 — ✅ контракт `IClayTreeMutations` (ReorderAsync, ReparentAsync, AddChildAsync, UpdateNodeAsync, DeleteAsync, GetNodePathAsync, IsDescendantAsync) и enum `ClayTreePathDirection`
 - CTM2 — ✅ опции `ClayTreeOptions`: `EnableDragDrop`, `EnableEdit`, `EnableAddChild`, `EnableDelete`, `EditColumn`, `NodePathFunction`, `NodePathDirection`, `CustomMenuItems`; модель `ClayTreeMenuItem`
@@ -102,6 +102,18 @@
 - CTM6 — ✅ ядро обновления: `ClayTreeView.Mutations.cs` — `FindNodeById`, `ReloadLevelAsync` (корень/родитель с восстановлением раскрытости), `RefreshNodeTextAsync` (через `ClayTreeData.LoadNodeAsync`)
 - CTM7 — ✅ контекстное меню узла: `ClayTreeNodeEditDialog.razor` (диалог редактирования/добавления), `EditNodeAsync`/`AddChildAsync`/`DeleteNodeAsync`/`BuildPathAsync`/`ConfirmAsync` в `ClayTreeView.Mutations.cs`, `ClayMenu` в `ClayTreeNodeView.razor` (по hover), стили `.clay-tree-node-menu`. Рефайнмент: `RemoveFromIndex` в `ClayTreeView.Loading.cs` (рекурсивная очистка `_byId`), вызов перед зачисткой детей в `ReloadLevelAsync`, `HasChildren` после перезагрузки, `FindParentNode` (обёртка `node.Parent`)
 - CTM8 — ✅ drag-and-drop: `ClayTreeDragDrop.cs` (DnD-состояние, `OnDragStart/Over/Drop`, `DoReparentAsync`/`DoReorderAsync`, `ComputeNewLeft`, `IsDropAllowedAsync`), `clayTreeDnd.js` (зона `before/on/after`), `ClayTreeNodeView.razor` (атрибуты `draggable`, обработчики `HandleDragStart/DragOver/Drop`), `_rowRef` в `ClayTreeNodeView.razor.cs`, стили `.clay-tree-drop-*`, регистрация JS в `App.razor`. Рефайнмент: обработчики — методы вместо лямбд, `try/catch` на JS-исключения в `OnDragOverAsync`/`DoReparentAsync`/`DoReorderAsync`
+	- CTM9 — ✅ финальная приёмка: все 12 секций чек-листа пройдены, 60 тестов зелёные, сборка без ошибок
+
+	### Багфиксы CTM (после приёмки)
+
+	1. Значок меню на выделенной ноде не виден — `.clay-tree-node--selected .clay-tree-node-menu .mud-icon-button { color: #fff !important }` (`clay.css`)
+	2. SQL-ошибки не показываются — `ISqlErrorHandler` в кастомный `DbManager`, `try/catch` вокруг мутаций
+	3. Нет спиннера при мутациях — `RunBusyAsync` с лейблами «Сохранение…»/«Добавление…»/«Удаление…»/«Перемещение…»
+	4. Нода не выделяется перед диалогом — `HandleNodeClick(node)` перед открытием диалога
+	5. Кнопки диалога разной ширины — `min-width:120px`, `Variant.Outlined`, `flex-wrap:wrap`
+	6. Меню не закрывается — `@ref="_menuRef"`, `_menuRef.CloseAsync()` в обработчиках
+	7. Дерево схлопывается на узких экранах — `min-width:200px` на `.clay-tree`
+	8. Диалог на узких экранах — обёртка `min-width:340px`, кнопки с `flex-wrap:wrap`
 
 ### Универсальная реализация мутаций
 

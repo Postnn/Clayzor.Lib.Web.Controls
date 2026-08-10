@@ -142,19 +142,23 @@ public partial class ClayTreeView
 
         try
         {
-            var oldParent = dragged.Parent;
-            await Mutations.ReparentAsync(dragged.RawId!, newParent?.RawId);
+            await RunBusyAsync("Перемещение…", async () =>
+            {
+                var oldParent = dragged.Parent;
+                await Mutations.ReparentAsync(dragged.RawId!, newParent?.RawId);
 
-            // Перезагрузить старый и новый уровни, сохранить фокус на перемещённом.
-            await ReloadLevelAsync(oldParent);
-            if (!ReferenceEquals(oldParent, newParent))
-                await ReloadLevelAsync(newParent);
+                // Перезагрузить старый и новый уровни, сохранить фокус на перемещённом.
+                await ReloadLevelAsync(oldParent);
+                if (!ReferenceEquals(oldParent, newParent))
+                    await ReloadLevelAsync(newParent);
 
-            RestoreFocus(dragged.Id);
+                RestoreFocus(dragged.Id);
+            });
         }
         catch (JSDisconnectedException) { /* circuit уже закрыт */ }
         catch (ObjectDisposedException) { /* JS-рантайм освобождён */ }
         catch (InvalidOperationException) { /* prerendering / нет JS */ }
+        catch (Exception) { /* ошибка уже сохранена ISqlErrorHandler */ }
     }
 
     private async Task DoReorderAsync(ClayTreeNode dragged, ClayTreeNode target, string zone)
@@ -167,18 +171,22 @@ public partial class ClayTreeView
 
         try
         {
-            // Определить сиблинга, ПОСЛЕ которого встаёт узел, и взять его L.
-            var siblings = dragged.Parent?.Children ?? _roots;
-            long newL = ComputeNewLeft(siblings, dragged, target, zone);
+            await RunBusyAsync("Перемещение…", async () =>
+            {
+                // Определить сиблинга, ПОСЛЕ которого встаёт узел, и взять его L.
+                var siblings = dragged.Parent?.Children ?? _roots;
+                long newL = ComputeNewLeft(siblings, dragged, target, zone);
 
-            await Mutations.ReorderAsync(dragged.RawId!, dragged.Parent?.RawId, newL);
+                await Mutations.ReorderAsync(dragged.RawId!, dragged.Parent?.RawId, newL);
 
-            await ReloadLevelAsync(dragged.Parent);
-            RestoreFocus(dragged.Id);
+                await ReloadLevelAsync(dragged.Parent);
+                RestoreFocus(dragged.Id);
+            });
         }
         catch (JSDisconnectedException) { /* circuit уже закрыт */ }
         catch (ObjectDisposedException) { /* JS-рантайм освобождён */ }
         catch (InvalidOperationException) { /* prerendering / нет JS */ }
+        catch (Exception) { /* ошибка уже сохранена ISqlErrorHandler */ }
     }
 
     /// <summary>

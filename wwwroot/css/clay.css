@@ -1489,6 +1489,7 @@ body {
     display: grid;
     grid-template-rows: auto 1fr;
     min-height: 0;
+    min-width: 200px;
     font-size: var(--clay-font-size, 0.8rem);
     color: var(--mud-palette-text-primary);
 }
@@ -1557,6 +1558,9 @@ body {
     color: var(--lh-white, #fff) !important;
 }
 .clay-tree-node--selected > .clay-tree-node-row .clay-tree-node-toggle-slot .mud-progress-circular {
+    color: var(--lh-white, #fff) !important;
+}
+.clay-tree-node--selected > .clay-tree-node-row .clay-tree-node-menu .mud-icon-button {
     color: var(--lh-white, #fff) !important;
 }
 
