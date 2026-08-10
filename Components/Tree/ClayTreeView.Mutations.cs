@@ -1,6 +1,7 @@
 using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
 using Clayzor.Lib.Web.Controls.Components;
+using Microsoft.Data.SqlClient;
 using MudBlazor;
 using MudBlazor.Extensions;
 using MudBlazor.Extensions.Options;
@@ -190,7 +191,7 @@ public partial class ClayTreeView
         await RunBusyAsync("Сохранение…", async () =>
         {
             try { await Mutations.UpdateNodeAsync(node.RawId!, Options.EditColumn, newValue); }
-            catch (Exception) { return; /* ошибка сохранена ISqlErrorHandler */ }
+            catch (SqlException) { return; /* ошибка сохранена ISqlErrorHandler */ }
             await RefreshNodeTextAsync(node);
         });
     }
@@ -231,7 +232,7 @@ public partial class ClayTreeView
         await RunBusyAsync("Добавление…", async () =>
         {
             try { await Mutations.AddChildAsync(parent.RawId, Options.EditColumn!, value); }
-            catch (Exception) { return; /* ошибка сохранена ISqlErrorHandler */ }
+            catch (SqlException) { return; /* ошибка сохранена ISqlErrorHandler */ }
 
             parent.HasChildren = true;
             if (!parent.IsExpanded)
@@ -253,7 +254,7 @@ public partial class ClayTreeView
         await RunBusyAsync("Удаление…", async () =>
         {
             try { await Mutations.DeleteAsync(node.RawId!); }
-            catch (Exception) { return; /* ошибка сохранена ISqlErrorHandler */ }
+            catch (SqlException) { return; /* ошибка сохранена ISqlErrorHandler */ }
             _selectedIds.Remove(node.Id);
             await ReloadLevelAsync(parent);
         });
@@ -272,7 +273,7 @@ public partial class ClayTreeView
         if (rawId is null || string.IsNullOrEmpty(Options.NodePathFunction))
             return null;
         try { return await Mutations.GetNodePathAsync(rawId, Options.NodePathFunction!, Options.NodePathDirection); }
-        catch (Exception) { return null; /* путь необязателен */ }
+        catch (SqlException) { return null; /* путь необязателен */ }
     }
 
     /// <summary>
