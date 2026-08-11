@@ -130,6 +130,8 @@
 
 Если `TableName` не задан — `ClayTreeView` ищет `IClayTreeMutations` в DI (обратная совместимость).
 
+**Инвалидация кэша (CTFR1):** `_mutationsCached` автоматически сбрасывается в `OnParametersSetAsync` и самовалидируется в getter-е `Mutations` при изменении любого из полей, влияющих на `ClaySqlTreeMutations`: `ConnectionStringName`, `TableName`, и столбцы схемы `IdColumn`/`ParentColumn`/`LeftColumn`/`RightColumn`. Снапшот — `ClayTreeMutationsKey` (readonly record struct, value-based сравнение).
+
 ## Выделение
 
 - `SelectionMode.Single` — клик выделяет ноду (класс `clay-tree-node--selected`, фон `--mud-palette-action-selected`).

@@ -61,23 +61,33 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     private DbManager? _customDb;
     private string? _resolvedCsName;
     private IClayTreeMutations? _mutationsCached;
+    private ClayTreeMutationsKey _mutationsKey;
 
     /// <summary>
-    /// Сервис изменения данных. Если <see cref="ClayTreeOptions.TargetObject"/> задан —
+    /// Сервис изменения данных. Если <see cref="ClayTreeOptions.TableName"/> задан —
     /// создаёт <see cref="ClaySqlTreeMutations"/> напрямую. Иначе резолвит из DI
     /// (для кастомных реализаций и обратной совместимости).
+    /// Кэш самовалидируется: при изменении мутационных настроек пересоздаётся автоматически.
     /// </summary>
     private IClayTreeMutations Mutations
     {
         get
         {
-            if (_mutationsCached is not null) return _mutationsCached;
+            // Кэш валиден только при неизменных мутационных настройках: старый
+            // ClaySqlTreeMutations держит прежние имена колонок и, возможно, Disposed-овый DbManager.
+            var key = ClayTreeMutationsKey.From(Options);
+            if (_mutationsCached is not null)
+            {
+                if (_mutationsKey == key) return _mutationsCached;
+                _mutationsCached = null; // настройки изменились — пересоздаём
+            }
 
             // Путь 1: TableName задан — создаём универсальную реализацию.
             if (!string.IsNullOrEmpty(Options.TableName))
             {
                 _mutationsCached = new ClaySqlTreeMutations(
                     ResolveDb(), Options.TableName!, Options.Schema);
+                _mutationsKey = key;
                 return _mutationsCached;
             }
 
@@ -90,6 +100,7 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
                     "либо зарегистрируйте свою реализацию через " +
                     "services.AddClayTreeMutations<ВашаРеализация>() в Program.cs, " +
                     "либо отключите EnableDragDrop/EnableEdit/EnableAddChild/EnableDelete.");
+            _mutationsKey = key;
             return _mutationsCached;
         }
     }
@@ -226,6 +237,12 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     protected override async Task OnParametersSetAsync()
     {
         _filterColumnsCache = null; // Options могли смениться — колонки фильтра пересоберутся лениво
+
+        // Мутационные настройки могли смениться (TableName, строка подключения, колонки схемы Id/Parent/L/R) —
+        // сбросить кэш, иначе останется экземпляр со старым (возможно, Disposed-овым) DbManager.
+        if (_mutationsCached is not null && _mutationsKey != ClayTreeMutationsKey.From(Options))
+            _mutationsCached = null;
+        _mutationsKey = ClayTreeMutationsKey.From(Options);
 
         // Сравнение значимых значений для детекта смены источника
         var selectSql = Options.SelectSql;
