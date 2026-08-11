@@ -49,8 +49,10 @@ public partial class ClayTreeView
     /// </summary>
     private async Task ReloadLevelAsync(ClayTreeNode? parent)
     {
-        // Собрать childId→parentId раскрытых узлов перед перезагрузкой (CTFR2.1).
-        var previouslyExpanded = new Dictionary<string, string>();
+        // CTFR2.2: childId → parentId (null = root) + paging boundary на parent.
+        var previouslyExpanded = new Dictionary<string, string?>();
+        var pagingBoundary = new Dictionary<string, int>();
+
         if (parent is not null)
         {
             foreach (var ch in parent.Children)
@@ -59,25 +61,25 @@ public partial class ClayTreeView
                     previouslyExpanded[ch.Id] = parent.Id;
                     CollectExpandedSnapshot(ch, previouslyExpanded);
                 }
+            pagingBoundary[parent.Id] = parent.Children.Count;
         }
         else
         {
-            // Корневой уровень: собираем раскрытые Id со всего дерева рекурсивно.
             foreach (var root in _roots)
+            {
                 if (root.IsExpanded)
                 {
-                    previouslyExpanded[root.Id] = ""; // маркер корня
+                    previouslyExpanded[root.Id] = null; // root marker
                     CollectExpandedSnapshot(root, previouslyExpanded);
                 }
+                pagingBoundary[root.Id] = root.Children.Count;
+            }
         }
 
         if (parent is null)
         {
-            // Корневой уровень. LoadRootsAsync сбрасывает _expanded и _byId,
-            // восстанавливая только один anchor-путь (RestoreStateAsync).
             await LoadRootsAsync();
 
-            // Восстановить раскрытость сверху вниз: корни, затем рекурсивно потомки.
             foreach (var root in _roots)
             {
                 if (previouslyExpanded.ContainsKey(root.Id) && root.HasChildren)
@@ -86,12 +88,11 @@ public partial class ClayTreeView
                     _expanded.Add(root.Id);
                     await EnsureChildrenLoadedAsync(root);
                 }
-                await RestoreExpandedAsync(root, previouslyExpanded);
+                await RestoreExpandedAsync(root, previouslyExpanded, pagingBoundary);
             }
         }
         else
         {
-            // Сбросить загрузку уровня и перезагрузить лениво.
             foreach (var ch in parent.Children)
                 RemoveFromIndex(ch);
             parent.IsLoaded = false;
@@ -101,17 +102,17 @@ public partial class ClayTreeView
             await EnsureChildrenLoadedAsync(parent);
             parent.HasChildren = parent.Children.Count > 0;
 
-            // Рекурсивно восстановить раскрытость потомков на любой глубине.
-            await RestoreExpandedAsync(parent, previouslyExpanded);
+            await RestoreExpandedAsync(parent, previouslyExpanded, pagingBoundary);
         }
 
         StateHasChanged();
     }
 
     /// <summary>
-    /// Собирает childId→parentId для раскрытых узлов поддерева (CTFR2.1).
+    /// Собирает childId→parentId для раскрытых узлов поддерева (CTFR2.2).
+    /// parentId = null означает корень.
     /// </summary>
-    internal static void CollectExpandedSnapshot(ClayTreeNode parentNode, Dictionary<string, string> snapshot)
+    internal static void CollectExpandedSnapshot(ClayTreeNode parentNode, Dictionary<string, string?> snapshot)
     {
         foreach (var child in parentNode.Children)
         {
@@ -124,11 +125,12 @@ public partial class ClayTreeView
     }
 
     /// <summary>
-    /// Восстанавливает раскрытость сверху вниз с bounded paging (CTFR2.1).
-    /// Если раскрытый ребёнок не попал в первую страницу — догружает страницы
-    /// пока он не будет найден или не кончатся данные.
+    /// Восстанавливает раскрытость сверху вниз с bounded paging (CTFR2.2).
+    /// Догружает страницы только до прежней границы (pagingBoundary) —
+    /// moved/deleted child не вызывает полную загрузку уровня.
     /// </summary>
-    private async Task RestoreExpandedAsync(ClayTreeNode parent, Dictionary<string, string> snapshot)
+    private async Task RestoreExpandedAsync(ClayTreeNode parent,
+        Dictionary<string, string?> snapshot, Dictionary<string, int> pagingBoundary)
     {
         // Проход 1: уже загруженные дети (страница 1).
         foreach (var child in parent.Children)
@@ -138,23 +140,25 @@ public partial class ClayTreeView
                 child.IsExpanded = true;
                 _expanded.Add(child.Id);
                 await EnsureChildrenLoadedAsync(child);
-                await RestoreExpandedAsync(child, snapshot);
+                await RestoreExpandedAsync(child, snapshot, pagingBoundary);
             }
         }
 
-        // Проход 2: bounded paging — дети за первой страницей.
+        // Проход 2: bounded paging до прежней границы (CTFR2.2).
         if (parent.LoadedAllChildren || !parent.HasChildren) return;
 
         var neededIds = snapshot.Where(kvp => kvp.Value == parent.Id)
                                 .Select(kvp => kvp.Key).ToHashSet();
         var missing = new HashSet<string>(neededIds.Where(id => !parent.Children.Any(c => c.Id == id)));
+        if (missing.Count == 0) return;
 
-        while (missing.Count > 0 && !parent.LoadedAllChildren)
+        var maxChildren = pagingBoundary.GetValueOrDefault(parent.Id, 0);
+
+        while (missing.Count > 0 && !parent.LoadedAllChildren && parent.Children.Count < maxChildren)
         {
             await LoadMoreChildrenAsync(parent);
             missing.RemoveWhere(id => parent.Children.Any(c => c.Id == id));
 
-            // Восстановить найденных детей.
             foreach (var child in parent.Children)
             {
                 if (snapshot.ContainsKey(child.Id) && child.HasChildren && !child.IsExpanded)
@@ -162,7 +166,7 @@ public partial class ClayTreeView
                     child.IsExpanded = true;
                     _expanded.Add(child.Id);
                     await EnsureChildrenLoadedAsync(child);
-                    await RestoreExpandedAsync(child, snapshot);
+                    await RestoreExpandedAsync(child, snapshot, pagingBoundary);
                 }
             }
         }
