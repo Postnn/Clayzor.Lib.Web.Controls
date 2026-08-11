@@ -3,6 +3,7 @@ using Clayzor.Lib.Entities.Tree;
 using Clayzor.Lib.Web.Controls.Components.Tree.DataSources;
 using Clayzor.Lib.Web.Controls.Components.Tree.Models;
 using Dapper;
+using Microsoft.Data.SqlClient;
 
 namespace Clayzor.Lib.Web.Controls.Components.Tree;
 
@@ -26,7 +27,8 @@ public partial class ClayTreeView
             LastExpandedId = _lastExpandedId,
             SelectedIds    = [.._selectedIds],
         };
-        await StateStore.SaveAsync(Options.TreeId, state);
+        try { await StateStore.SaveAsync(Options.TreeId, state); }
+        catch (SqlException) { /* персистенция состояния опциональна; ошибка уже показана ISqlErrorHandler */ }
     }
 
     /// <summary>

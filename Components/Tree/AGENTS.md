@@ -136,6 +136,8 @@
 - **Level paging:** раскрытый потомок на странице 2+ не восстанавливается (аналогично non-root ветке) — `EnsureChildrenLoadedAsync` грузит только первую страницу.
 - **reparent:** unaffected ветки сохраняются; само перетаскиваемое поддерево начинает свёрнутым (pre-existing, оба направления).
 
+**Контракт connectivity DML (CTFR3):** `DbManager.ExecuteAsync` (write) всегда бросает `SqlException` при connectivity — 0 affected rows больше не маскируется под успех. `catch (SqlException)` в `ClayTreeView.Mutations.cs` (EditNodeAsync, AddChildAsync, DeleteNodeAsync, BuildPathAsync) и `ClayTreeDragDrop.cs` (DoReparentAsync, DoReorderAsync) теперь корректно прерывает success-path (reload, RestoreFocus, RefreshNodeText) для connectivity. `SaveStateAsync` — опциональный catch (персистенция состояния best-effort).
+
 ## Выделение
 
 - `SelectionMode.Single` — клик выделяет ноду (класс `clay-tree-node--selected`, фон `--mud-palette-action-selected`).
