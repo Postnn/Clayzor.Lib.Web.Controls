@@ -115,7 +115,7 @@ public partial class ClayTreeView
     /// <summary>candidate является потомком ancestor?</summary>
     private async Task<bool> IsDescendantOfAsync(ClayTreeNode candidate, ClayTreeNode ancestor)
     {
-        if (Options is null) return false;
+        if (Options is null || candidate is null || ancestor is null) return false;
 
         if (Options.HierarchyMode == ClayTreeHierarchyMode.NestedSet
             && candidate.Left.HasValue && candidate.Right.HasValue
