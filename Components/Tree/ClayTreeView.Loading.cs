@@ -237,10 +237,11 @@ public partial class ClayTreeView
         }
     }
 
-    /// <summary>Удаляет узел и всё его поддерево из <see cref="_byId"/> (узел больше не в дереве).</summary>
+    /// <summary>Удаляет узел и всё его поддерево из <see cref="_byId"/> и <see cref="_expanded"/> (CTFR2.5).</summary>
     private void RemoveFromIndex(ClayTreeNode node)
     {
         _byId.Remove(node.Id);
+        _expanded.Remove(node.Id);
         foreach (var child in node.Children)
             RemoveFromIndex(child);
     }
