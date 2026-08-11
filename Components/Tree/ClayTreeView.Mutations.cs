@@ -47,7 +47,7 @@ public partial class ClayTreeView
     /// потомков и текущее выделение. Если <paramref name="parent"/> == null — перезагружает
     /// корневой уровень.
     /// </summary>
-    private async Task ReloadLevelAsync(ClayTreeNode? parent)
+    internal async Task ReloadLevelAsync(ClayTreeNode? parent)
     {
         // CTFR2.2: childId → parentId (null = root) + paging boundary на parent.
         var previouslyExpanded = new Dictionary<string, string?>();
