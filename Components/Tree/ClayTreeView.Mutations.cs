@@ -55,25 +55,22 @@ public partial class ClayTreeView
 
         if (parent is not null)
         {
+            pagingBoundary[parent.Id] = parent.Children.Count;
             foreach (var ch in parent.Children)
                 if (ch.IsExpanded)
                 {
                     previouslyExpanded[ch.Id] = parent.Id;
-                    CollectExpandedSnapshot(ch, previouslyExpanded);
+                    CollectExpandedSnapshot(ch, previouslyExpanded, pagingBoundary);
                 }
-            pagingBoundary[parent.Id] = parent.Children.Count;
         }
         else
         {
             foreach (var root in _roots)
-            {
                 if (root.IsExpanded)
                 {
-                    previouslyExpanded[root.Id] = null; // root marker
-                    CollectExpandedSnapshot(root, previouslyExpanded);
+                    previouslyExpanded[root.Id] = null; // root marker (CTFR2.2)
+                    CollectExpandedSnapshot(root, previouslyExpanded, pagingBoundary);
                 }
-                pagingBoundary[root.Id] = root.Children.Count;
-            }
         }
 
         if (parent is null)
@@ -109,17 +106,20 @@ public partial class ClayTreeView
     }
 
     /// <summary>
-    /// Собирает childId→parentId для раскрытых узлов поддерева (CTFR2.2).
+    /// Собирает childId→parentId и paging boundary рекурсивно (CTFR2.3).
     /// parentId = null означает корень.
     /// </summary>
-    internal static void CollectExpandedSnapshot(ClayTreeNode parentNode, Dictionary<string, string?> snapshot)
+    internal static void CollectExpandedSnapshot(ClayTreeNode parentNode,
+        Dictionary<string, string?> snapshot, Dictionary<string, int> pagingBoundary)
     {
+        pagingBoundary[parentNode.Id] = parentNode.Children.Count;
+
         foreach (var child in parentNode.Children)
         {
             if (child.IsExpanded)
             {
                 snapshot[child.Id] = parentNode.Id;
-                CollectExpandedSnapshot(child, snapshot);
+                CollectExpandedSnapshot(child, snapshot, pagingBoundary);
             }
         }
     }
