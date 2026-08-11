@@ -60,23 +60,33 @@ public partial class ClayTreeView
                     CollectExpandedIds(ch, previouslyExpanded);
                 }
         }
+        else
+        {
+            // Корневой уровень: собираем раскрытые Id со всего дерева рекурсивно.
+            foreach (var root in _roots)
+                if (root.IsExpanded)
+                {
+                    previouslyExpanded.Add(root.Id);
+                    CollectExpandedIds(root, previouslyExpanded);
+                }
+        }
 
         if (parent is null)
         {
-            // Корневой уровень. LoadRootsAsync сбрасывает _expanded — сохраняем все раскрытые.
-            var allExpanded = new HashSet<string>(_expanded);
-
+            // Корневой уровень. LoadRootsAsync сбрасывает _expanded и _byId,
+            // восстанавливая только один anchor-путь (RestoreStateAsync).
             await LoadRootsAsync();
 
-            // Восстановить раскрытость для узлов, оставшихся в дереве.
-            foreach (var id in allExpanded)
+            // Восстановить раскрытость сверху вниз: корни, затем рекурсивно потомки.
+            foreach (var root in _roots)
             {
-                if (_byId.TryGetValue(id, out var node) && node.HasChildren)
+                if (previouslyExpanded.Contains(root.Id) && root.HasChildren)
                 {
-                    node.IsExpanded = true;
-                    _expanded.Add(id);
-                    await EnsureChildrenLoadedAsync(node);
+                    root.IsExpanded = true;
+                    _expanded.Add(root.Id);
+                    await EnsureChildrenLoadedAsync(root);
                 }
+                await RestoreExpandedAsync(root, previouslyExpanded);
             }
         }
         else
@@ -99,7 +109,7 @@ public partial class ClayTreeView
     }
 
     /// <summary>Рекурсивно собирает Id раскрытых узлов в поддереве.</summary>
-    private static void CollectExpandedIds(ClayTreeNode node, HashSet<string> ids)
+    internal static void CollectExpandedIds(ClayTreeNode node, HashSet<string> ids)
     {
         foreach (var child in node.Children)
         {

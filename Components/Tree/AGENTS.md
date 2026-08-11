@@ -132,6 +132,10 @@
 
 **Инвалидация кэша (CTFR1):** `_mutationsCached` автоматически сбрасывается в `OnParametersSetAsync` и самовалидируется в getter-е `Mutations` при изменении любого из полей, влияющих на `ClaySqlTreeMutations`: `ConnectionStringName`, `TableName`, и столбцы схемы `IdColumn`/`ParentColumn`/`LeftColumn`/`RightColumn`. Снапшот — `ClayTreeMutationsKey` (readonly record struct, value-based сравнение).
 
+**Сохранение раскрытости при root reload (CTFR2):** `ReloadLevelAsync(null)` теперь симметричен non-root reload: перед `LoadRootsAsync()` собираются все раскрытые Id рекурсивно от `_roots` через `CollectExpandedIds`, после — восстановление сверху вниз через `RestoreExpandedAsync` (корни, затем рекурсивно потомки). Ранее корневая ветка делала плоский перебор `_expanded` после `LoadRootsAsync()`, но `RestoreStateAsync()` восстанавливает только один anchor-путь — глубокие узлы других веток отсутствовали в `_byId` и молча пропускались.
+- **Level paging:** раскрытый потомок на странице 2+ не восстанавливается (аналогично non-root ветке) — `EnsureChildrenLoadedAsync` грузит только первую страницу.
+- **reparent:** unaffected ветки сохраняются; само перетаскиваемое поддерево начинает свёрнутым (pre-existing, оба направления).
+
 ## Выделение
 
 - `SelectionMode.Single` — клик выделяет ноду (класс `clay-tree-node--selected`, фон `--mud-palette-action-selected`).
