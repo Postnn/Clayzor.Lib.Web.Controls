@@ -49,15 +49,15 @@ public partial class ClayTreeView
     /// </summary>
     private async Task ReloadLevelAsync(ClayTreeNode? parent)
     {
-        // Собрать Id всех раскрытых узлов в поддереве перед перезагрузкой.
-        var previouslyExpanded = new HashSet<string>();
+        // Собрать childId→parentId раскрытых узлов перед перезагрузкой (CTFR2.1).
+        var previouslyExpanded = new Dictionary<string, string>();
         if (parent is not null)
         {
             foreach (var ch in parent.Children)
                 if (ch.IsExpanded)
                 {
-                    previouslyExpanded.Add(ch.Id);
-                    CollectExpandedIds(ch, previouslyExpanded);
+                    previouslyExpanded[ch.Id] = parent.Id;
+                    CollectExpandedSnapshot(ch, previouslyExpanded);
                 }
         }
         else
@@ -66,8 +66,8 @@ public partial class ClayTreeView
             foreach (var root in _roots)
                 if (root.IsExpanded)
                 {
-                    previouslyExpanded.Add(root.Id);
-                    CollectExpandedIds(root, previouslyExpanded);
+                    previouslyExpanded[root.Id] = ""; // маркер корня
+                    CollectExpandedSnapshot(root, previouslyExpanded);
                 }
         }
 
@@ -80,7 +80,7 @@ public partial class ClayTreeView
             // Восстановить раскрытость сверху вниз: корни, затем рекурсивно потомки.
             foreach (var root in _roots)
             {
-                if (previouslyExpanded.Contains(root.Id) && root.HasChildren)
+                if (previouslyExpanded.ContainsKey(root.Id) && root.HasChildren)
                 {
                     root.IsExpanded = true;
                     _expanded.Add(root.Id);
@@ -108,30 +108,62 @@ public partial class ClayTreeView
         StateHasChanged();
     }
 
-    /// <summary>Рекурсивно собирает Id раскрытых узлов в поддереве.</summary>
-    internal static void CollectExpandedIds(ClayTreeNode node, HashSet<string> ids)
+    /// <summary>
+    /// Собирает childId→parentId для раскрытых узлов поддерева (CTFR2.1).
+    /// </summary>
+    internal static void CollectExpandedSnapshot(ClayTreeNode parentNode, Dictionary<string, string> snapshot)
     {
-        foreach (var child in node.Children)
+        foreach (var child in parentNode.Children)
         {
             if (child.IsExpanded)
             {
-                ids.Add(child.Id);
-                CollectExpandedIds(child, ids);
+                snapshot[child.Id] = parentNode.Id;
+                CollectExpandedSnapshot(child, snapshot);
             }
         }
     }
 
-    /// <summary>Рекурсивно восстанавливает раскрытость узлов по сохранённым Id.</summary>
-    private async Task RestoreExpandedAsync(ClayTreeNode node, HashSet<string> ids)
+    /// <summary>
+    /// Восстанавливает раскрытость сверху вниз с bounded paging (CTFR2.1).
+    /// Если раскрытый ребёнок не попал в первую страницу — догружает страницы
+    /// пока он не будет найден или не кончатся данные.
+    /// </summary>
+    private async Task RestoreExpandedAsync(ClayTreeNode parent, Dictionary<string, string> snapshot)
     {
-        foreach (var child in node.Children)
+        // Проход 1: уже загруженные дети (страница 1).
+        foreach (var child in parent.Children)
         {
-            if (ids.Contains(child.Id) && child.HasChildren)
+            if (snapshot.ContainsKey(child.Id) && child.HasChildren)
             {
                 child.IsExpanded = true;
                 _expanded.Add(child.Id);
                 await EnsureChildrenLoadedAsync(child);
-                await RestoreExpandedAsync(child, ids);
+                await RestoreExpandedAsync(child, snapshot);
+            }
+        }
+
+        // Проход 2: bounded paging — дети за первой страницей.
+        if (parent.LoadedAllChildren || !parent.HasChildren) return;
+
+        var neededIds = snapshot.Where(kvp => kvp.Value == parent.Id)
+                                .Select(kvp => kvp.Key).ToHashSet();
+        var missing = new HashSet<string>(neededIds.Where(id => !parent.Children.Any(c => c.Id == id)));
+
+        while (missing.Count > 0 && !parent.LoadedAllChildren)
+        {
+            await LoadMoreChildrenAsync(parent);
+            missing.RemoveWhere(id => parent.Children.Any(c => c.Id == id));
+
+            // Восстановить найденных детей.
+            foreach (var child in parent.Children)
+            {
+                if (snapshot.ContainsKey(child.Id) && child.HasChildren && !child.IsExpanded)
+                {
+                    child.IsExpanded = true;
+                    _expanded.Add(child.Id);
+                    await EnsureChildrenLoadedAsync(child);
+                    await RestoreExpandedAsync(child, snapshot);
+                }
             }
         }
     }
