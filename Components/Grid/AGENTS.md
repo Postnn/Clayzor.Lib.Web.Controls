@@ -11,7 +11,8 @@
 Отложенные промты: `promts/_later/`.
 Выполненные промты групповых операций (CGO, CGR1): `promts/_done/CGO/`, `promts/_done/CGR/`.
 Выполненные промты CGFR1 (lifecycle fix): `promts/CGFR1_dynamic_grid_single_instance_lifecycle.md`.
-Выполненные промты CGFR1.1 (key commit fix + bUnit tests): `promts/CGFR1.1_dynamic_grid_lifecycle_tests_and_retry.md`.
+Выполненные промты CGFR1.1 (key commit fix + bUnit tests): `promts/_done/CGFR/CGFR1.1_dynamic_grid_lifecycle_tests_and_retry.md`.
+Выполненные промты CGFR1.2 (same-instance retry regression): `promts/CGFR1.2_same_instance_failed_reinit_retry_test.md`.
 
 ### Динамический режим — lifecycle (CGFR1)
 
@@ -40,6 +41,13 @@ Thrown initialization exception не блокирует retry той же identi
 Normal terminal `_dynamicError` (gridId=0, definition not found, invalid shared link) — key коммитится, endless retry не происходит.
 
 Lifecycle behavior покрыт реальными bUnit same-instance tests (7 тестов).
+
+### CGFR1.2 — same-instance failed reinit retry
+
+Failed reinitialization retry покрыт bUnit regression:
+`FailedReinit_RetriesSameIdentity_OnSameComponentInstance`:
+A success → B failure → same B retry success на том же rendered component instance.
+Доказывает: после failed `InitDynamicMode` ключ не закоммичен → повторный render той же identity выполняет повторную инициализацию.
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../../../Clayzor.Lib.Entities/AGENTS.md).
