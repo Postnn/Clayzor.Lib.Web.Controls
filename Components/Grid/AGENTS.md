@@ -10,6 +10,26 @@
 Выполненные промты быстрого поиска (QS0–QS9): `promts/_done/QS/`. Оркестратор: `promts/_done/QS/QS0_README_quick_search.md`.
 Отложенные промты: `promts/_later/`.
 Выполненные промты групповых операций (CGO, CGR1): `promts/_done/CGO/`, `promts/_done/CGR/`.
+Выполненные промты CGFR1 (lifecycle fix): `promts/CGFR1_dynamic_grid_single_instance_lifecycle.md`.
+
+### Динамический режим — lifecycle (CGFR1)
+
+На странице допускается **максимум один ClayGrid в Dynamic mode**.
+
+Dynamic runtime state одного компонента привязан к **value-based lifecycle identity** (`ClayGridDynamicKey`):
+`GridId` + `CLID` + `sharedId` + все строковые поля `ClayGridDynamicSettings`, влияющие на доступ к БД и имена параметров (ConnectionStringName, имена таблиц, префиксы URL-параметров). Presentation-only поля `ClayGridOptions` (Title, ShowAddButton, ColumnMenuMode, ...) не участвуют.
+
+При смене identity:
+1. `ResetDynamicRuntimeState()` полностью инвалидирует старое definition-dependent состояние (колонки, lookup-ы, действия, фильтры/группировку/сортировку, выделение, ошибку, shared-режим, dynamic grouping state)
+2. `InitDynamicMode()` загружает definition/columns/lookups/state нового грида
+
+`NavigationManager.Uri` change не может оставлять stale parsed query — свойство `Query` URI-aware и переразбирает строку при смене `Nav.Uri`.
+
+Same identity rerender не вызывает повторную dynamic initialization.
+
+Единственный владелец инициализации — `OnParametersSetAsync`. `_dynamicInitDone` удалён.
+
+**Test seam:** `DbManager.RunDbAsync` (internal) позволяет тестам использовать произвольную реализацию `DbConnection` без привязки к `SqlConnection`. `DynamicSql.QueryRowsAsync` использует `RunDbAsync`.
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../../../Clayzor.Lib.Entities/AGENTS.md).

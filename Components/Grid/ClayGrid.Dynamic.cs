@@ -30,7 +30,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private ClayGridDefinition? _dynamicDef;
     private IReadOnlyList<ClayColumnDefinition> _dynamicCols = [];
-    private bool _dynamicInitDone;
+    /// <summary>Identity последней динамической инициализации. null — никогда не инициализировался или статический режим (CGFR1).</summary>
+    private ClayGridDynamicKey? _currentDynamicKey;
     private HashSet<string> _dynamicKnownColumns = [];
     private Dictionary<string, IReadOnlyDictionary<string, string>> _dynamicLookups = [];
     private Dictionary<string, IReadOnlyDictionary<string, (string Tooltip, string Href)>> _dynamicIconLookups = [];
@@ -77,22 +78,145 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private HashSet<string> _dynamicQuickSearchCols = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<string> _quickSearchEffective = [];
 
-    /// <summary>Кеш разобранной query-строки — единая точка разбора URL для всех резолверов.</summary>
+    /// <summary>URI, для которого разобран <see cref="_queryCache"/> (CGFR1 §6).</summary>
+    private string? _queryCacheUri;
     private System.Collections.Specialized.NameValueCollection? _queryCache;
+
+    /// <summary>
+    /// Кеш разобранной query-строки — единая точка разбора URL для всех резолверов.
+    /// URI-aware: смена <see cref="NavigationManager.Uri"/> автоматически переразбирает строку (CGFR1 §6).
+    /// </summary>
     private System.Collections.Specialized.NameValueCollection Query
-        => _queryCache ??= System.Web.HttpUtility.ParseQueryString(new Uri(Nav.Uri).Query);
+    {
+        get
+        {
+            var uri = Nav.Uri;
+            if (!string.Equals(_queryCacheUri, uri, StringComparison.Ordinal))
+            {
+                _queryCacheUri = uri;
+                _queryCache = System.Web.HttpUtility.ParseQueryString(new Uri(uri).Query);
+            }
+            return _queryCache;
+        }
+    }
 
     /// <summary>Снапшот дефолтной раскладки колонок — для сброса при применении shared-настроек.</summary>
     private List<int> _defaultColumnOrder = [];
     private HashSet<string> _defaultHiddenNames = [];
 
     /// <summary>
-    /// Инициализация динамического режима при первом рендере.
+    /// Единственный владелец инициализации динамического режима (CGFR1).
+    /// Выполняется при первом рендере и при каждом обновлении параметров.
+    /// <see cref="OnParametersSet"/> (sync) отрабатывает раньше и уже установил _opt.
+    /// Строит value-based identity, сравнивает с предыдущей: та же — без reinit;
+    /// изменилась — сброс старого runtime + инициализация нового.
     /// </summary>
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        if (_opt.Dynamic && !_dynamicInitDone)
-            await InitDynamicMode();
+        if (!_opt.Dynamic)
+        {
+            // true → false: старый dynamic runtime не должен управлять static grid (CGFR1 §23)
+            if (_currentDynamicKey is not null)
+            {
+                _currentDynamicKey = null;
+                ResetDynamicRuntimeState();
+            }
+            return;
+        }
+
+        var opt = DynamicOpts.Value;
+        var key = ClayGridDynamicKey.Create(
+            ResolveDynamicGridId(opt), ResolveClientId(opt), ResolveSharedId(), opt);
+
+        if (key == _currentDynamicKey)
+            return; // та же identity — без повторной загрузки definition/columns/данных (CGFR1 §18)
+
+        _currentDynamicKey = key;
+        ResetDynamicRuntimeState();
+        await InitDynamicMode();
+    }
+
+    /// <summary>
+    /// Полная инвалидация dynamic runtime старого грида ДО инициализации нового (CGFR1 §8–§17).
+    /// Очищает definition-dependent состояние, колонки, lookup-ы, действия, фильтры/группировку/сортировку,
+    /// выделение, строки, счётчик, ошибку, shared-режим, dynamic grouping state.
+    /// <see cref="_queryCache"/> НЕ очищается — <see cref="Query"/> теперь URI-aware (CGFR1 §6).
+    /// </summary>
+    private void ResetDynamicRuntimeState()
+    {
+        // ── Identity / definition (Dynamic.cs) ──
+        _dynamicGridId = 0;
+        _dynamicClid = 0;
+        _dynamicDef = null;
+        _dynamicCols = [];
+        _dynamicKnownColumns.Clear();
+        _dynamicLookups.Clear();
+        _dynamicIconLookups.Clear();
+
+        // ── Действия (CGFR1 §13) ──
+        _dynamicEditUrl = null;
+        _dynamicNewUrl = null;
+        _dynamicDeleteSql = null;
+
+        // ── Персистенция / поиск ──
+        _dynamicSavedParams.Clear();
+        _dynamicForcedParamNames.Clear();
+        _dynamicQuickSearchCols.Clear();
+        _quickSearchEffective = [];
+        _defaultColumnOrder.Clear();
+        _defaultHiddenNames.Clear();
+
+        // ── Ошибка (CGFR1 §12) ──
+        _dynamicError = null;
+
+        // ── Shared-режим ──
+        _isSharedMode = false;
+        _hasSharedSettings = false;
+        _sharedList.Clear();
+        _sharedListLoading = false;
+
+        // ── Definition-derived option overrides (перезапишутся при init B) ──
+        _opt.Title = "Список";
+        _opt.SelectSql = "";
+        _opt.SearchColumns = [];
+        _opt.DefaultOrder = "";
+
+        // ── Definition-dependent column state (CGFR1 §9, §29) ──
+        _columnById.Clear();
+        _columnBySqlName.Clear();
+        _columnOrder.Clear();
+        _hiddenSqlNames.Clear();
+        _cellTemplates.Clear();
+
+        // ── Строки / счётчик (CGFR1 §11) ──
+        Items = [];
+        TotalCount = 0;
+        _lastQuery = new ClayDataQuery();
+
+        // ── Query/UI state (CGFR1 §10) ──
+        _searchText = null;
+        _sortState.Clear();
+        _groupColumns.Clear();
+        _trayExpanded = false;
+        _groupChildIds.Clear();
+        _filterRoot = new ClayFilterGroupNode();
+        _filterTrayExpanded = false;
+        _valueFilterDisabledColumns.Clear();
+        _pageNumber = 1;
+        _pageSize = _opt.PageSize;
+        _selectMode = false;
+        _selectAllChecked = false;
+        _selectedIds.Clear();
+
+        // ── Динамическая группировка (Dynamic.Grouping.cs) ──
+        _dynamicExpandedGroups.Clear();
+        _dynamicGroupRoots = null;
+        _dynamicGroupKeysByDepth = null;
+        _dynamicGroupWhere = null;
+        _dynamicGroupParams = null;
+        _dynamicGroupExprs = [];
+
+        _dataKey++;
     }
 
     private async Task InitDynamicMode()
@@ -356,8 +480,6 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         // Применить URL-параметры (фильтры и колонки)
         ApplyUrlParams(opt);
-
-        _dynamicInitDone = true;
 
         // В динамике value-filter по умолчанию выключен у всех колонок.
         // Включается per-column через переключатель в диалоге «Настройка колонок».
