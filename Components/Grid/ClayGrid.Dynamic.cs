@@ -11,6 +11,7 @@ using MudBlazor;
 using MudBlazor.Extensions;
 using MudBlazor.Extensions.Options;
 using Dapper;
+using Microsoft.Data.SqlClient;
 using System.Diagnostics;
 using System.Web;
 
@@ -511,6 +512,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
             await CheckSharedSettingsAsync();
         }
 
+        // CGFR2 §13: после terminal shared-ошибки первый SELECT не выполняется.
+        // Все другие установщики _dynamicError (gridId missing, invalid sharedId,
+        // definition not found) уже вышли ранним return до этой точки.
+        if (_dynamicError is not null)
+            return;
+
         // Первая загрузка: в динамическом режиме страницы-загрузчика нет,
         // грид обязан стартовать сам.
         await NotifyQueryChanged();
@@ -737,15 +744,25 @@ public partial class ClayGrid<TEntity> where TEntity : class
             sharedParams = await ClayGridSharedParamsData.LoadSharedParamsAsync(
                 Db, sharedId, opt.UserParamsShared, paramNames);
         }
-        catch
+        catch (OperationCanceledException)
         {
+            throw; // CGFR2: cancellation — control flow, не ошибка shared link
+        }
+        catch (SqlException)
+        {
+            // CGFR2: non-connectivity DB failure. Connectivity сюда не доходит —
+            // QueryRowsAsync глотает её в пустой результат (см. ветку Count == 0).
             _dynamicError = $"Не удалось загрузить общие настройки №{sharedId}. " +
-                            "Ссылка недействительна или база данных недоступна.";
+                            "База данных недоступна.";
             return null;
         }
 
         if (sharedParams.Count == 0)
         {
+            // Connectivity: banner/reconnect overlay уже показаны через ISqlErrorHandler.
+            // Не показывать ложное «не найдены» при недоступной БД (CGFR2 §8).
+            if (ErrorService.IsCurrentErrorConnectivity)
+                return null;
             _dynamicError = $"Общие настройки №{sharedId} не найдены. " +
                             "Возможно, ссылка устарела или была удалена.";
             return null;

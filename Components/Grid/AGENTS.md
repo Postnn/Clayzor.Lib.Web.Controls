@@ -57,6 +57,22 @@ Production component не содержит test-only counters.
 **Fake DB:** `ScriptedCommand` извлекает `ScriptEntry` лениво (при Execute,
 не при CreateDbCommand) — созданные-но-невыполненные команды не сбивают очередь.
 
+### CGFR2 — shared settings exception boundary
+
+`LoadAndValidateSharedParamsAsync`:
+
+- `OperationCanceledException` → propagate (control flow, не ошибка).
+  .NET 10 ComponentBase молча глотает cancellation из async lifecycle (Canceled task) — на уровне renderer невидим.
+- Expected DB failure — `SqlException` (non-connectivity) → terminal user-facing `_dynamicError` «База данных недоступна» + return null.
+  Connectivity до catch не доходит: `DynamicSql.QueryRowsAsync` глотает её в пустой результат → ветка `Count == 0` проверяет
+  `ErrorService.IsCurrentErrorConnectivity` и не показывает ложное «не найдены» (паттерн как у «Грид не найден»).
+- Unexpected/programming exceptions → propagate.
+
+Semantic «не найдены» / «не соответствуют текущему гриду» — normal terminal UI results, не exceptions.
+Blanket catch на shared-load boundary запрещён.
+
+После terminal shared-ошибки первый data load не выполняется (`if (_dynamicError is not null) return;` перед `NotifyQueryChanged`).
+
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../../../Clayzor.Lib.Entities/AGENTS.md).
 
