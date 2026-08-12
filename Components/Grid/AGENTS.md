@@ -42,13 +42,20 @@ Normal terminal `_dynamicError` (gridId=0, definition not found, invalid shared 
 
 Lifecycle behavior покрыт реальными bUnit same-instance tests (7 тестов).
 
-### CGFR1.3 — same-instance failed reinit retry
+### CGFR1.4 — same-instance failed reinit retry
 
 `FailedReinit_RetriesSameIdentity_OnSameComponentInstance`:
-A success → B failure → B retry success на том же rendered component instance.
-Доказывает через `_initCallCount` (internal seam): после failed `InitDynamicMode`
-ключ не закоммичен, повторный render той же identity вызывает `InitDynamicMode` снова.
-Ровно 2 B попытки (`_initCallCount`).
+A success → B failure (`Assert.Throws<InvalidOperationException>`) → B retry success
+на том же rendered component instance, без try/catch вокруг retry.
+Ровно две B definition attempts доказаны через fake DB CommandLog.
+Production component не содержит test-only counters.
+
+**Async drain:** `RunBusyAsync` содержит `await Task.Yield()` — хвост lifecycle
+(COUNT/paged/save) выполняется после возврата `Render()`. Тест ждёт дренаж
+через `WaitForState(() => _globalQueue.Count == 0)`.
+
+**Fake DB:** `ScriptedCommand` извлекает `ScriptEntry` лениво (при Execute,
+не при CreateDbCommand) — созданные-но-невыполненные команды не сбивают очередь.
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../../../Clayzor.Lib.Entities/AGENTS.md).
