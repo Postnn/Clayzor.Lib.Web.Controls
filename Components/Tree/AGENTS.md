@@ -55,8 +55,9 @@
 | TF_G — дефолты и query | [promts/_done/TF/TF_G_defaults_and_query.md](promts/_done/TF/TF_G_defaults_and_query.md) |
 | TF_H — тесты и документация | [promts/_done/TF/TF_H_tests_docs.md](promts/_done/TF/TF_H_tests_docs.md) |
 | TF_I — состояние и выделение | [promts/_done/TF/TF_I_state_and_selection.md](promts/_done/TF/TF_I_state_and_selection.md) |
-| Оркестратор CTM | [promts/CTM0_orchestrator.md](promts/CTM0_orchestrator.md) |
+| Оркестратор CTM | [promts/_done/CTM/CTM0_orchestrator.md](promts/_done/CTM/CTM0_orchestrator.md) |
 | CTM1–CTM9 — все промты изменения данных | [promts/_done/CTM/](promts/_done/CTM/) |
+| CTFR1–CTFR4 — рефайнмент мутаций | [promts/_done/CTFR/](promts/_done/CTFR/) |
 
 ## Выполненные заплатки (CTF1–CTF6)
 
