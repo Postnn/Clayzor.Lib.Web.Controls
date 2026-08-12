@@ -32,6 +32,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private IReadOnlyList<ClayColumnDefinition> _dynamicCols = [];
     /// <summary>Identity последней динамической инициализации. null — никогда не инициализировался или статический режим (CGFR1).</summary>
     private ClayGridDynamicKey? _currentDynamicKey;
+    /// <summary>Счётчик вызовов InitDynamicMode (CGFR1.3 test seam).</summary>
+    internal int _initCallCount;
     private HashSet<string> _dynamicKnownColumns = [];
     private Dictionary<string, IReadOnlyDictionary<string, string>> _dynamicLookups = [];
     private Dictionary<string, IReadOnlyDictionary<string, (string Tooltip, string Href)>> _dynamicIconLookups = [];
@@ -229,6 +231,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task InitDynamicMode()
     {
+        _initCallCount++;
         var opt = DynamicOpts.Value;
         var gridId = ResolveDynamicGridId(opt);
 
