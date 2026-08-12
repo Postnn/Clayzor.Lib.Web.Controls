@@ -42,12 +42,13 @@ Normal terminal `_dynamicError` (gridId=0, definition not found, invalid shared 
 
 Lifecycle behavior покрыт реальными bUnit same-instance tests (7 тестов).
 
-### CGFR1.2 — same-instance failed reinit retry
+### CGFR1.2/CGFR1.3 — same-instance failed reinit
 
-Failed reinitialization retry покрыт bUnit regression:
-`FailedReinit_RetriesSameIdentity_OnSameComponentInstance`:
-A success → B failure → same B retry success на том же rendered component instance.
-Доказывает: после failed `InitDynamicMode` ключ не закоммичен → повторный render той же identity выполняет повторную инициализацию.
+`FailedReinit_ResetsState_OnSameInstance`:
+A success → B failure на том же rendered component instance.
+Доказывает: после failed `InitDynamicMode` Reset отрабатывает, ключ не закоммичен,
+B definition load был попыткой (ровно 1, CommandLog).
+Retry на том же cut после render-исключения — ограничение bUnit v2.
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../../../Clayzor.Lib.Entities/AGENTS.md).
