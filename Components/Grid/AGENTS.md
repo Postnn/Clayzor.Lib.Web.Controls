@@ -11,6 +11,7 @@
 Отложенные промты: `promts/_later/`.
 Выполненные промты групповых операций (CGO, CGR1): `promts/_done/CGO/`, `promts/_done/CGR/`.
 Выполненные промты CGFR1 (lifecycle fix): `promts/CGFR1_dynamic_grid_single_instance_lifecycle.md`.
+Выполненные промты CGFR1.1 (key commit fix + bUnit tests): `promts/CGFR1.1_dynamic_grid_lifecycle_tests_and_retry.md`.
 
 ### Динамический режим — lifecycle (CGFR1)
 
@@ -30,6 +31,15 @@ Same identity rerender не вызывает повторную dynamic initiali
 Единственный владелец инициализации — `OnParametersSetAsync`. `_dynamicInitDone` удалён.
 
 **Test seam:** `DbManager.RunDbAsync` (internal) позволяет тестам использовать произвольную реализацию `DbConnection` без привязки к `SqlConnection`. `DynamicSql.QueryRowsAsync` использует `RunDbAsync`.
+
+### CGFR1.1 — key commit fix
+
+`_currentDynamicKey` коммитится **только после normal completion** `InitDynamicMode()`.
+Thrown initialization exception не блокирует retry той же identity — key сбрасывается в `null` и перевыставляется при следующем успешном init.
+
+Normal terminal `_dynamicError` (gridId=0, definition not found, invalid shared link) — key коммитится, endless retry не происходит.
+
+Lifecycle behavior покрыт реальными bUnit same-instance tests (7 тестов).
 
 Модели данных (`ClayGridSchemaMap`, `ClayGridDefinition`, `ClayColumnDefinition`) и классы доступа к БД
 (`ClayGridDefinitionData`, `DynamicSql`) живут в **`Clayzor.Lib.Entities.DynamicGrid`** — см. [../Clayzor.Lib.Entities/AGENTS.md](../../../Clayzor.Lib.Entities/AGENTS.md).

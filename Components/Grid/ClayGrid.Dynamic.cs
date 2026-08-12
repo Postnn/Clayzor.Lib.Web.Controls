@@ -131,9 +131,17 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (key == _currentDynamicKey)
             return; // та же identity — без повторной загрузки definition/columns/данных (CGFR1 §18)
 
-        _currentDynamicKey = key;
         ResetDynamicRuntimeState();
-        await InitDynamicMode();
+        try
+        {
+            await InitDynamicMode();
+            _currentDynamicKey = key;   // только после normal completion (CGFR1.1)
+        }
+        catch
+        {
+            _currentDynamicKey = null;  // разблокировать retry той же identity (CGFR1.1)
+            throw;
+        }
     }
 
     /// <summary>
