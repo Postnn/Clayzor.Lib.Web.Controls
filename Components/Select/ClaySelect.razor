@@ -1,0 +1,23 @@
+@typeparam TItem
+@typeparam TValue
+
+<div class="clay-select @ResolvedOptions.Class">
+    @if (!string.IsNullOrWhiteSpace(ResolvedOptions.Label))
+    {
+        <label class="clay-select-label">@ResolvedOptions.Label</label>
+    }
+    <div class="clay-select-field">
+        <input class="clay-select-input"
+               type="text"
+               value="@DisplayText"
+               placeholder="@ResolvedOptions.Placeholder"
+               disabled="@ResolvedOptions.Disabled"
+               readonly="@ResolvedOptions.ReadOnly"
+               required="@ResolvedOptions.Required"
+               autocomplete="off" />
+        <button class="clay-select-button"
+                type="button"
+                disabled="@(ResolvedOptions.Disabled || ResolvedOptions.ReadOnly)"
+                aria-label="@ResolvedOptions.OpenListAriaLabel">...</button>
+    </div>
+</div>
