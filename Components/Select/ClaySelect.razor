@@ -1,23 +1,92 @@
 @typeparam TItem where TItem : class
 @typeparam TValue
+@inherits MudFormComponent<TValue, TValue>
 
-<div class="clay-select @ResolvedOptions.Class">
+<div class="clay-select @ResolvedOptions.Class @(HasErrors ? "clay-select--error" : null)">
     @if (!string.IsNullOrWhiteSpace(ResolvedOptions.Label))
     {
-        <label class="clay-select-label">@ResolvedOptions.Label</label>
+        <label class="clay-select-label" for="@InputId">@ResolvedOptions.Label</label>
     }
     <div class="clay-select-field">
-        <input class="clay-select-input"
+        <input @ref="_inputRef"
+               id="@InputId"
+               class="clay-select-input"
                type="text"
                value="@DisplayText"
                placeholder="@ResolvedOptions.Placeholder"
                disabled="@ResolvedOptions.Disabled"
                readonly="@ResolvedOptions.ReadOnly"
                required="@ResolvedOptions.Required"
-               autocomplete="off" />
+               autocomplete="off"
+               role="combobox"
+               aria-autocomplete="list"
+               aria-expanded="@IsOpen"
+               aria-controls="@ListboxId"
+               aria-invalid="@HasErrors"
+               @oninput="HandleInputAsync"
+               @onblur="HandleBlurAsync"
+               @onkeydown="HandleKeyDownAsync" />
         <button class="clay-select-button"
                 type="button"
-                disabled="@(ResolvedOptions.Disabled || ResolvedOptions.ReadOnly)"
-                aria-label="@ResolvedOptions.OpenListAriaLabel">...</button>
+                disabled="@(!IsMutable)"
+                aria-label="@ResolvedOptions.OpenListAriaLabel"
+                @onmousedown:preventDefault="true"
+                @onclick="TogglePopupAsync">...</button>
     </div>
+
+    @if (IsOpen)
+    {
+        <div class="clay-select-popup" id="@ListboxId" role="listbox">
+            @if (IsLoading)
+            {
+                <div class="clay-select-status">@ResolvedOptions.LoadingText</div>
+            }
+            else
+            {
+                @for (var index = 0; index < Results.Count; index++)
+                {
+                    var item = Results[index];
+                    var itemIndex = index;
+                    <div class="clay-select-option @(ActiveIndex == itemIndex ? "clay-select-option--active" : null)"
+                         role="option"
+                         aria-selected="@(ActiveIndex == itemIndex)"
+                         @onmousedown:preventDefault="true"
+                         @onclick="() => SelectResultAsync(item)">
+                        @if (ItemTemplate is not null)
+                        {
+                            @ItemTemplate(item)
+                        }
+                        else
+                        {
+                            @TextSelector(item)
+                        }
+                    </div>
+                }
+
+                @if (Results.Count == 0)
+                {
+                    <div class="clay-select-status">@ResolvedOptions.NoResultsText</div>
+                }
+                else if (HasMore)
+                {
+                    <div class="clay-select-status">@ResolvedOptions.MoreResultsText</div>
+                }
+
+                @if (ShowAdvancedSearch)
+                {
+                    <button type="button"
+                            class="clay-select-advanced"
+                            @onmousedown:preventDefault="true"
+                            @onclick="OpenAdvancedSearchAsync">
+                        @ResolvedOptions.AdvancedSearchText
+                    </button>
+                }
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(ValidationMessage))
+    {
+        <div class="clay-select-validation">@ValidationMessage</div>
+    }
 </div>
