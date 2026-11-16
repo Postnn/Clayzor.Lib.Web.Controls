@@ -192,8 +192,11 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
 
             if (Value is null)
             {
+                var hadSelectedItem = _currentItem is not null || SelectedItem is not null;
                 _currentItem = null;
                 _text = string.Empty;
+                if (hadSelectedItem)
+                    await SelectedItemChanged.InvokeAsync(null);
                 return;
             }
 
@@ -214,16 +217,11 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
             return;
         }
 
-        if (Value is null)
+        if (Value is not null && _currentItem is null && TryFindStaticItem(Value, out var refreshedItem))
         {
-            _currentItem = null;
-            _text = string.Empty;
+            await ApplyResolvedItemAsync(refreshedItem!, true);
         }
-        else if (_currentItem is null && TryFindStaticItem(Value, out var staticItem))
-        {
-            await ApplyResolvedItemAsync(staticItem!, true);
-        }
-        else if (SelectedItemMatchesValue() && !ReferenceEquals(_currentItem, SelectedItem))
+        else if (Value is not null && SelectedItemMatchesValue() && !ReferenceEquals(_currentItem, SelectedItem))
         {
             _currentItem = SelectedItem;
             _text = TextSelector(SelectedItem!);

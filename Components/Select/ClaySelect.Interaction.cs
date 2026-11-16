@@ -50,6 +50,19 @@ public partial class ClaySelect<TItem, TValue>
     protected string ListboxId => _listboxId;
 
     /// <summary>
+    /// Идентификатор активной строки для связи combobox с экранным диктором.
+    /// </summary>
+    protected string? ActiveDescendant =>
+        _open && !_loading && _activeIndex >= 0 && _activeIndex < _results.Count
+            ? GetOptionId(_activeIndex)
+            : null;
+
+    /// <summary>
+    /// Возвращает идентификатор строки результата.
+    /// </summary>
+    protected string GetOptionId(int index) => $"{_listboxId}-option-{index}";
+
+    /// <summary>
     /// Признак отображения пункта расширенного поиска.
     /// </summary>
     protected bool ShowAdvancedSearch =>
@@ -69,6 +82,7 @@ public partial class ClaySelect<TItem, TValue>
         if (!IsMutable)
             return;
 
+        InvalidateSearchResults();
         var searchText = args.Value?.ToString() ?? string.Empty;
         if (Value is not null && _options.Clearable)
             await ClearSelectionAsync();
@@ -95,9 +109,13 @@ public partial class ClaySelect<TItem, TValue>
     }
 
     /// <summary>
-    /// Выбирает элемент из списка результатов.
+    /// Выбирает элемент, если он всё ещё принадлежит актуальной видимой выдаче.
     /// </summary>
-    protected Task SelectResultAsync(TItem item) => SelectItemAsync(item);
+    protected async Task SelectResultAsync(TItem item)
+    {
+        if (_open && !_loading && _results.Contains(item))
+            await SelectItemAsync(item);
+    }
 
     /// <summary>
     /// Обрабатывает потерю фокуса полем.
@@ -120,20 +138,23 @@ public partial class ClaySelect<TItem, TValue>
         if (!IsMutable || _advancedRunning)
             return;
 
+        if (_loading && args.Key is "ArrowDown" or "ArrowUp" or "Enter")
+            return;
+
         switch (args.Key)
         {
             case "ArrowDown":
                 if (!_open)
                     await SearchAsync(string.Empty, false);
-                if (_results.Count > 0)
+                if (!_loading && _results.Count > 0)
                     _activeIndex = Math.Min(_activeIndex + 1, _results.Count - 1);
                 break;
             case "ArrowUp":
-                if (_open && _results.Count > 0)
+                if (_open && !_loading && _results.Count > 0)
                     _activeIndex = Math.Max(_activeIndex - 1, 0);
                 break;
             case "Enter":
-                if (_open && _activeIndex >= 0 && _activeIndex < _results.Count)
+                if (_open && !_loading && _activeIndex >= 0 && _activeIndex < _results.Count)
                     await SelectItemAsync(_results[_activeIndex]);
                 else if (!_open)
                     await SearchAsync(string.Empty, false);
@@ -206,11 +227,11 @@ public partial class ClaySelect<TItem, TValue>
             return;
 
         CancelSearch();
+        _results.Clear();
         var version = _searchVersion;
         if (searchText.Length < _options.MinSearchLength)
         {
             _open = false;
-            _results.Clear();
             return;
         }
 
@@ -383,6 +404,15 @@ public partial class ClaySelect<TItem, TValue>
         _searchCts?.Dispose();
         _searchCts = null;
         _loading = false;
+    }
+
+    private void InvalidateSearchResults()
+    {
+        CancelSearch();
+        _results.Clear();
+        _hasMore = false;
+        _activeIndex = -1;
+        _open = false;
     }
 
     private void InvalidatePendingOperations()

@@ -22,6 +22,7 @@
                aria-autocomplete="list"
                aria-expanded="@IsOpen"
                aria-controls="@ListboxId"
+               aria-activedescendant="@ActiveDescendant"
                aria-invalid="@HasErrors"
                @oninput="HandleInputAsync"
                @onblur="HandleBlurAsync"
@@ -48,6 +49,7 @@
                     var item = Results[index];
                     var itemIndex = index;
                     <div class="clay-select-option @(ActiveIndex == itemIndex ? "clay-select-option--active" : null)"
+                         id="@GetOptionId(itemIndex)"
                          role="option"
                          aria-selected="@(ActiveIndex == itemIndex)"
                          @onmousedown:preventDefault="true"
