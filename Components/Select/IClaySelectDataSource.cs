@@ -3,9 +3,13 @@ namespace Clayzor.Lib.Web.Controls.Components.Select;
 /// <summary>
 /// Источник элементов для <see cref="ClaySelect{TItem, TValue}"/>.
 /// </summary>
-/// <typeparam name="TItem">Тип элемента справочника.</typeparam>
-/// <typeparam name="TValue">Тип идентификатора элемента.</typeparam>
+/// <typeparam name="TItem">Тип элемента справочника. Обязан быть ссылочным типом.</typeparam>
+/// <typeparam name="TValue">
+/// Nullable-тип идентификатора: например, <c>int?</c>, <c>Guid?</c> или <c>string</c>.
+/// Только <see langword="null"/> означает пустой выбор.
+/// </typeparam>
 public interface IClaySelectDataSource<TItem, TValue>
+    where TItem : class
 {
     /// <summary>
     /// Выполняет поиск элементов по тексту и прикладным ограничениям источника.

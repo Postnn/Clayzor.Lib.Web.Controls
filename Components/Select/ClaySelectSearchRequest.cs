@@ -11,8 +11,8 @@ public sealed class ClaySelectSearchRequest
     public string SearchText { get; init; } = string.Empty;
 
     /// <summary>
-    /// Максимальное количество элементов, которое должен вернуть источник.
-    /// Компонент запрашивает на один элемент больше видимого лимита для определения
+    /// Максимальное количество элементов в <see cref="ClaySelectResult{TItem}.Items"/>.
+    /// Источник самостоятельно проверяет наличие дополнительной записи и заполняет
     /// <see cref="ClaySelectResult{TItem}.HasMore"/>.
     /// </summary>
     public int Limit { get; init; }
