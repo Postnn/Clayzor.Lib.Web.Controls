@@ -8,6 +8,7 @@ public partial class ClaySelect<TItem, TValue>
     private readonly List<TItem> _results = [];
     private bool _open;
     private bool _loading;
+    private bool _debouncing;
     private bool _hasMore;
     private int _activeIndex = -1;
     private int _searchVersion;
@@ -138,7 +139,7 @@ public partial class ClaySelect<TItem, TValue>
         if (!IsMutable || _advancedRunning)
             return;
 
-        if (_loading && args.Key is "ArrowDown" or "ArrowUp" or "Enter")
+        if ((_debouncing || _loading) && args.Key is "ArrowDown" or "ArrowUp" or "Enter")
             return;
 
         switch (args.Key)
@@ -205,6 +206,7 @@ public partial class ClaySelect<TItem, TValue>
     private async Task QueueSearchAsync(string searchText)
     {
         CancelSearch();
+        _debouncing = true;
         var version = _searchVersion;
         var cts = new CancellationTokenSource();
         _searchCts = cts;
@@ -404,6 +406,7 @@ public partial class ClaySelect<TItem, TValue>
         _searchCts?.Dispose();
         _searchCts = null;
         _loading = false;
+        _debouncing = false;
     }
 
     private void InvalidateSearchResults()
