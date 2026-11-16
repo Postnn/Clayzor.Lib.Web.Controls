@@ -33,59 +33,59 @@
                 aria-label="@ResolvedOptions.OpenListAriaLabel"
                 @onmousedown:preventDefault="true"
                 @onclick="TogglePopupAsync">...</button>
+
+        @if (IsOpen)
+        {
+            <div class="clay-select-popup" id="@ListboxId" role="listbox">
+                @if (IsLoading)
+                {
+                    <div class="clay-select-status">@ResolvedOptions.LoadingText</div>
+                }
+                else
+                {
+                    @for (var index = 0; index < Results.Count; index++)
+                    {
+                        var item = Results[index];
+                        var itemIndex = index;
+                        <div class="clay-select-option @(ActiveIndex == itemIndex ? "clay-select-option--active" : null)"
+                             id="@GetOptionId(itemIndex)"
+                             role="option"
+                             aria-selected="@(ActiveIndex == itemIndex)"
+                             @onmousedown:preventDefault="true"
+                             @onclick="() => SelectResultAsync(item)">
+                            @if (ItemTemplate is not null)
+                            {
+                                @ItemTemplate(item)
+                            }
+                            else
+                            {
+                                @TextSelector(item)
+                            }
+                        </div>
+                    }
+
+                    @if (Results.Count == 0)
+                    {
+                        <div class="clay-select-status">@ResolvedOptions.NoResultsText</div>
+                    }
+                    else if (HasMore)
+                    {
+                        <div class="clay-select-status">@ResolvedOptions.MoreResultsText</div>
+                    }
+
+                    @if (ShowAdvancedSearch)
+                    {
+                        <button type="button"
+                                class="clay-select-advanced"
+                                @onmousedown:preventDefault="true"
+                                @onclick="OpenAdvancedSearchAsync">
+                            @ResolvedOptions.AdvancedSearchText
+                        </button>
+                    }
+                }
+            </div>
+        }
     </div>
-
-    @if (IsOpen)
-    {
-        <div class="clay-select-popup" id="@ListboxId" role="listbox">
-            @if (IsLoading)
-            {
-                <div class="clay-select-status">@ResolvedOptions.LoadingText</div>
-            }
-            else
-            {
-                @for (var index = 0; index < Results.Count; index++)
-                {
-                    var item = Results[index];
-                    var itemIndex = index;
-                    <div class="clay-select-option @(ActiveIndex == itemIndex ? "clay-select-option--active" : null)"
-                         id="@GetOptionId(itemIndex)"
-                         role="option"
-                         aria-selected="@(ActiveIndex == itemIndex)"
-                         @onmousedown:preventDefault="true"
-                         @onclick="() => SelectResultAsync(item)">
-                        @if (ItemTemplate is not null)
-                        {
-                            @ItemTemplate(item)
-                        }
-                        else
-                        {
-                            @TextSelector(item)
-                        }
-                    </div>
-                }
-
-                @if (Results.Count == 0)
-                {
-                    <div class="clay-select-status">@ResolvedOptions.NoResultsText</div>
-                }
-                else if (HasMore)
-                {
-                    <div class="clay-select-status">@ResolvedOptions.MoreResultsText</div>
-                }
-
-                @if (ShowAdvancedSearch)
-                {
-                    <button type="button"
-                            class="clay-select-advanced"
-                            @onmousedown:preventDefault="true"
-                            @onclick="OpenAdvancedSearchAsync">
-                        @ResolvedOptions.AdvancedSearchText
-                    </button>
-                }
-            }
-        </div>
-    }
 
     @if (!string.IsNullOrWhiteSpace(ValidationMessage))
     {

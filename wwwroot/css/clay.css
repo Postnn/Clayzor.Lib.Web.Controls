@@ -1706,6 +1706,7 @@ body {
 }
 
 .clay-select-field {
+    position: relative;
     display: flex;
     align-items: stretch;
     height: 32px;

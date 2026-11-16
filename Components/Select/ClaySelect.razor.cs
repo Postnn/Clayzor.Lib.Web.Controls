@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 
 namespace Clayzor.Lib.Web.Controls.Components.Select;
@@ -38,6 +39,11 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     private IClaySelectDataSource<TItem, TValue>? _lastDataSource;
     private int _resolveVersion;
     private CancellationTokenSource? _resolveCts;
+
+    [Inject]
+    private Microsoft.JSInterop.IJSRuntime JS { get; set; } = null!;
+
+    private Microsoft.JSInterop.DotNetObjectReference<ClaySelect<TItem, TValue>>? _dotnetRef;
 
     /// <summary>
     /// Текущие настройки компонента.
@@ -133,6 +139,31 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     /// Возвращает конвертер без преобразования: компонент работает непосредственно с ID.
     /// </summary>
     protected override IConverter<TValue?, TValue?> GetDefaultConverter() => new EmptyConverter<TValue?>();
+
+    /// <summary>
+    /// Регистрирует обработчики внешнего клика и потери фокуса после интерактивного рендера.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotnetRef = Microsoft.JSInterop.DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("claySelect.register", _inputId, _dotnetRef);
+        }
+    }
+
+    /// <summary>
+    /// Закрывает popup по сигналу браузера о внешнем клике или переходе фокуса.
+    /// </summary>
+    [Microsoft.JSInterop.JSInvokable]
+    public async Task ClosePopupFromOutsideAsync()
+    {
+        if (_advancedRunning)
+            return;
+
+        ClosePopupAndRestoreText();
+        await InvokeAsync(StateHasChanged);
+    }
 
     /// <summary>
     /// Устанавливает фокус в поле поиска.
@@ -240,6 +271,20 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     protected override async ValueTask DisposeAsyncCore()
     {
         InvalidatePendingOperations();
+        try
+        {
+            await JS.InvokeVoidAsync("claySelect.unregister", _inputId);
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException)
+        {
+        }
+        catch (Microsoft.JSInterop.JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        _dotnetRef?.Dispose();
         await base.DisposeAsyncCore();
     }
 
