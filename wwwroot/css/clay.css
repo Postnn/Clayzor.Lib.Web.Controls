@@ -1800,8 +1800,8 @@ body {
 }
 
 .clay-select-option--active {
-    color: var(--mud-palette-primary);
-    background: var(--mud-palette-action-default-hover);
+    color: var(--mud-palette-primary-text);
+    background: var(--mud-palette-primary);
     border-left-color: var(--clay-gold);
 }
 
