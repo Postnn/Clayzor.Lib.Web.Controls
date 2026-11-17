@@ -151,6 +151,8 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
             _dotnetRef = Microsoft.JSInterop.DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("claySelect.register", _inputId, _dotnetRef);
         }
+        if (IsOpen)
+            await JS.InvokeVoidAsync("claySelect.positionPopup", _inputId);
     }
 
     /// <summary>

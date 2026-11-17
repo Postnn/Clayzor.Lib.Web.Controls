@@ -159,7 +159,7 @@ public partial class ClaySelect<TItem, TValue>
             case "Enter":
                 if (_open && _activeIndex >= 0 && _activeIndex < _results.Count)
                     await SelectItemAsync(_results[_activeIndex]);
-                else if (!_open)
+                else if (!_open && !HasCurrentSelectionText())
                     await SearchAsync(_text, true);
                 break;
             case "Escape":
@@ -232,12 +232,18 @@ public partial class ClaySelect<TItem, TValue>
         var cts = new CancellationTokenSource();
         _searchCts = cts;
         if (openPopup)
+        {
             await JS.InvokeVoidAsync("claySelect.closeOthers", _inputId);
+            if (!IsCurrentSearch(version, cts))
+                return;
+        }
         _open = openPopup;
         _loading = true;
         _hasMore = false;
         _activeIndex = -1;
         await InvokeAsync(StateHasChanged);
+        if (!IsCurrentSearch(version, cts))
+            return;
 
         try
         {
@@ -255,7 +261,7 @@ public partial class ClaySelect<TItem, TValue>
                 result = SearchStatic(searchText);
             }
 
-            if (version != _searchVersion || cts.IsCancellationRequested || _disposed)
+            if (!IsCurrentSearch(version, cts))
                 return;
 
             _results.Clear();
@@ -276,6 +282,13 @@ public partial class ClaySelect<TItem, TValue>
                 _loading = false;
         }
     }
+
+    private bool IsCurrentSearch(int version, CancellationTokenSource cts) =>
+        version == _searchVersion && !cts.IsCancellationRequested && !_disposed && IsMutable;
+
+    private bool HasCurrentSelectionText() =>
+        Value is not null && _currentItem is not null &&
+        string.Equals(_text, TextSelector(_currentItem), StringComparison.Ordinal);
 
     private ClaySelectResult<TItem> SearchStatic(string searchText)
     {
