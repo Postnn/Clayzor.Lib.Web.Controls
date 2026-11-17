@@ -1,0 +1,18 @@
+<MudPaper Class="@($"pa-3 clay-entity-form {_opt.Class}")"
+          MaxWidth="@_opt.MaxWidth"
+          Elevation="@_opt.Elevation">
+    @ChildContent
+</MudPaper>
+
+@code {
+    private ClayEntityFormOptions _opt = new();
+
+    /// <summary>Содержимое формы.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Настройки ширины и оформления формы.</summary>
+    [Parameter] public ClayEntityFormOptions? Options { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() => _opt = Options ?? new ClayEntityFormOptions();
+}

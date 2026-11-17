@@ -1856,8 +1856,12 @@ body {
 }
 
 /* ── Общие контролы форм ── */
+.clay-entity-form {
+    padding-top: 0 !important;
+}
+
 .clay-form-toolbar {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     border-bottom: 2px solid var(--clay-gold);
     background: var(--mud-palette-background-gray);
 }
@@ -1865,8 +1869,9 @@ body {
 .clay-form-toolbar-bar {
     flex-wrap: wrap;
     gap: 8px;
-    min-height: 44px;
-    padding: 4px 8px;
+    height: 43px;
+    min-height: 43px;
+    padding: 0 0 4px;
     background: transparent;
 }
 
