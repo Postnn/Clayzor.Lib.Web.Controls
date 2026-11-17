@@ -1,0 +1,30 @@
+<MudTextField T="string"
+              Value="@Value"
+              ValueChanged="@ValueChanged"
+              Label="@_opt.Label"
+              Placeholder="@_opt.Placeholder"
+              Required="@_opt.Required"
+              RequiredError="@_opt.RequiredError"
+              Disabled="@_opt.Disabled"
+              ReadOnly="@_opt.ReadOnly"
+              MaxLength="@_opt.MaxLength"
+              Immediate="@_opt.Immediate"
+              Variant="@_opt.Variant"
+              Margin="@_opt.Margin"
+              Class="@_opt.Class" />
+
+@code {
+    private ClayTextBoxOptions _opt = new();
+
+    /// <summary>Текущее значение.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Событие изменения значения.</summary>
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Настройки внешнего вида и поведения.</summary>
+    [Parameter] public ClayTextBoxOptions? Options { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() => _opt = Options ?? new ClayTextBoxOptions();
+}

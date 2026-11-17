@@ -1,0 +1,34 @@
+<MudNumericField T="decimal?"
+                 Value="@Value"
+                 ValueChanged="@ValueChanged"
+                 Label="@_opt.Label"
+                 Required="@_opt.Required"
+                 RequiredError="@_opt.RequiredError"
+                 Disabled="@_opt.Disabled"
+                 ReadOnly="@_opt.ReadOnly"
+                 Min="@_opt.Min"
+                 Max="@_opt.Max"
+                 Step="@_opt.Step"
+                 Format="@NumberFormat"
+                 HideSpinButtons="@_opt.HideSpinButtons"
+                 Variant="@_opt.Variant"
+                 Margin="@_opt.Margin"
+                 Class="@_opt.Class" />
+
+@code {
+    private ClayNumberOptions _opt = new();
+
+    /// <summary>Текущее числовое значение.</summary>
+    [Parameter] public decimal? Value { get; set; }
+
+    /// <summary>Событие изменения значения.</summary>
+    [Parameter] public EventCallback<decimal?> ValueChanged { get; set; }
+
+    /// <summary>Настройки диапазона, точности и оформления.</summary>
+    [Parameter] public ClayNumberOptions? Options { get; set; }
+
+    private string NumberFormat => _opt.Precision <= 0 ? "0" : "0." + new string('0', Math.Min(_opt.Precision, 10));
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() => _opt = Options ?? new ClayNumberOptions();
+}

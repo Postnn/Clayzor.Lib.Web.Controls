@@ -245,6 +245,49 @@ public partial class ClaySelect<TItem, TValue>
         }
     }
 
+    /// <summary>Признак отображения пункта создания элемента.</summary>
+    protected bool ShowCreateItem => CreateItem is not null && IsMutable;
+
+    /// <summary>Открывает внешнюю форму создания и применяет возвращённый элемент.</summary>
+    protected async Task OpenCreateItemAsync()
+    {
+        if (!IsMutable || _advancedRunning || CreateItem is null || _disposed)
+            return;
+
+        _advancedRunning = true;
+        CancelSearch();
+        _open = false;
+        var version = _resolveVersion;
+        try
+        {
+            var result = await CreateItem(new ClaySelectAdvancedSearchContext
+            {
+                SearchText = HasCurrentSelectionText() ? string.Empty : _text,
+            });
+
+            if (result is null || version != _resolveVersion || !IsMutable || _disposed)
+                return;
+
+            if (result.ContainsItem)
+                await SelectItemAsync(result.Item!);
+            else
+                await ApplyExternalValueAsync(result.Value);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            _advancedRunning = false;
+            if (!_disposed)
+            {
+                if (version == _resolveVersion)
+                    RestoreSelectedText();
+                await FocusAsync();
+            }
+        }
+    }
+
     private async Task SearchAsync(string searchText, bool allowAutoSelect, bool openPopup = true)
     {
         if (!IsMutable || _disposed)

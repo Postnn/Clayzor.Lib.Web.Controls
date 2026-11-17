@@ -1,0 +1,31 @@
+<MudDatePicker Date="@Value"
+               DateChanged="@ValueChanged"
+               Label="@_opt.Label"
+               Required="@_opt.Required"
+               RequiredError="@_opt.RequiredError"
+               Disabled="@_opt.Disabled"
+               ReadOnly="@_opt.ReadOnly"
+               MinDate="@_opt.MinDate"
+               MaxDate="@_opt.MaxDate"
+               DateFormat="@_opt.DateFormat"
+               Editable="@_opt.Editable"
+               Clearable="@_opt.Clearable"
+               Variant="@_opt.Variant"
+               Margin="@_opt.Margin"
+               Class="@_opt.Class" />
+
+@code {
+    private ClayDatePickerOptions _opt = new();
+
+    /// <summary>Текущая дата.</summary>
+    [Parameter] public DateTime? Value { get; set; }
+
+    /// <summary>Событие изменения даты.</summary>
+    [Parameter] public EventCallback<DateTime?> ValueChanged { get; set; }
+
+    /// <summary>Настройки диапазона, формата и оформления.</summary>
+    [Parameter] public ClayDatePickerOptions? Options { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() => _opt = Options ?? new ClayDatePickerOptions();
+}

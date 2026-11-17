@@ -1823,7 +1823,8 @@ body {
     justify-content: center;
 }
 
-.clay-select-advanced {
+.clay-select-advanced,
+.clay-select-create {
     width: 100%;
     padding: 5px 8px;
     color: var(--mud-palette-primary);
@@ -1836,7 +1837,9 @@ body {
 }
 
 .clay-select-advanced:hover,
-.clay-select-advanced:focus-visible {
+.clay-select-advanced:focus-visible,
+.clay-select-create:hover,
+.clay-select-create:focus-visible {
     background: var(--mud-palette-action-default-hover);
     outline: 1px solid var(--mud-palette-primary);
     outline-offset: -1px;
@@ -1850,4 +1853,43 @@ body {
 .clay-select--error .clay-select-input,
 .clay-select--error .clay-select-button {
     border-color: var(--mud-palette-error);
+}
+
+/* ── Общие контролы форм ── */
+.clay-form-toolbar {
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--clay-gold);
+    background: var(--mud-palette-background-gray);
+}
+
+.clay-form-toolbar-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 44px;
+    padding: 4px 8px;
+    background: transparent;
+}
+
+.clay-form-toolbar-button {
+    min-width: 96px;
+    text-transform: none;
+}
+
+.clay-changed {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 6px;
+    min-height: 24px;
+    color: var(--mud-palette-text-secondary);
+    font-size: var(--clay-font-size-small);
+}
+
+.clay-changed-user {
+    color: var(--mud-palette-primary);
+}
+
+.clay-changed-date {
+    white-space: nowrap;
 }

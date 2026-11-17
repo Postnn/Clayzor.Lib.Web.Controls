@@ -132,6 +132,13 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     public Func<ClaySelectAdvancedSearchContext, Task<ClaySelectExternalResult<TItem, TValue>?>>? AdvancedSearch { get; set; }
 
     /// <summary>
+    /// Открывает форму создания элемента и применяет возвращённый объект или идентификатор.
+    /// Пункт отображается только при заданном обработчике и доступен лишь в изменяемом состоянии.
+    /// </summary>
+    [Parameter]
+    public Func<ClaySelectAdvancedSearchContext, Task<ClaySelectExternalResult<TItem, TValue>?>>? CreateItem { get; set; }
+
+    /// <summary>
     /// Открывает карточку выбранного элемента. Если задан обработчик, после выбора
     /// кнопка поиска заменяется значком просмотра сущности.
     /// </summary>

@@ -1,0 +1,39 @@
+<div class="clay-changed @_opt.Class">
+    @if (ChangedById is > 0 && ChangedAt is not null)
+    {
+        <span class="clay-changed-label">@_opt.Label</span>
+        @if (!string.IsNullOrWhiteSpace(ChangedByUrl))
+        {
+            <a class="clay-changed-user" href="@ChangedByUrl" target="_blank" rel="noopener noreferrer">@DisplayName</a>
+        }
+        else
+        {
+            <span class="clay-changed-user">@DisplayName</span>
+        }
+        <time class="clay-changed-date" datetime="@ChangedAt.Value.ToString("O")">@ChangedAt.Value.ToString(_opt.DateTimeFormat)</time>
+    }
+</div>
+
+@code {
+    private ClayChangedOptions _opt = new();
+
+    /// <summary>Идентификатор сотрудника, изменившего запись.</summary>
+    [Parameter] public int? ChangedById { get; set; }
+
+    /// <summary>Отображаемое имя сотрудника.</summary>
+    [Parameter] public string? ChangedByName { get; set; }
+
+    /// <summary>Дата и время последнего изменения.</summary>
+    [Parameter] public DateTime? ChangedAt { get; set; }
+
+    /// <summary>URL карточки сотрудника.</summary>
+    [Parameter] public string? ChangedByUrl { get; set; }
+
+    /// <summary>Настройки подписи и формата даты.</summary>
+    [Parameter] public ClayChangedOptions? Options { get; set; }
+
+    private string DisplayName => !string.IsNullOrWhiteSpace(ChangedByName) ? ChangedByName : $"#{ChangedById}";
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() => _opt = Options ?? new ClayChangedOptions();
+}

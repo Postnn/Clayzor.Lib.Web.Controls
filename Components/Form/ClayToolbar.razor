@@ -1,0 +1,18 @@
+<div class="clay-form-toolbar @_opt.Class">
+    <MudToolBar Dense="@_opt.Dense" Class="clay-form-toolbar-bar">
+        @ChildContent
+    </MudToolBar>
+</div>
+
+@code {
+    private ClayToolbarOptions _opt = new();
+
+    /// <summary>Кнопки и другое содержимое панели.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Настройки оформления панели.</summary>
+    [Parameter] public ClayToolbarOptions? Options { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() => _opt = Options ?? new ClayToolbarOptions();
+}

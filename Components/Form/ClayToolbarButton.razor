@@ -1,0 +1,34 @@
+<MudTooltip Text="@_opt.Title" @key="@_key">
+    <MudButton OnClick="@HandleClick"
+               StartIcon="@_opt.Icon"
+               Disabled="@(Disabled || _opt.Disabled)"
+               Color="@_opt.Color"
+               Variant="@_opt.Variant"
+               Size="MudBlazor.Size.Small"
+               Class="clay-form-toolbar-button">
+        @_opt.Text
+    </MudButton>
+</MudTooltip>
+
+@code {
+    private ClayToolbarButtonOptions _opt = new();
+    private int _key;
+
+    /// <summary>Настройки текста, иконки и состояния кнопки.</summary>
+    [Parameter] public ClayToolbarButtonOptions? Options { get; set; }
+
+    /// <summary>Обработчик нажатия.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>Динамическая блокировка команды формы.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() => _opt = Options ?? new ClayToolbarButtonOptions();
+
+    private async Task HandleClick()
+    {
+        await OnClick.InvokeAsync();
+        _key++;
+    }
+}

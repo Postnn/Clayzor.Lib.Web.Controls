@@ -42,9 +42,14 @@
 | **ClayColumnSettingsPromptDialog** — лёгкий диалог с тремя исходами перед печатью/экспортом | — |
 | **ClayEditForm\<T>** — MudDialog с валидацией, сохранением, удалением | [docs/clay-edit-form.md](docs/clay-edit-form.md) |
 | **ClayComboBox\<TItem>** — выпадающий список для `ILookupEntity` | [docs/clay-combo-box.md](docs/clay-combo-box.md) |
+| **ClaySelect\<TItem, TValue>** — одиночный выбор с серверным поиском, просмотром, созданием и внешним расширенным поиском | [Руководство пользователя](docs/clay-select-user-guide.md) |
 | **ClayErrorBar** — баннер ошибок БД с детализацией | [docs/clay-error-bar.md](docs/clay-error-bar.md) |
 | **ClayDbReconnectOverlay** — оверлей при недоступности SQL Server | — |
 | **ClayButton** — обёртка `MudTooltip` + `MudIconButton` с авто-сбросом тултипа | — |
+| **ClayTextBox / ClayTextArea / ClayNumber / ClayDatePicker** — общие поля форм по аналогии с legacy | — |
+| **ClayDropDownList** — нередактируемый список фиксированных значений по аналогии с legacy | — |
+| **ClayToolbar / ClayToolbarButton** — панель команд формы редактирования | — |
+| **ClayChanged** — сотрудник и дата последнего изменения записи; включается в каждую форму редактирования | — |
 | **ClayMenu** — обёртка `MudMenu` с авто-построением кнопки-активатора | — |
 | **ClayCheckbox** — контролируемый чекбокс с tri-state поддержкой | — |
 | **ConfirmDialog** — диалог подтверждения | [docs/confirm-dialog.md](docs/confirm-dialog.md) |

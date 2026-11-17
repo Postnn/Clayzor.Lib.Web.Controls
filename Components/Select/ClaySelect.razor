@@ -87,6 +87,16 @@
                         <div class="clay-select-status">@ResolvedOptions.MoreResultsText</div>
                     }
 
+                    @if (ShowCreateItem)
+                    {
+                        <button type="button"
+                                class="clay-select-create"
+                                @onmousedown:preventDefault="true"
+                                @onclick="OpenCreateItemAsync">
+                            @ResolvedOptions.CreateItemText
+                        </button>
+                    }
+
                     @if (ShowAdvancedSearch)
                     {
                         <button type="button"

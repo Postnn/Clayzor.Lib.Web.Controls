@@ -98,6 +98,11 @@ public sealed class ClaySelectOptions
     public string AdvancedSearchText { get; set; } = "Расширенный поиск";
 
     /// <summary>
+    /// Текст пункта создания элемента.
+    /// </summary>
+    public string CreateItemText { get; set; } = "Создать элемент";
+
+    /// <summary>
     /// Текст индикатора загрузки результатов.
     /// </summary>
     public string LoadingText { get; set; } = "Загрузка...";
