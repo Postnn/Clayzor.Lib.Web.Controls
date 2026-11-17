@@ -27,12 +27,26 @@
                @oninput="HandleInputAsync"
                @onblur="HandleBlurAsync"
                @onkeydown="HandleKeyDownAsync" />
-        <button class="clay-select-button"
-                type="button"
-                disabled="@(!IsMutable)"
-                aria-label="@ResolvedOptions.OpenListAriaLabel"
-                @onmousedown:preventDefault="true"
-                @onclick="TogglePopupAsync">...</button>
+        @if (IsViewMode)
+        {
+            <button class="clay-select-button clay-select-view-button"
+                    type="button"
+                    disabled="@(!IsMutable)"
+                    aria-label="@ResolvedOptions.ViewItemAriaLabel"
+                    @onmousedown:preventDefault="true"
+                    @onclick="OpenViewItemAsync">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" />
+            </button>
+        }
+        else
+        {
+            <button class="clay-select-button"
+                    type="button"
+                    disabled="@(!IsMutable)"
+                    aria-label="@ResolvedOptions.OpenListAriaLabel"
+                    @onmousedown:preventDefault="true"
+                    @onclick="TogglePopupAsync">...</button>
+        }
 
         @if (IsOpen)
         {

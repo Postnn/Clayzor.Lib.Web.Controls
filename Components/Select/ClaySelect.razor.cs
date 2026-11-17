@@ -132,6 +132,13 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     public Func<ClaySelectAdvancedSearchContext, Task<ClaySelectExternalResult<TItem, TValue>?>>? AdvancedSearch { get; set; }
 
     /// <summary>
+    /// Открывает карточку выбранного элемента. Если задан обработчик, после выбора
+    /// кнопка поиска заменяется значком просмотра сущности.
+    /// </summary>
+    [Parameter]
+    public Func<TItem, Task>? ViewItem { get; set; }
+
+    /// <summary>
     /// Значение, проверяемое родительской <see cref="MudForm"/>.
     /// </summary>
     protected override TValue? ReadValue => Value;
@@ -179,9 +186,15 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     }
 
     /// <summary>
-    /// Очищает выбранные идентификатор и объект, если очистка разрешена настройками.
+    /// Очищает выбранные идентификатор и объект без возможности восстановления по Escape.
     /// </summary>
-    public Task ClearAsync() => ClearSelectionAsync();
+    public async Task ClearAsync()
+    {
+        _hasEditBackup = false;
+        _itemBeforeEdit = null;
+        _valueBeforeEdit = default;
+        await ClearSelectionAsync();
+    }
 
     /// <summary>
     /// Проверяет nullable-тип идентификатора и допустимость настроек страницы.
@@ -218,6 +231,9 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
 
         if (valueChanged || sourceChanged)
         {
+            _hasEditBackup = false;
+            _itemBeforeEdit = null;
+            _valueBeforeEdit = default;
             _valueSynchronized = true;
             _lastValue = Value;
             _lastDataSource = DataSource;

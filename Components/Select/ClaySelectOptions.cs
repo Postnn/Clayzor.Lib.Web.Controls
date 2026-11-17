@@ -106,4 +106,9 @@ public sealed class ClaySelectOptions
     /// Доступное название кнопки открытия списка.
     /// </summary>
     public string OpenListAriaLabel { get; set; } = "Открыть список";
+
+    /// <summary>
+    /// Доступное название кнопки просмотра карточки выбранной сущности.
+    /// </summary>
+    public string ViewItemAriaLabel { get; set; } = "Просмотреть сущность";
 }

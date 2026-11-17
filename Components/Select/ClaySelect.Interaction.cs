@@ -14,6 +14,9 @@ public partial class ClaySelect<TItem, TValue>
     private int _searchVersion;
     private CancellationTokenSource? _searchCts;
     private bool _advancedRunning;
+    private TItem? _itemBeforeEdit;
+    private TValue? _valueBeforeEdit;
+    private bool _hasEditBackup;
 
     /// <summary>
     /// Признак открытого списка результатов.
@@ -76,6 +79,11 @@ public partial class ClaySelect<TItem, TValue>
     protected bool IsMutable => !_options.Disabled && !_options.ReadOnly;
 
     /// <summary>
+    /// Показывает кнопку просмотра вместо поиска, если текст выбранного элемента не изменён.
+    /// </summary>
+    protected bool IsViewMode => ViewItem is not null && HasCurrentSelectionText();
+
+    /// <summary>
     /// Изменяет поисковый текст без запуска запроса. Поиск выполняется по Enter,
     /// при потере фокуса или нажатию кнопки с многоточием.
     /// </summary>
@@ -87,9 +95,30 @@ public partial class ClaySelect<TItem, TValue>
         InvalidateSearchResults();
         var searchText = args.Value?.ToString() ?? string.Empty;
         if (Value is not null && _options.Clearable)
+        {
+            if (!_hasEditBackup)
+            {
+                _itemBeforeEdit = _currentItem;
+                _valueBeforeEdit = Value;
+                _hasEditBackup = true;
+            }
             await ClearSelectionAsync();
+        }
 
         _text = searchText;
+    }
+
+    /// <summary>
+    /// Открывает карточку текущего элемента без изменения выбора или поискового текста.
+    /// </summary>
+    protected async Task OpenViewItemAsync()
+    {
+        if (!IsMutable || _currentItem is null || ViewItem is null || !HasCurrentSelectionText())
+            return;
+
+        CancelSearch();
+        _open = false;
+        await ViewItem(_currentItem);
     }
 
     /// <summary>
@@ -163,7 +192,7 @@ public partial class ClaySelect<TItem, TValue>
                     await SearchAsync(_text, true);
                 break;
             case "Escape":
-                ClosePopupAndRestoreText();
+                await RestorePreviousSelectionAsync();
                 break;
             case "Tab":
                 CancelSearch();
@@ -175,6 +204,7 @@ public partial class ClaySelect<TItem, TValue>
 
     /// <summary>
     /// Вызывает расширенный поиск и применяет возвращённый объект или идентификатор.
+    /// Текст уже выбранного элемента не передаётся как новый поисковый запрос.
     /// </summary>
     protected async Task OpenAdvancedSearchAsync()
     {
@@ -189,7 +219,7 @@ public partial class ClaySelect<TItem, TValue>
         {
             var result = await AdvancedSearch(new ClaySelectAdvancedSearchContext
             {
-                SearchText = _text,
+                SearchText = HasCurrentSelectionText() ? string.Empty : _text,
             });
 
             if (result is null || version != _resolveVersion || !IsMutable || _disposed)
@@ -339,6 +369,9 @@ public partial class ClaySelect<TItem, TValue>
         if (value is null)
             throw new InvalidOperationException("ValueSelector вернул null для выбранного элемента.");
 
+        _hasEditBackup = false;
+        _itemBeforeEdit = null;
+        _valueBeforeEdit = default;
         InvalidatePendingOperations();
         Value = value;
         _lastValue = value;
@@ -348,6 +381,22 @@ public partial class ClaySelect<TItem, TValue>
         await ValueChanged.InvokeAsync(value);
         await SelectedItemChanged.InvokeAsync(item);
         await NotifyUserValidationAsync();
+    }
+
+    private async Task RestorePreviousSelectionAsync()
+    {
+        if (!_hasEditBackup)
+        {
+            ClosePopupAndRestoreText();
+            return;
+        }
+
+        var item = _itemBeforeEdit;
+        var value = _valueBeforeEdit;
+        if (item is not null)
+            await SelectItemAsync(item);
+        else
+            await ApplyExternalValueAsync(value);
     }
 
     private async Task ClearSelectionAsync()
@@ -371,6 +420,9 @@ public partial class ClaySelect<TItem, TValue>
         if (value is null || !IsMutable)
             return;
 
+        _hasEditBackup = false;
+        _itemBeforeEdit = null;
+        _valueBeforeEdit = default;
         InvalidatePendingOperations();
         Value = value;
         _lastValue = value;
