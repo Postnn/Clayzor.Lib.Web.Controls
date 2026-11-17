@@ -13,6 +13,7 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonElement?>> _pending = new();
     private readonly DotNetObjectReference<ClaySelectAdvancedSearchService> _dotnetRef;
+    private bool _disposed;
 
     /// <summary>
     /// Создаёт сервис возврата значений для текущего Blazor circuit.
@@ -39,6 +40,7 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
         CancellationToken cancellationToken = default)
         where TItem : class
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         if (!Uri.TryCreate(url, UriKind.Absolute, out _))
             throw new ArgumentException("URL расширенного поиска должен быть абсолютным.", nameof(url));
 
@@ -50,8 +52,7 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
         try
         {
             await JS.InvokeVoidAsync("claySelectAdvancedSearch.open", cancellationToken, url, requestId, _dotnetRef);
-            await using var registration = cancellationToken.Register(() => CancelAsync(requestId));
-            var value = await completion.Task;
+            var value = await completion.Task.WaitAsync(cancellationToken);
             if (value is null)
                 return null;
 
@@ -63,6 +64,7 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
         finally
         {
             _pending.TryRemove(requestId, out _);
+            await CancelBrowserRequestAsync(requestId);
         }
     }
 
@@ -89,13 +91,36 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
     }
 
     /// <summary>
-    /// Отменяет все ожидания и освобождает ссылку на сервис для JavaScript.
+    /// Закрывает дочерние окна, удаляет браузерные обработчики и завершает все ожидания.
     /// </summary>
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
+        if (_disposed)
+            return;
+
+        _disposed = true;
         foreach (var requestId in _pending.Keys)
-            CancelAsync(requestId);
+        {
+            await CancelBrowserRequestAsync(requestId);
+            await CancelAsync(requestId);
+        }
         _dotnetRef.Dispose();
-        return ValueTask.CompletedTask;
+    }
+
+    private async Task CancelBrowserRequestAsync(string requestId)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("claySelectAdvancedSearch.cancel", requestId);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 }

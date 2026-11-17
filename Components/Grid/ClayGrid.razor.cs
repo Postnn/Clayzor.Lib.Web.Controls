@@ -157,6 +157,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         _opt = ResolveOptions();
         _pageSize = _opt.PageSize;
+        _searchText = _opt.InitialSearchText;
     }
 
     /// <inheritdoc/>

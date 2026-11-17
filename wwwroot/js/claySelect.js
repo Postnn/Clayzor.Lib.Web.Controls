@@ -17,7 +17,14 @@ window.claySelect = window.claySelect || {
 
         document.addEventListener('mousedown', onMouseDown, true);
         root.addEventListener('focusout', onFocusOut);
-        this.instances[inputId] = { root, onMouseDown, onFocusOut };
+        this.instances[inputId] = { root, onMouseDown, onFocusOut, close };
+    },
+
+    closeOthers: function (exceptInputId) {
+        for (const [inputId, instance] of Object.entries(this.instances)) {
+            if (inputId !== exceptInputId)
+                instance.close();
+        }
     },
 
     unregister: function (inputId) {

@@ -1774,7 +1774,7 @@ body {
 
 .clay-select-popup {
     position: absolute;
-    top: calc(100% + 4px);
+    top: 36px;
     left: 0;
     right: 0;
     z-index: var(--mud-zindex-popover);

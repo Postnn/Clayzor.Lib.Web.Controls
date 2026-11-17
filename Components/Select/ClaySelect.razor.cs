@@ -36,6 +36,7 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     private string _text = string.Empty;
     private TValue? _lastValue;
     private bool _valueSynchronized;
+    private bool _disposed;
     private IClaySelectDataSource<TItem, TValue>? _lastDataSource;
     private int _resolveVersion;
     private CancellationTokenSource? _resolveCts;
@@ -153,15 +154,16 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     }
 
     /// <summary>
-    /// Закрывает popup по сигналу браузера о внешнем клике или переходе фокуса.
+    /// Закрывает popup без отмены поиска, запущенного последующим событием blur.
     /// </summary>
     [Microsoft.JSInterop.JSInvokable]
     public async Task ClosePopupFromOutsideAsync()
     {
-        if (_advancedRunning)
+        if (_advancedRunning || _disposed)
             return;
 
-        ClosePopupAndRestoreText();
+        _open = false;
+        _activeIndex = -1;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -170,7 +172,7 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     /// </summary>
     public async Task FocusAsync()
     {
-        if (!_options.Disabled)
+        if (!_disposed && !_options.Disabled)
             await _inputRef.FocusAsync();
     }
 
@@ -195,8 +197,6 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
         _options = Options ?? new ClaySelectOptions();
         if (_options.MaxItems <= 0)
             throw new ArgumentOutOfRangeException(nameof(Options), "MaxItems должен быть больше нуля.");
-        if (_options.DebounceInterval < 0)
-            throw new ArgumentOutOfRangeException(nameof(Options), "DebounceInterval не может быть отрицательным.");
         if (_options.MinSearchLength < 0)
             throw new ArgumentOutOfRangeException(nameof(Options), "MinSearchLength не может быть отрицательным.");
 
@@ -270,6 +270,7 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     /// </summary>
     protected override async ValueTask DisposeAsyncCore()
     {
+        _disposed = true;
         InvalidatePendingOperations();
         try
         {

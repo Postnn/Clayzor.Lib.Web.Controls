@@ -1,4 +1,6 @@
 window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
+    requests: {},
+
     open: function (url, requestId, dotnetRef) {
         const target = new URL(url, window.location.href);
         target.searchParams.set('return', '1');
@@ -10,10 +12,16 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
             return;
         }
 
+        const request = { child, cleanup: null };
         const cleanup = () => {
             window.removeEventListener('message', onMessage);
             window.clearInterval(closeTimer);
+            if (this.requests[requestId] === request)
+                delete this.requests[requestId];
         };
+        request.cleanup = cleanup;
+        this.requests[requestId] = request;
+
         const onMessage = event => {
             if (event.origin !== target.origin || event.source !== child) return;
             if (event.data?.type !== 'clay-select-return' || event.data?.requestId !== requestId) return;
@@ -27,6 +35,14 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
             dotnetRef.invokeMethodAsync('CancelAsync', requestId);
         }, 500);
         window.addEventListener('message', onMessage);
+    },
+
+    cancel: function (requestId) {
+        const request = this.requests[requestId];
+        if (!request) return;
+        request.cleanup();
+        if (!request.child.closed)
+            request.child.close();
     },
 
     returnValue: function (requestId, value) {
