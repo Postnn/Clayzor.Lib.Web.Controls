@@ -47,7 +47,7 @@
 | **ClayErrorBar** — баннер ошибок БД с детализацией | [docs/clay-error-bar.md](docs/clay-error-bar.md) |
 | **ClayDbReconnectOverlay** — оверлей при недоступности SQL Server | — |
 | **ClayButton** — обёртка `MudTooltip` + `MudIconButton` с авто-сбросом тултипа | — |
-| **ClayTextBox / ClayTextArea / ClayNumber / ClayDatePicker** — общие поля форм по аналогии с legacy | — |
+| **ClayTextBox / ClayTextArea / ClayNumber / ClayDatePicker / ClayTime** — общие поля форм по аналогии с legacy | — |
 | **ClayDropDownList** — нередактируемый список фиксированных значений по аналогии с legacy | — |
 | **ClayToolbar / ClayToolbarButton** — панель команд формы редактирования | — |
 | **ClayEntityForm** — общий каркас отдельной формы: `Toolbar` и `Footer` неподвижны, прокручивается только `ChildContent`; стандартные отступы панели и выравнивание кнопок по золотой полосе | — |
