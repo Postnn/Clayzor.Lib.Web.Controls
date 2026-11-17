@@ -7,7 +7,7 @@
               RequiredError="@_opt.RequiredError"
               Disabled="@_opt.Disabled"
               ReadOnly="@_opt.ReadOnly"
-              MaxLength="@_opt.MaxLength"
+              MaxLength="@(_opt.MaxLength > 0 ? _opt.MaxLength : int.MaxValue)"
               Immediate="@_opt.Immediate"
               Variant="@_opt.Variant"
               Margin="@_opt.Margin"
