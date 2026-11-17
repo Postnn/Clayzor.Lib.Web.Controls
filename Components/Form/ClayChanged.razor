@@ -54,7 +54,7 @@
         try
         {
             var offsetMinutes = await JS.InvokeAsync<int>(
-                "clayGridTimeZone.getOffsetMinutes", Array.Empty<object?>());
+                "clayGridTimeZone.getOffsetMinutes", utc.ToString("O"));
             if (ChangedAt != utc)
                 return;
             _localChangedAt = utc.AddMinutes(offsetMinutes);
