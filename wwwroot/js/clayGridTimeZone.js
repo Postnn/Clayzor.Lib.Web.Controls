@@ -9,5 +9,17 @@ window.clayGridTimeZone = {
     getOffsetMinutes: function (utcDate) {
         const date = utcDate === undefined ? new Date() : new Date(utcDate);
         return -date.getTimezoneOffset();
+    },
+
+    /**
+     * Преобразует местные календарную дату и время браузера в Unix UTC milliseconds.
+     * @param {string} dateText дата в формате yyyy-MM-dd
+     * @param {string} timeText время в формате HH:mm:ss
+     * @returns {number} миллисекунды Unix UTC
+     */
+    localDateTimeToUtcMilliseconds: function (dateText, timeText) {
+        const [year, month, day] = dateText.split('-').map(Number);
+        const [hours, minutes, seconds = 0] = timeText.split(':').map(Number);
+        return new Date(year, month - 1, day, hours, minutes, seconds, 0).getTime();
     }
 };
