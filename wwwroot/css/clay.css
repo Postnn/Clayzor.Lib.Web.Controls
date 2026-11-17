@@ -1795,14 +1795,21 @@ body {
 }
 
 .clay-select-option:hover {
-    color: var(--mud-palette-primary);
-    background: var(--mud-palette-action-default-hover);
+    color: var(--mud-palette-primary-text);
+    background: var(--mud-palette-primary);
+    border-left-color: var(--clay-gold);
 }
 
 .clay-select-option--active {
     color: var(--mud-palette-primary-text);
     background: var(--mud-palette-primary);
     border-left-color: var(--clay-gold);
+}
+
+.clay-select-popup:has(.clay-select-option:hover) .clay-select-option--active:not(:hover) {
+    color: var(--mud-palette-primary);
+    background: transparent;
+    border-left-color: transparent;
 }
 
 .clay-select-status {
