@@ -35,6 +35,9 @@ public sealed class ClayGridOptions
     /// <summary>Выходные имена колонок SELECT для полнотекстового поиска.</summary>
     public string[] SearchColumns { get; set; } = [];
 
+    /// <summary>Начальный текст поиска, отображаемый в поле и применяемый к первой загрузке страницы.</summary>
+    public string? InitialSearchText { get; set; }
+
     /// <summary>Порядок сортировки по умолчанию.</summary>
     public string DefaultOrder { get; set; } = string.Empty;
 

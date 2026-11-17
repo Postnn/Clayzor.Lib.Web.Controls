@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 
 namespace Clayzor.Lib.Web.Controls.Components.Select;
@@ -35,9 +36,15 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     private string _text = string.Empty;
     private TValue? _lastValue;
     private bool _valueSynchronized;
+    private bool _disposed;
     private IClaySelectDataSource<TItem, TValue>? _lastDataSource;
     private int _resolveVersion;
     private CancellationTokenSource? _resolveCts;
+
+    [Inject]
+    private Microsoft.JSInterop.IJSRuntime JS { get; set; } = null!;
+
+    private Microsoft.JSInterop.DotNetObjectReference<ClaySelect<TItem, TValue>>? _dotnetRef;
 
     /// <summary>
     /// Текущие настройки компонента.
@@ -125,6 +132,13 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     public Func<ClaySelectAdvancedSearchContext, Task<ClaySelectExternalResult<TItem, TValue>?>>? AdvancedSearch { get; set; }
 
     /// <summary>
+    /// Открывает карточку выбранного элемента. Если задан обработчик, после выбора
+    /// кнопка поиска заменяется значком просмотра сущности.
+    /// </summary>
+    [Parameter]
+    public Func<TItem, Task>? ViewItem { get; set; }
+
+    /// <summary>
     /// Значение, проверяемое родительской <see cref="MudForm"/>.
     /// </summary>
     protected override TValue? ReadValue => Value;
@@ -135,18 +149,52 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     protected override IConverter<TValue?, TValue?> GetDefaultConverter() => new EmptyConverter<TValue?>();
 
     /// <summary>
+    /// Регистрирует обработчики внешнего клика и потери фокуса после интерактивного рендера.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotnetRef = Microsoft.JSInterop.DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("claySelect.register", _inputId, _dotnetRef);
+        }
+        if (IsOpen)
+            await JS.InvokeVoidAsync("claySelect.positionPopup", _inputId);
+    }
+
+    /// <summary>
+    /// Закрывает popup без отмены поиска, запущенного последующим событием blur.
+    /// </summary>
+    [Microsoft.JSInterop.JSInvokable]
+    public async Task ClosePopupFromOutsideAsync()
+    {
+        if (_advancedRunning || _disposed)
+            return;
+
+        _open = false;
+        _activeIndex = -1;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
     /// Устанавливает фокус в поле поиска.
     /// </summary>
     public async Task FocusAsync()
     {
-        if (!_options.Disabled)
+        if (!_disposed && !_options.Disabled)
             await _inputRef.FocusAsync();
     }
 
     /// <summary>
-    /// Очищает выбранные идентификатор и объект, если очистка разрешена настройками.
+    /// Очищает выбранные идентификатор и объект без возможности восстановления по Escape.
     /// </summary>
-    public Task ClearAsync() => ClearSelectionAsync();
+    public async Task ClearAsync()
+    {
+        _hasEditBackup = false;
+        _itemBeforeEdit = null;
+        _valueBeforeEdit = default;
+        await ClearSelectionAsync();
+    }
 
     /// <summary>
     /// Проверяет nullable-тип идентификатора и допустимость настроек страницы.
@@ -164,8 +212,6 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
         _options = Options ?? new ClaySelectOptions();
         if (_options.MaxItems <= 0)
             throw new ArgumentOutOfRangeException(nameof(Options), "MaxItems должен быть больше нуля.");
-        if (_options.DebounceInterval < 0)
-            throw new ArgumentOutOfRangeException(nameof(Options), "DebounceInterval не может быть отрицательным.");
         if (_options.MinSearchLength < 0)
             throw new ArgumentOutOfRangeException(nameof(Options), "MinSearchLength не может быть отрицательным.");
 
@@ -185,6 +231,9 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
 
         if (valueChanged || sourceChanged)
         {
+            _hasEditBackup = false;
+            _itemBeforeEdit = null;
+            _valueBeforeEdit = default;
             _valueSynchronized = true;
             _lastValue = Value;
             _lastDataSource = DataSource;
@@ -239,7 +288,22 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     /// </summary>
     protected override async ValueTask DisposeAsyncCore()
     {
+        _disposed = true;
         InvalidatePendingOperations();
+        try
+        {
+            await JS.InvokeVoidAsync("claySelect.unregister", _inputId);
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException)
+        {
+        }
+        catch (Microsoft.JSInterop.JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        _dotnetRef?.Dispose();
         await base.DisposeAsyncCore();
     }
 

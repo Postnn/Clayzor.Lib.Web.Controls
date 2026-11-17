@@ -1706,6 +1706,7 @@ body {
 }
 
 .clay-select-field {
+    position: relative;
     display: flex;
     align-items: stretch;
     height: 32px;
@@ -1773,7 +1774,7 @@ body {
 
 .clay-select-popup {
     position: absolute;
-    top: calc(100% + 4px);
+    top: 36px;
     left: 0;
     right: 0;
     z-index: var(--mud-zindex-popover);
@@ -1787,30 +1788,44 @@ body {
 }
 
 .clay-select-option {
-    padding: 7px 9px;
+    padding: 4px 8px;
     border-left: 3px solid transparent;
     cursor: pointer;
-    line-height: 1.35;
+    line-height: 1.25;
 }
 
 .clay-select-option:hover {
-    background: var(--mud-palette-action-default-hover);
-}
-
-.clay-select-option--active {
-    color: var(--mud-palette-primary);
-    background: var(--mud-palette-action-default-hover);
+    color: var(--mud-palette-primary-text);
+    background: var(--mud-palette-primary);
     border-left-color: var(--clay-gold);
 }
 
+.clay-select-option--active {
+    color: var(--mud-palette-primary-text);
+    background: var(--mud-palette-primary);
+    border-left-color: var(--clay-gold);
+}
+
+.clay-select-popup:has(.clay-select-option:hover) .clay-select-option--active:not(:hover) {
+    color: var(--mud-palette-primary);
+    background: transparent;
+    border-left-color: transparent;
+}
+
 .clay-select-status {
-    padding: 8px 9px;
+    padding: 5px 8px;
     color: var(--mud-palette-text-secondary);
+}
+
+.clay-select-view-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .clay-select-advanced {
     width: 100%;
-    padding: 8px 9px;
+    padding: 5px 8px;
     color: var(--mud-palette-primary);
     background: var(--mud-palette-background-gray);
     border: 0;

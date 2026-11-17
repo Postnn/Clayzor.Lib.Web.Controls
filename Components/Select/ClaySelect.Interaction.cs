@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 namespace Clayzor.Lib.Web.Controls.Components.Select;
 
@@ -8,12 +9,14 @@ public partial class ClaySelect<TItem, TValue>
     private readonly List<TItem> _results = [];
     private bool _open;
     private bool _loading;
-    private bool _debouncing;
     private bool _hasMore;
     private int _activeIndex = -1;
     private int _searchVersion;
     private CancellationTokenSource? _searchCts;
     private bool _advancedRunning;
+    private TItem? _itemBeforeEdit;
+    private TValue? _valueBeforeEdit;
+    private bool _hasEditBackup;
 
     /// <summary>
     /// Признак открытого списка результатов.
@@ -76,7 +79,13 @@ public partial class ClaySelect<TItem, TValue>
     protected bool IsMutable => !_options.Disabled && !_options.ReadOnly;
 
     /// <summary>
-    /// Обрабатывает изменение поискового текста.
+    /// Показывает кнопку просмотра вместо поиска, если текст выбранного элемента не изменён.
+    /// </summary>
+    protected bool IsViewMode => ViewItem is not null && HasCurrentSelectionText();
+
+    /// <summary>
+    /// Изменяет поисковый текст без запуска запроса. Поиск выполняется по Enter,
+    /// при потере фокуса или нажатию кнопки с многоточием.
     /// </summary>
     protected async Task HandleInputAsync(ChangeEventArgs args)
     {
@@ -86,14 +95,34 @@ public partial class ClaySelect<TItem, TValue>
         InvalidateSearchResults();
         var searchText = args.Value?.ToString() ?? string.Empty;
         if (Value is not null && _options.Clearable)
+        {
+            if (!_hasEditBackup)
+            {
+                _itemBeforeEdit = _currentItem;
+                _valueBeforeEdit = Value;
+                _hasEditBackup = true;
+            }
             await ClearSelectionAsync();
+        }
 
         _text = searchText;
-        await QueueSearchAsync(searchText);
     }
 
     /// <summary>
-    /// Открывает или закрывает список по нажатию кнопки с многоточием.
+    /// Открывает карточку текущего элемента без изменения выбора или поискового текста.
+    /// </summary>
+    protected async Task OpenViewItemAsync()
+    {
+        if (!IsMutable || _currentItem is null || ViewItem is null || !HasCurrentSelectionText())
+            return;
+
+        CancelSearch();
+        _open = false;
+        await ViewItem(_currentItem);
+    }
+
+    /// <summary>
+    /// Выполняет поиск введённого текста или закрывает открытый список.
     /// </summary>
     protected async Task TogglePopupAsync()
     {
@@ -106,7 +135,7 @@ public partial class ClaySelect<TItem, TValue>
             return;
         }
 
-        await SearchAsync(string.Empty, false);
+        await SearchAsync(_text, false);
     }
 
     /// <summary>
@@ -119,60 +148,67 @@ public partial class ClaySelect<TItem, TValue>
     }
 
     /// <summary>
-    /// Обрабатывает потерю фокуса полем.
+    /// Выполняет поиск при потере фокуса без открытия popup и проверяет выбранное значение.
     /// </summary>
     protected async Task HandleBlurAsync()
     {
-        if (_advancedRunning)
+        if (_advancedRunning || _disposed)
             return;
 
-        ClosePopupAndRestoreText();
+        CancelSearch();
+        _open = false;
+        _activeIndex = -1;
         Touched = true;
+        if (IsMutable)
+            await SearchAsync(_text, true, false);
         await BeginValidateAsync();
     }
 
     /// <summary>
-    /// Обрабатывает клавиатурную навигацию и выбор.
+    /// Обрабатывает клавиатурную навигацию, запуск поиска по Enter и выбор результата.
     /// </summary>
     protected async Task HandleKeyDownAsync(KeyboardEventArgs args)
     {
         if (!IsMutable || _advancedRunning)
             return;
 
-        if ((_debouncing || _loading) && args.Key is "ArrowDown" or "ArrowUp" or "Enter")
+        if (_loading && args.Key is "ArrowDown" or "ArrowUp" or "Enter")
             return;
 
         switch (args.Key)
         {
             case "ArrowDown":
-                if (!_open)
-                    await SearchAsync(string.Empty, false);
-                if (!_loading && _results.Count > 0)
+                if (_open && _results.Count > 0)
                     _activeIndex = Math.Min(_activeIndex + 1, _results.Count - 1);
                 break;
             case "ArrowUp":
-                if (_open && !_loading && _results.Count > 0)
+                if (_open && _results.Count > 0)
                     _activeIndex = Math.Max(_activeIndex - 1, 0);
                 break;
             case "Enter":
-                if (_open && !_loading && _activeIndex >= 0 && _activeIndex < _results.Count)
+                if (_open && _activeIndex >= 0 && _activeIndex < _results.Count)
                     await SelectItemAsync(_results[_activeIndex]);
-                else if (!_open)
-                    await SearchAsync(string.Empty, false);
+                else if (!_open && !HasCurrentSelectionText())
+                    await SearchAsync(_text, true);
                 break;
             case "Escape":
+                await RestorePreviousSelectionAsync();
+                break;
             case "Tab":
-                ClosePopupAndRestoreText();
+                CancelSearch();
+                _open = false;
+                _activeIndex = -1;
                 break;
         }
     }
 
     /// <summary>
     /// Вызывает расширенный поиск и применяет возвращённый объект или идентификатор.
+    /// Текст уже выбранного элемента не передаётся как новый поисковый запрос.
     /// </summary>
     protected async Task OpenAdvancedSearchAsync()
     {
-        if (!IsMutable || _advancedRunning || AdvancedSearch is null)
+        if (!IsMutable || _advancedRunning || AdvancedSearch is null || _disposed)
             return;
 
         _advancedRunning = true;
@@ -183,10 +219,10 @@ public partial class ClaySelect<TItem, TValue>
         {
             var result = await AdvancedSearch(new ClaySelectAdvancedSearchContext
             {
-                SearchText = _text,
+                SearchText = HasCurrentSelectionText() ? string.Empty : _text,
             });
 
-            if (result is null || version != _resolveVersion || !IsMutable)
+            if (result is null || version != _resolveVersion || !IsMutable || _disposed)
                 return;
 
             if (result.ContainsItem)
@@ -194,38 +230,24 @@ public partial class ClaySelect<TItem, TValue>
             else
                 await ApplyExternalValueAsync(result.Value);
         }
+        catch (OperationCanceledException)
+        {
+        }
         finally
         {
             _advancedRunning = false;
-            if (version == _resolveVersion)
-                RestoreSelectedText();
-            await FocusAsync();
+            if (!_disposed)
+            {
+                if (version == _resolveVersion)
+                    RestoreSelectedText();
+                await FocusAsync();
+            }
         }
     }
 
-    private async Task QueueSearchAsync(string searchText)
+    private async Task SearchAsync(string searchText, bool allowAutoSelect, bool openPopup = true)
     {
-        CancelSearch();
-        _debouncing = true;
-        var version = _searchVersion;
-        var cts = new CancellationTokenSource();
-        _searchCts = cts;
-        try
-        {
-            if (_options.DebounceInterval > 0)
-                await Task.Delay(_options.DebounceInterval, cts.Token);
-            if (version != _searchVersion || searchText != _text)
-                return;
-            await SearchAsync(searchText, true);
-        }
-        catch (OperationCanceledException) when (cts.IsCancellationRequested)
-        {
-        }
-    }
-
-    private async Task SearchAsync(string searchText, bool allowAutoSelect)
-    {
-        if (!IsMutable)
+        if (!IsMutable || _disposed)
             return;
 
         CancelSearch();
@@ -239,11 +261,19 @@ public partial class ClaySelect<TItem, TValue>
 
         var cts = new CancellationTokenSource();
         _searchCts = cts;
-        _open = true;
+        if (openPopup)
+        {
+            await JS.InvokeVoidAsync("claySelect.closeOthers", _inputId);
+            if (!IsCurrentSearch(version, cts))
+                return;
+        }
+        _open = openPopup;
         _loading = true;
         _hasMore = false;
         _activeIndex = -1;
         await InvokeAsync(StateHasChanged);
+        if (!IsCurrentSearch(version, cts))
+            return;
 
         try
         {
@@ -261,7 +291,7 @@ public partial class ClaySelect<TItem, TValue>
                 result = SearchStatic(searchText);
             }
 
-            if (version != _searchVersion || cts.IsCancellationRequested)
+            if (!IsCurrentSearch(version, cts))
                 return;
 
             _results.Clear();
@@ -282,6 +312,13 @@ public partial class ClaySelect<TItem, TValue>
                 _loading = false;
         }
     }
+
+    private bool IsCurrentSearch(int version, CancellationTokenSource cts) =>
+        version == _searchVersion && !cts.IsCancellationRequested && !_disposed && IsMutable;
+
+    private bool HasCurrentSelectionText() =>
+        Value is not null && _currentItem is not null &&
+        string.Equals(_text, TextSelector(_currentItem), StringComparison.Ordinal);
 
     private ClaySelectResult<TItem> SearchStatic(string searchText)
     {
@@ -332,6 +369,9 @@ public partial class ClaySelect<TItem, TValue>
         if (value is null)
             throw new InvalidOperationException("ValueSelector вернул null для выбранного элемента.");
 
+        _hasEditBackup = false;
+        _itemBeforeEdit = null;
+        _valueBeforeEdit = default;
         InvalidatePendingOperations();
         Value = value;
         _lastValue = value;
@@ -341,6 +381,22 @@ public partial class ClaySelect<TItem, TValue>
         await ValueChanged.InvokeAsync(value);
         await SelectedItemChanged.InvokeAsync(item);
         await NotifyUserValidationAsync();
+    }
+
+    private async Task RestorePreviousSelectionAsync()
+    {
+        if (!_hasEditBackup)
+        {
+            ClosePopupAndRestoreText();
+            return;
+        }
+
+        var item = _itemBeforeEdit;
+        var value = _valueBeforeEdit;
+        if (item is not null)
+            await SelectItemAsync(item);
+        else
+            await ApplyExternalValueAsync(value);
     }
 
     private async Task ClearSelectionAsync()
@@ -364,6 +420,9 @@ public partial class ClaySelect<TItem, TValue>
         if (value is null || !IsMutable)
             return;
 
+        _hasEditBackup = false;
+        _itemBeforeEdit = null;
+        _valueBeforeEdit = default;
         InvalidatePendingOperations();
         Value = value;
         _lastValue = value;
@@ -406,7 +465,6 @@ public partial class ClaySelect<TItem, TValue>
         _searchCts?.Dispose();
         _searchCts = null;
         _loading = false;
-        _debouncing = false;
     }
 
     private void InvalidateSearchResults()
