@@ -1856,11 +1856,31 @@ body {
 }
 
 /* ── Общие контролы форм ── */
+.clay-entity-form-layout {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 16px);
+    height: calc(100dvh - 16px);
+    min-height: 0;
+}
+
 .clay-entity-form {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
     padding-top: 0 !important;
 }
 
+.clay-entity-form-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
 .clay-form-toolbar {
+    flex: 0 0 auto;
     margin-bottom: 12px;
     border-bottom: 2px solid var(--clay-gold);
     background: var(--mud-palette-background-gray);
@@ -1869,7 +1889,7 @@ body {
 .clay-form-toolbar-bar {
     flex-wrap: wrap;
     gap: 8px;
-    height: 43px;
+    height: auto;
     min-height: 43px;
     padding: 0 0 4px;
     background: transparent;
@@ -1900,7 +1920,9 @@ body {
 }
 
 .clay-entity-form-footer {
-    padding: 4px 12px 0;
-    background: transparent;
+    flex: 0 0 auto;
+    padding: 4px 12px;
+    border-top: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
     box-shadow: none;
 }

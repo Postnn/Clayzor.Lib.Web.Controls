@@ -1,19 +1,27 @@
-<MudPaper Class="@($"pa-3 clay-entity-form {_opt.Class}")"
-          MaxWidth="@_opt.MaxWidth"
-          Elevation="@_opt.Elevation">
-    @ChildContent
-</MudPaper>
-@if (Footer is not null)
-{
-    <MudPaper Class="clay-entity-form-footer" MaxWidth="@_opt.MaxWidth" Elevation="0">
-        @Footer
+<div class="clay-entity-form-layout">
+    <MudPaper Class="@($"pa-3 clay-entity-form {_opt.Class}")"
+              MaxWidth="@_opt.MaxWidth"
+              Elevation="@_opt.Elevation">
+        @Toolbar
+        <div class="clay-entity-form-content">
+            @ChildContent
+        </div>
     </MudPaper>
-}
+    @if (Footer is not null)
+    {
+        <MudPaper Class="clay-entity-form-footer" MaxWidth="@_opt.MaxWidth" Elevation="0">
+            @Footer
+        </MudPaper>
+    }
+</div>
 
 @code {
     private ClayEntityFormOptions _opt = new();
 
-    /// <summary>Содержимое формы.</summary>
+    /// <summary>Команды формы, закреплённые над прокручиваемым содержимым.</summary>
+    [Parameter] public RenderFragment? Toolbar { get; set; }
+
+    /// <summary>Прокручиваемое содержимое формы.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Содержимое под нижней границей формы.</summary>

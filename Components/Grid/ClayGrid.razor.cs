@@ -55,6 +55,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>DotNetObjectReference для передачи в JS (insert-drag заголовков).</summary>
     private DotNetObjectReference<ClayGrid<TEntity>>? _dotnetRef;
 
+    /// <summary>Стабильный идентификатор регистрации callback дочерних форм.</summary>
+    private readonly string _formWindowRegistrationId = Guid.NewGuid().ToString("N");
+
     /// <summary>ColumnId → CellTemplate для динамического рендеринга колонок.</summary>
     private readonly Dictionary<int, object> _cellTemplates = [];
 
@@ -195,7 +198,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             {
                 await InitClientOffset();
                 _dotnetRef ??= DotNetObjectReference.Create(this);
-                await JS.InvokeVoidAsync("clayFormWindow.registerRefresh", _dotnetRef);
+                await JS.InvokeVoidAsync("clayFormWindow.registerRefresh", _formWindowRegistrationId, _dotnetRef);
             }
 
             _columnsReady = true;
@@ -288,7 +291,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
         if (_opt.Dynamic && _dotnetRef is not null)
         {
-            try { await JS.InvokeVoidAsync("clayFormWindow.unregisterRefresh", _dotnetRef); } catch { }
+            try { await JS.InvokeVoidAsync("clayFormWindow.unregisterRefresh", _formWindowRegistrationId); } catch { }
         }
         _dotnetRef?.Dispose();
     }

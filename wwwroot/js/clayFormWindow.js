@@ -1,19 +1,19 @@
 window.clayFormWindow = {
     storagePrefix: 'clayFormWindow:',
-    refreshRef: null,
+    refreshId: null,
     previousRefresh: null,
 
-    registerRefresh(dotnetRef) {
-        this.refreshRef = dotnetRef;
-        this.previousRefresh = window.refresh;
+    registerRefresh(registrationId, dotnetRef) {
+        if (!this.refreshId) this.previousRefresh = window.refresh;
+        this.refreshId = registrationId;
         window.refresh = () => dotnetRef.invokeMethodAsync('RefreshFromChildAsync');
     },
 
-    unregisterRefresh(dotnetRef) {
-        if (this.refreshRef !== dotnetRef) return;
+    unregisterRefresh(registrationId) {
+        if (this.refreshId !== registrationId) return;
         if (this.previousRefresh) window.refresh = this.previousRefresh;
         else delete window.refresh;
-        this.refreshRef = null;
+        this.refreshId = null;
         this.previousRefresh = null;
     },
 

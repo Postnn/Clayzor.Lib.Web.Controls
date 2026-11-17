@@ -48,6 +48,7 @@ Lifecycle behavior покрыт реальными bUnit same-instance tests (7 
 - `Запросы.СсылкаРедактирования` и `Запросы.СсылкаДобавления` открываются через `ClayFormWindowService` в отдельном окне, без `NavigationManager.NavigateTo` родительской страницы. Родительский грид сохраняет DOM, circuit, данные и состояние — повторной инициализации при закрытии формы нет.
 - Перед открытием сервис вызывает виртуальный `GetOptionsAsync` (пока fake-значения по умолчанию вместо веб-сервиса). JS `clayFormWindow.js` применяет сохранённые размер/позицию и записывает их в `localStorage`.
 - Динамический грид регистрирует `window.refresh` → `[JSInvokable] RefreshFromChildAsync()` → `NotifyQueryChanged()`. Дочерняя форма после сохранения вызывает этот callback существующего экземпляра; `opener.location.reload()` в новой связке не выполняется, страница/фильтры/состояние сохраняются.
+- Регистрация callback использует стабильный GUID компонента. JS сравнивает именно его при unregister, поэтому разные JS-обёртки `DotNetObjectReference` не мешают удалению, а запоздалый dispose старого грида не удаляет callback нового.
 - Приложение должно регистрировать `ClayFormWindowService` (через `AddClayGridDynamic` либо напрямую для статического грида) и подключать `_content/Clayzor.Lib.Web.Controls/js/clayFormWindow.js`.
 
 ### CGFR1.4 — same-instance failed reinit retry
