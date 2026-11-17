@@ -569,6 +569,14 @@ public partial class ClayGrid<TEntity> where TEntity : class
             Snackbar.Add("Разрешите всплывающие окна для открытия формы редактирования", Severity.Warning);
     }
 
+    /// <summary>Обновляет данные текущего грида после сохранения дочерней формы без перезагрузки страницы.</summary>
+    [Microsoft.JSInterop.JSInvokable]
+    public async Task RefreshFromChildAsync()
+    {
+        if (_opt.Dynamic)
+            await NotifyQueryChanged();
+    }
+
     /// <summary>Единый обработчик клика по кнопке «+» (статический + динамический).</summary>
     private async Task HandleRowAddClick()
     {

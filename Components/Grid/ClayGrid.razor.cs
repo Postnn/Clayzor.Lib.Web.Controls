@@ -192,7 +192,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (firstRender)
         {
             if (_opt.Dynamic)
+            {
                 await InitClientOffset();
+                _dotnetRef ??= DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("clayFormWindow.registerRefresh", _dotnetRef);
+            }
 
             _columnsReady = true;
             _dataKey++;
@@ -281,6 +285,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (!string.IsNullOrEmpty(_opt.Id))
         {
             try { await JS.InvokeVoidAsync("clayGridColumnDrag.dispose", _opt.Id); } catch { }
+        }
+        if (_opt.Dynamic && _dotnetRef is not null)
+        {
+            try { await JS.InvokeVoidAsync("clayFormWindow.unregisterRefresh", _dotnetRef); } catch { }
         }
         _dotnetRef?.Dispose();
     }

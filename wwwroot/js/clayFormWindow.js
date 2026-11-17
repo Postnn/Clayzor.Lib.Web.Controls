@@ -1,5 +1,21 @@
 window.clayFormWindow = {
     storagePrefix: 'clayFormWindow:',
+    refreshRef: null,
+    previousRefresh: null,
+
+    registerRefresh(dotnetRef) {
+        this.refreshRef = dotnetRef;
+        this.previousRefresh = window.refresh;
+        window.refresh = () => dotnetRef.invokeMethodAsync('RefreshFromChildAsync');
+    },
+
+    unregisterRefresh(dotnetRef) {
+        if (this.refreshRef !== dotnetRef) return;
+        if (this.previousRefresh) window.refresh = this.previousRefresh;
+        else delete window.refresh;
+        this.refreshRef = null;
+        this.previousRefresh = null;
+    },
 
     readSaved(formKey) {
         try {
@@ -23,6 +39,7 @@ window.clayFormWindow = {
         ].join(',');
         const child = window.open(url, formKey, features);
         if (!child) return false;
+        child.opener = window;
 
         const save = () => {
             try {
