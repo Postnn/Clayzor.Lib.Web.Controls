@@ -1926,3 +1926,51 @@ body {
     background: var(--mud-palette-surface);
     box-shadow: none;
 }
+
+.clay-detail-section {
+    margin-top: 12px;
+    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+}
+
+.clay-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 36px;
+    padding: 2px 8px;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-background-gray);
+}
+
+.clay-detail-title {
+    margin: 0;
+    font-size: var(--clay-font-size-base);
+    font-weight: 600;
+}
+
+.clay-detail-empty {
+    padding: 8px;
+    color: var(--mud-palette-text-secondary);
+    font-size: var(--clay-font-size-small);
+}
+
+.clay-detail-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.clay-detail-grid {
+    width: 100%;
+    font-size: var(--clay-font-size-small);
+}
+
+.clay-detail-grid .mud-table-cell {
+    padding: 4px 8px;
+}
+
+.clay-detail-actions {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+}

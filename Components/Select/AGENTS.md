@@ -199,6 +199,8 @@ JS-скрипт нужен и родительскому окну, и дочер
 - `Persons/PersonSelectDataSource.cs` — поиск лиц через `Справочники.dbo.sp_Лица_Поиск`;
 - `Documents/DocumentSelectDataSource.cs` — поиск в базе `Документы`, необязательный фильтр по лицу;
 - `Locations/LocationSelectDataSource.cs` — рабочие расположения из `vwРасположения`.
+- `Equipment/PhonePoolSelectDataSource.cs` — телефонные пулы из `vwПулыТелефонов`;
+- `Equipment/PhoneNumberSelectDataSource.cs` — телефонные номера и сведения АТС для связи с оборудованием.
 
 Прикладные примеры: `src/Kesco.App.Web.Inventory/Components/Pages/SelectTest.razor` и
 `Components/Pages/Equipment/ModelEquipmentForm.razor`. SQL и параметры источников должны
