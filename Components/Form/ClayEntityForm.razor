@@ -3,12 +3,21 @@
           Elevation="@_opt.Elevation">
     @ChildContent
 </MudPaper>
+@if (Footer is not null)
+{
+    <MudPaper Class="clay-entity-form-footer" MaxWidth="@_opt.MaxWidth" Elevation="0">
+        @Footer
+    </MudPaper>
+}
 
 @code {
     private ClayEntityFormOptions _opt = new();
 
     /// <summary>Содержимое формы.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Содержимое под нижней границей формы.</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
 
     /// <summary>Настройки ширины и оформления формы.</summary>
     [Parameter] public ClayEntityFormOptions? Options { get; set; }

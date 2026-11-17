@@ -1898,3 +1898,9 @@ body {
 .clay-changed-date {
     white-space: nowrap;
 }
+
+.clay-entity-form-footer {
+    padding: 4px 12px 0;
+    background: transparent;
+    box-shadow: none;
+}

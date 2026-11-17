@@ -1,3 +1,5 @@
+@inject IJSRuntime JS
+
 <div class="clay-changed @_opt.Class">
     @if (ChangedById is > 0 && ChangedAt is not null)
     {
@@ -10,12 +12,14 @@
         {
             <span class="clay-changed-user">@DisplayName</span>
         }
-        <time class="clay-changed-date" datetime="@ChangedAt.Value.ToString("O")">@ChangedAt.Value.ToString(_opt.DateTimeFormat)</time>
+        <time class="clay-changed-date" datetime="@UtcChangedAt.ToString("O")">@DisplayChangedAt.ToString(_opt.DateTimeFormat)</time>
     }
 </div>
 
 @code {
     private ClayChangedOptions _opt = new();
+    private DateTime? _localChangedAt;
+    private DateTime? _convertedUtc;
 
     /// <summary>Идентификатор сотрудника, изменившего запись.</summary>
     [Parameter] public int? ChangedById { get; set; }
@@ -23,7 +27,7 @@
     /// <summary>Отображаемое имя сотрудника.</summary>
     [Parameter] public string? ChangedByName { get; set; }
 
-    /// <summary>Дата и время последнего изменения.</summary>
+    /// <summary>Дата и время последнего изменения в UTC.</summary>
     [Parameter] public DateTime? ChangedAt { get; set; }
 
     /// <summary>URL карточки сотрудника.</summary>
@@ -33,7 +37,35 @@
     [Parameter] public ClayChangedOptions? Options { get; set; }
 
     private string DisplayName => !string.IsNullOrWhiteSpace(ChangedByName) ? ChangedByName : $"#{ChangedById}";
+    private DateTime UtcChangedAt => DateTime.SpecifyKind(ChangedAt!.Value, DateTimeKind.Utc);
+    private DateTime DisplayChangedAt => _convertedUtc == ChangedAt && _localChangedAt is not null
+        ? _localChangedAt.Value
+        : UtcChangedAt;
 
     /// <inheritdoc />
     protected override void OnParametersSet() => _opt = Options ?? new ClayChangedOptions();
+
+    /// <summary>Переводит UTC-время записи в часовой пояс браузера после интерактивного рендера.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (ChangedAt is null || _convertedUtc == ChangedAt)
+            return;
+        var utc = UtcChangedAt;
+        try
+        {
+            var offsetMinutes = await JS.InvokeAsync<int>(
+                "clayGridTimeZone.getOffsetMinutes", Array.Empty<object?>());
+            if (ChangedAt != utc)
+                return;
+            _localChangedAt = utc.AddMinutes(offsetMinutes);
+            _convertedUtc = ChangedAt;
+            StateHasChanged();
+        }
+        catch (JSException)
+        {
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
 }
