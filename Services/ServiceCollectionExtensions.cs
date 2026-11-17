@@ -25,6 +25,7 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<ClayGridDynamicSettings>(config.GetSection(section));
         services.AddSingleton<IValidateOptions<ClayGridDynamicSettings>, ValidateClayGridDynamicSettings>();
+        services.AddScoped<ClayFormWindowService>();
         return services;
     }
 

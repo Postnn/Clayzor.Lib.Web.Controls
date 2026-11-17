@@ -28,6 +28,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
     [Inject] private IConfiguration Config { get; set; } = default!;
+    [Inject] private Clayzor.Lib.Web.Controls.Services.ClayFormWindowService FormWindows { get; set; } = default!;
 
     private ClayGridDefinition? _dynamicDef;
     private IReadOnlyList<ClayColumnDefinition> _dynamicCols = [];
@@ -554,15 +555,25 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         var idVal = GetRowIdValue(detail.Item);
         if (idVal is null) return;
-        var url = $"{_dynamicEditUrl}?{_dynamicDef!.IdColumn}={Uri.EscapeDataString(idVal)}";
-        Nav.NavigateTo(url);
+        var url = BuildDynamicEditUrl(_dynamicEditUrl!, idVal);
+        await OpenDynamicFormAsync(url, _dynamicEditUrl!);
+    }
+
+    /// <summary>Строит URL редактирования со статическим именем параметра <c>id</c>.</summary>
+    internal static string BuildDynamicEditUrl(string baseUrl, string id) =>
+        $"{baseUrl}{(baseUrl.Contains('?') ? '&' : '?')}id={Uri.EscapeDataString(id)}";
+
+    private async Task OpenDynamicFormAsync(string url, string formKey)
+    {
+        if (!await FormWindows.OpenAsync(url, formKey))
+            Snackbar.Add("Разрешите всплывающие окна для открытия формы редактирования", Severity.Warning);
     }
 
     /// <summary>Единый обработчик клика по кнопке «+» (статический + динамический).</summary>
     private async Task HandleRowAddClick()
     {
         if (HasDynamicAdd)
-            Nav.NavigateTo(_dynamicNewUrl!);
+            await OpenDynamicFormAsync(_dynamicNewUrl!, _dynamicNewUrl!);
         else
             await OnAdd.InvokeAsync();
     }

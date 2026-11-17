@@ -89,6 +89,7 @@
 | **ClayErrorService** (Scoped) — хранит состояние последней ошибки SQL, реализует `ISqlErrorHandler` |
 | **ISqlErrorHandler** (DALC) — интерфейс, вызываемый `DbManager` при `SqlException` |
 | **ClayDbReconnectService** (Scoped) — авто-переподключение к SQL Server (3×30s health-check) |
+| **ClayFormWindowService** (Scoped) — отдельные окна форм динамического ClayGrid; fake-получение параметров, размер/позиция в `localStorage` |
 | **ClayReflectionCellReader** — читает значение ячейки через рефлексию |
 | **ClayGridExportFileName** — `Sanitize(title)` — убирает недопустимые символы из имени файла |
 
