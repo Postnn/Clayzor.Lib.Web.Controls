@@ -1,4 +1,5 @@
 @namespace Clayzor.Lib.Web.Controls.Components
+@using Clayzor.Lib.Web.Controls.Components.Form
 
 @*
     Обёртка MudMenu для выпадающих меню.
@@ -21,7 +22,12 @@
             // Захватываем x как object для передачи в обработчик
             var ctx = (object)x;
         }
-        @if (Tooltip is not null)
+        @if (ButtonOptions is not null)
+        {
+            <ClayToolbarButton Options="ButtonOptions" Disabled="Disabled"
+                               OnClick="@(async () => await HandleOpen(ctx))" />
+        }
+        else if (Tooltip is not null)
         {
             <MudTooltip Text="@Tooltip" Placement="@TooltipPlacement" @key="@_tipKey">
                 <MudIconButton Icon="@Icon"
@@ -46,6 +52,9 @@
 @code {
     /// <summary>Иконка MudBlazor для кнопки-активатора.</summary>
     [Parameter, EditorRequired] public string Icon { get; set; } = "";
+
+    /// <summary>Настройки текстовой кнопки-активатора вместо иконки.</summary>
+    [Parameter] public ClayToolbarButtonOptions? ButtonOptions { get; set; }
 
     /// <summary>Текст тултипа. Если не задан — тултип не отображается.</summary>
     [Parameter] public string? Tooltip { get; set; }

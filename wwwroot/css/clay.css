@@ -1938,16 +1938,28 @@ body {
     text-align: left !important;
 }
 
+.clay-grid-service-header,
+.clay-grid-service-cell {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    text-align: center;
+}
+
+.clay-grid-service-header .column-header {
+    justify-content: center !important;
+}
+
 .clay-grid-service-cell {
     white-space: nowrap;
-    text-align: center;
 }
 
 .clay-grid-service-cell .mud-icon-button,
 .clay-grid-service-add.mud-icon-button {
     width: 32px;
     height: 32px;
+    margin: 0;
     padding: 4px;
+    vertical-align: middle;
 }
 
 .clay-grid-service-add.mud-icon-button {
