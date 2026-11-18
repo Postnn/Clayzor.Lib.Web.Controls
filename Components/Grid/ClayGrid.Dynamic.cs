@@ -535,13 +535,6 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Признак, что в динамическом режиме есть кнопка удаления.</summary>
     private bool HasDynamicDelete => _dynamicDeleteSql is not null;
 
-    /// <summary>CSS-стиль сервисной колонки (ширина зависит от наличия кнопки удаления).</summary>
-    private string GetEditColumnStyle()
-    {
-        var w = HasDynamicDelete ? "88px" : "44px";
-        return $"width:{w};min-width:{w};max-width:{w}";
-    }
-
     /// <summary>Единый обработчик клика по карандашу (статический + динамический).</summary>
     private async Task HandleRowEditClick(IDetailRow detail)
     {

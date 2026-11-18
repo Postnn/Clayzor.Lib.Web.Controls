@@ -470,8 +470,8 @@
                                     DragAndDropEnabled="false"
                                     CellClassFunc="@(item => "clay-grid-service-cell " + (item is GroupHeaderRow && GroupRowHostKey == "__edit__" ? "group-header-cell" : ""))"
                                     HeaderClass="clay-grid-service-header"
-                                    HeaderStyle="@(RowActions is null ? GetEditColumnStyle() : GetRowActionsColumnStyle())"
-                                    CellStyle="@(RowActions is null ? GetEditColumnStyle() : GetRowActionsColumnStyle())">
+                                    HeaderStyle="@GetServiceColumnStyle()"
+                                    CellStyle="@GetServiceColumnStyle()">
                         <HeaderTemplate>
                             @if (!_opt.ShowToolbar && _opt.ShowAddButton && OnAdd.HasDelegate)
                             {

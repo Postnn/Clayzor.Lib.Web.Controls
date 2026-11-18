@@ -16,7 +16,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private const string ServiceEditColumnKey = "__clay_edit";
     private const string SelectColumnKey = "__clay_select";
 
-    private static string GetRowActionsColumnStyle() => "width:88px;min-width:88px;max-width:88px";
+    /// <summary>Единая фиксированная ширина сервисной колонки для всех режимов грида.</summary>
+    private static string GetServiceColumnStyle() => "width:88px;min-width:88px;max-width:88px";
 
     /// <summary>
     /// Срабатывает при регистрации или отмене регистрации колонки.
