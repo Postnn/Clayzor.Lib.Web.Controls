@@ -193,7 +193,7 @@ JS-скрипт нужен и родительскому окну, и дочер
 Готовые реализации находятся в `src/Clayzor.Lib.Web.DBSelect`:
 
 - `Equipment/EquipmentTypeSelectDataSource.cs`;
-- `Equipment/EquipmentModelSelectDataSource.cs` — требует выбранный тип и без него не обращается к БД;
+- `Equipment/EquipmentModelSelectDataSource.cs` — полные характеристики модели и необязательный фильтр типа; без типа поиск выполняется по всем моделям;
 - `Equipment/ResourceSelectDataSource.cs` — отдельная строка подключения справочников;
 - `Employees/EmployeeSelectDataSource.cs` — поиск по русскому и английскому имени;
 - `Persons/PersonSelectDataSource.cs` — поиск лиц через `Справочники.dbo.sp_Лица_Поиск`;
