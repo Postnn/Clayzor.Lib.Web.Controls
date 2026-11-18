@@ -11,4 +11,7 @@ public sealed class ClayTextBoxOptions : ClayInputOptions
 
     /// <summary>Передавать изменения при вводе, а не только при потере фокуса.</summary>
     public bool Immediate { get; set; } = true;
+
+    /// <summary>Тип поля ввода, включая скрытый ввод пароля.</summary>
+    public MudBlazor.InputType InputType { get; set; } = MudBlazor.InputType.Text;
 }
