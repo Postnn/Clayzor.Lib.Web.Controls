@@ -21,7 +21,10 @@
                     <tr class="mud-table-row">
                         @foreach (var column in Columns)
                         {
-                            <th class="mud-table-cell">@column.Title</th>
+                            if (column.IsVisible)
+                            {
+                                <th class="mud-table-cell">@column.Title</th>
+                            }
                         }
                         @if (Actions is not null)
                         {
@@ -32,10 +35,22 @@
                 <tbody>
                     @foreach (var item in Items)
                     {
-                        <tr class="mud-table-row">
+                        <tr class="mud-table-row @RowClass?.Invoke(item)">
                             @foreach (var column in Columns)
                             {
-                                <td class="mud-table-cell">@column.TextSelector(item)</td>
+                                if (column.IsVisible)
+                                {
+                                    <td class="mud-table-cell">
+                                        @if (column.CellTemplate is not null)
+                                        {
+                                            @column.CellTemplate(item)
+                                        }
+                                        else
+                                        {
+                                            @column.TextSelector(item)
+                                        }
+                                    </td>
+                                }
                             }
                             @if (Actions is not null)
                             {
@@ -58,8 +73,11 @@
     /// <summary>Строки секции.</summary>
     [Parameter] public IReadOnlyList<TItem> Items { get; set; } = [];
 
-    /// <summary>Описания текстовых колонок.</summary>
+    /// <summary>Описания колонок.</summary>
     [Parameter] public IReadOnlyList<ClayDetailColumn<TItem>> Columns { get; set; } = [];
+
+    /// <summary>Дополнительный CSS-класс строки.</summary>
+    [Parameter] public Func<TItem, string?>? RowClass { get; set; }
 
     /// <summary>Действия над строкой.</summary>
     [Parameter] public RenderFragment<TItem>? Actions { get; set; }

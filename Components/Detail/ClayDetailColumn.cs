@@ -9,4 +9,10 @@ public sealed class ClayDetailColumn<TItem>
 
     /// <summary>Формирование отображаемого текста строки.</summary>
     public required Func<TItem, string?> TextSelector { get; init; }
+
+    /// <summary>Признак отображения колонки.</summary>
+    public bool IsVisible { get; init; } = true;
+
+    /// <summary>Шаблон содержимого ячейки вместо простого текста.</summary>
+    public Microsoft.AspNetCore.Components.RenderFragment<TItem>? CellTemplate { get; init; }
 }
