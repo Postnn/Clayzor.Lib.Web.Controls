@@ -1974,3 +1974,28 @@ body {
     white-space: nowrap;
     text-align: right;
 }
+
+
+.clay-time.mud-picker {
+    flex: 0 0 180px;
+    width: 180px;
+    min-width: 180px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.clay-time .mud-input {
+    height: 32px;
+    min-height: 32px;
+    box-sizing: border-box;
+}
+
+.clay-time .mud-input-root {
+    min-width: 0;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+.clay-time .mud-input-control-helper-container {
+    min-height: 0;
+}
