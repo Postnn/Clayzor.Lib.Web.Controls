@@ -13,7 +13,7 @@
    и ClayColumn внутри MudDataGrid (построение заголовков) получают одну ссылку на IClayGrid *@
 <CascadingValue Value="(IClayGrid)this" IsFixed="true">
 @ColumnDefs
-<MudPaper Elevation="1" Class="@($"pa-4 {_opt.Class}")" Style="position:relative" id="@_opt.Id">
+<MudPaper Elevation="1" Class="@($"pa-4 {_opt.Class} {(_opt.ShowHeader ? "" : "clay-grid-hide-header")}")" Style="position:relative" id="@_opt.Id">
     @if (_dynamicError is not null)
     {
         <div class="clay-grid-error">
@@ -468,13 +468,17 @@
                                     Title=""
                                     Sortable="false"
                                     DragAndDropEnabled="false"
-                                    CellClassFunc="@(item => item is GroupHeaderRow && GroupRowHostKey == "__edit__" ? "group-header-cell" : "")"
-                                    Style="@(RowActions is null ? GetEditColumnStyle() : "width:1%;white-space:nowrap")">
+                                    CellClassFunc="@(item => "clay-grid-service-cell " + (item is GroupHeaderRow && GroupRowHostKey == "__edit__" ? "group-header-cell" : ""))"
+                                    HeaderClass="clay-grid-service-header"
+                                    HeaderStyle="@(RowActions is null ? GetEditColumnStyle() : GetRowActionsColumnStyle())"
+                                    CellStyle="@(RowActions is null ? GetEditColumnStyle() : GetRowActionsColumnStyle())">
                         <HeaderTemplate>
                             @if (!_opt.ShowToolbar && _opt.ShowAddButton && OnAdd.HasDelegate)
                             {
                                 <ClayButton Icon="@Icons.Material.Filled.Add"
                                             Text="@_opt.AddTooltip"
+                                            Class="clay-grid-service-add"
+                                            Size="Size.Small"
                                             Disabled="@AddDisabled"
                                             OnClick="OnAdd" />
                             }

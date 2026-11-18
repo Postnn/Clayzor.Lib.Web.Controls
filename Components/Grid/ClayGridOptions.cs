@@ -64,6 +64,9 @@ public sealed class ClayGridOptions
     /// <summary>Показывать панель инструментов с заголовком и командами грида.</summary>
     public bool ShowToolbar { get; set; } = true;
 
+    /// <summary>Показывать строку заголовков колонок.</summary>
+    public bool ShowHeader { get; set; } = true;
+
     /// <summary>Не ограничивать высоту грида высотой окна.</summary>
     public bool AutoHeight { get; set; }
 

@@ -1927,10 +1927,36 @@ body {
     box-shadow: none;
 }
 
+.clay-grid-hide-header .mud-table-head {
+    display: none;
+}
+
 .clay-grid-empty {
     padding: 8px;
     color: var(--mud-palette-text-secondary);
     font-size: var(--clay-font-size-small);
+    text-align: left !important;
+}
+
+.clay-grid-service-cell {
+    white-space: nowrap;
+    text-align: center;
+}
+
+.clay-grid-service-cell .mud-icon-button,
+.clay-grid-service-add.mud-icon-button {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+}
+
+.clay-grid-service-add.mud-icon-button {
+    color: var(--lh-gold) !important;
+    opacity: 1;
+}
+
+.clay-grid-service-add.mud-icon-button:hover {
+    background-color: var(--mud-palette-action-default-hover) !important;
 }
 
 
