@@ -206,6 +206,15 @@ body {
     border-bottom: 2px solid var(--lh-gold) !important;
 }
 
+.mud-table .mud-table-body .mud-table-row {
+    height: 32px;
+}
+
+.mud-table .mud-table-body .mud-table-cell {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+
 .mud-table .mud-table-body .mud-table-row:hover {
     background-color: rgba(5, 22, 77, 0.04) !important;
 }
@@ -1779,14 +1788,13 @@ body {
 }
 
 .clay-select-popup {
-    position: fixed;
-    top: auto;
+    position: absolute;
+    top: 36px;
     left: 0;
-    right: auto;
+    right: 0;
     z-index: var(--mud-zindex-popover);
     max-height: 280px;
     overflow-y: auto;
-    overflow-x: hidden;
     color: var(--mud-palette-text-primary);
     background: var(--mud-palette-surface);
     border: 1px solid var(--mud-palette-lines-default);
@@ -1962,17 +1970,14 @@ body {
 
 .clay-grid-service-cell .mud-icon-button,
 .clay-grid-service-add.mud-icon-button {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     margin: 0;
-    padding: 4px;
+    padding: 2px;
     vertical-align: middle;
 }
 
 .clay-grid-service-add.mud-icon-button {
-    width: 24px;
-    height: 24px;
-    padding: 2px;
     color: var(--lh-gold) !important;
     opacity: 1;
 }

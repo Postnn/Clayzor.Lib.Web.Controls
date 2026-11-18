@@ -36,26 +36,28 @@ window.claySelect = window.claySelect || {
         const popup = field?.querySelector('.clay-select-popup');
         if (!field || !popup) return;
 
+        let container = field.parentElement;
+        while (container && container !== document.body) {
+            const overflowY = getComputedStyle(container).overflowY;
+            if (overflowY === 'auto' || overflowY === 'scroll') break;
+            container = container.parentElement;
+        }
+        if (container === document.body) container = null;
+
         const rect = field.getBoundingClientRect();
+        const containerRect = container?.getBoundingClientRect();
+        const visibleTop = Math.max(0, containerRect?.top ?? 0);
+        const visibleBottom = Math.min(window.innerHeight, containerRect?.bottom ?? window.innerHeight);
         const gap = 4;
         const margin = 8;
         const maxHeight = 280;
-        const viewportWidth = document.documentElement.clientWidth;
-        const viewportHeight = window.innerHeight;
-        const width = Math.min(rect.width, Math.max(0, viewportWidth - margin * 2));
-        const left = Math.min(
-            Math.max(margin, rect.left),
-            Math.max(margin, viewportWidth - width - margin));
-        const below = Math.max(0, viewportHeight - rect.bottom - gap - margin);
-        const above = Math.max(0, rect.top - gap - margin);
+        const below = Math.max(0, visibleBottom - rect.bottom - gap - margin);
+        const above = Math.max(0, rect.top - visibleTop - gap - margin);
         const openUp = maxHeight > below && above > below;
         const availableHeight = Math.max(0, Math.min(maxHeight, openUp ? above : below));
 
-        popup.style.left = `${left}px`;
-        popup.style.right = 'auto';
-        popup.style.width = `${width}px`;
-        popup.style.top = openUp ? 'auto' : `${rect.bottom + gap}px`;
-        popup.style.bottom = openUp ? `${viewportHeight - rect.top + gap}px` : 'auto';
+        popup.style.top = openUp ? 'auto' : `${field.offsetHeight + gap}px`;
+        popup.style.bottom = openUp ? `${field.offsetHeight + gap}px` : 'auto';
         popup.style.maxHeight = `${availableHeight}px`;
     },
 
