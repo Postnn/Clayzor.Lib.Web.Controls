@@ -40,14 +40,22 @@ window.claySelect = window.claySelect || {
         const gap = 4;
         const margin = 8;
         const maxHeight = 280;
-        const below = Math.max(0, window.innerHeight - rect.bottom - gap - margin);
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight;
+        const width = Math.min(rect.width, Math.max(0, viewportWidth - margin * 2));
+        const left = Math.min(
+            Math.max(margin, rect.left),
+            Math.max(margin, viewportWidth - width - margin));
+        const below = Math.max(0, viewportHeight - rect.bottom - gap - margin);
         const above = Math.max(0, rect.top - gap - margin);
-        popup.style.maxHeight = `${maxHeight}px`;
-        const popupHeight = popup.getBoundingClientRect().height;
-        const openUp = popupHeight > below && above > below;
+        const openUp = maxHeight > below && above > below;
         const availableHeight = Math.max(0, Math.min(maxHeight, openUp ? above : below));
-        popup.style.top = openUp ? 'auto' : `${field.offsetHeight + gap}px`;
-        popup.style.bottom = openUp ? `${field.offsetHeight + gap}px` : 'auto';
+
+        popup.style.left = `${left}px`;
+        popup.style.right = 'auto';
+        popup.style.width = `${width}px`;
+        popup.style.top = openUp ? 'auto' : `${rect.bottom + gap}px`;
+        popup.style.bottom = openUp ? `${viewportHeight - rect.top + gap}px` : 'auto';
         popup.style.maxHeight = `${availableHeight}px`;
     },
 

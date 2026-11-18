@@ -1779,13 +1779,14 @@ body {
 }
 
 .clay-select-popup {
-    position: absolute;
-    top: 36px;
+    position: fixed;
+    top: auto;
     left: 0;
-    right: 0;
+    right: auto;
     z-index: var(--mud-zindex-popover);
     max-height: 280px;
     overflow-y: auto;
+    overflow-x: hidden;
     color: var(--mud-palette-text-primary);
     background: var(--mud-palette-surface);
     border: 1px solid var(--mud-palette-lines-default);
