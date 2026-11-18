@@ -52,11 +52,26 @@ public sealed class ClayGridOptions
     /// <summary>DOM-идентификатор корневого элемента грида.</summary>
     public string Id { get; set; } = "clay-grid";
 
-    /// <summary>Показывать кнопку «Добавить» в тулбаре.</summary>
+    /// <summary>Показывать кнопку «Добавить» в тулбаре либо в шапке сервисной колонки при скрытом тулбаре.</summary>
     public bool ShowAddButton { get; set; } = true;
+
+    /// <summary>Подсказка команды добавления.</summary>
+    public string AddTooltip { get; set; } = "Добавить";
 
     /// <summary>Показывать панель пагинации.</summary>
     public bool ShowPagination { get; set; } = true;
+
+    /// <summary>Показывать панель инструментов с заголовком и командами грида.</summary>
+    public bool ShowToolbar { get; set; } = true;
+
+    /// <summary>Не ограничивать высоту грида высотой окна.</summary>
+    public bool AutoHeight { get; set; }
+
+    /// <summary>Дополнительные CSS-классы корневого контейнера.</summary>
+    public string? Class { get; set; }
+
+    /// <summary>Текст, отображаемый при отсутствии строк.</summary>
+    public string EmptyText { get; set; } = "Нет данных";
 
     // ── Колонки ──────────────────────────────────────────────────────────────────
 
@@ -69,6 +84,9 @@ public sealed class ClayGridOptions
 
     /// <summary>Разрешить перетаскивание колонок.</summary>
     public bool AllowColumnReorder { get; set; } = true;
+
+    /// <summary>Разрешить изменение сортировки по щелчку на заголовке.</summary>
+    public bool AllowSorting { get; set; } = true;
 
     // ── Фильтрация ───────────────────────────────────────────────────────────────
 

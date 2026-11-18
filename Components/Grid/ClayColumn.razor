@@ -32,10 +32,10 @@
                                Style="padding:0;width:22px;height:22px;min-width:22px;margin-right:2px"
                                title="Фильтр по значению" />
             }
-            <div style="flex:1;display:flex;align-items:center;cursor:grab" draggable="true"
+            <div style="flex:1;display:flex;align-items:center;cursor:grab" draggable="@(Grid?.Options.AllowColumnReorder == true)"
                  data-col-sql="@_meta?.SqlName" @onclick="HandleSortClick">
                 <MudText Style="flex:1;text-align:center">@_meta?.DisplayName</MudText>
-                @if (Grid is not null && _meta is not null)
+                @if (Grid is not null && _meta is not null && Grid.Options.AllowSorting)
                 {
                     @Grid.GetSortBadge(_meta.SqlName)
                 }
@@ -80,6 +80,9 @@
     /// </summary>
     [Parameter] public RenderFragment<CellContext<TEntity>>? CellTemplate { get; set; }
 
+    /// <summary>Формирование простого текстового содержимого ячейки.</summary>
+    [Parameter] public Func<TEntity, string?>? TextSelector { get; set; }
+
     // ── Вычисляемые значения из метаданных ──────────────────────────────────────
     private ClayColumnMeta? _meta => Grid?.GetColumnMetaById(ColumnId);
     private bool _hidden => _meta is not null && (Grid?.IsGrouped(_meta.SqlName) == true ||
@@ -103,8 +106,11 @@ Grid?.IsColumnHidden(_meta.SqlName) == true);
     {
         if (Grid is not null)
         {
+            var template = CellTemplate;
+            if (template is null && TextSelector is not null)
+                template = context => builder => builder.AddContent(0, TextSelector(context.Item));
             Grid.RegisterColumnInOrder(ColumnId);
-            Grid.RegisterCellTemplate(ColumnId, CellTemplate!);
+            Grid.RegisterCellTemplate(ColumnId, template!);
             Grid.ColumnsChanged += OnStateChanged;
             Grid.TrayStateChanged += OnStateChanged;
         }
@@ -130,7 +136,7 @@ Grid?.IsColumnHidden(_meta.SqlName) == true);
     /// <summary>Обрабатывает клик по заголовку: переключает серверную сортировку.</summary>
     private async Task HandleSortClick()
     {
-        if (Grid is not null && _meta is not null)
+        if (Grid is not null && _meta is not null && Grid.Options.AllowSorting)
             await Grid.ToggleSort(_meta.SqlName);
     }
 }

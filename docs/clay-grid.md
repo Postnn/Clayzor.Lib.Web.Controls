@@ -19,7 +19,10 @@
 | `Columns` | `RenderFragment?` | — | Дочерняя разметка — `<ClayColumn>` компоненты |
 | `ColumnDefs` | `RenderFragment?` | — | Дочерняя разметка — `<ClayColumnDef>` компоненты |
 | `DataLoader` | `IClayGridDataLoader?` | `null` | Живая ссылка на страницу (`DataLoader="this"`) |
-| `OnAdd` | `EventCallback` | — | EventCallback: Blazor обеспечивает ре-рендер вызывающего компонента |
+| `OnAdd` | `EventCallback` | — | Добавление; при `ShowToolbar=false` кнопка выводится в шапке сервисной колонки |
+| `AddDisabled` | `bool` | `false` | Блокировка добавления в текущем состоянии |
+| `RowActions` | `RenderFragment<TEntity>?` | `null` | Действия над записью в сервисной колонке |
+| `RowClass` | `Func<TEntity,string?>?` | `null` | Дополнительный CSS-класс строки |
 | `OnGroupToggle` | `EventCallback<GroupHeaderRow>` | — | EventCallback |
 | `OnQueryChanged` | `EventCallback<ClayDataQuery>` | — | EventCallback |
 
@@ -35,10 +38,16 @@
 | `SearchColumns` | `string[]` | `[]` | Выходные имена колонок SELECT для полнотекстового поиска |
 | `DefaultOrder` | `string` | `""` | Порядок сортировки по умолчанию |
 | `PageSize` | `int` | `50` | Количество строк на странице по умолчанию |
-| `ShowAddButton` | `bool` | `true` | Показывать кнопку «Добавить» в тулбаре |
+| `ShowAddButton` | `bool` | `true` | Показывать добавление в тулбаре либо в шапке сервисной колонки при скрытом тулбаре |
+| `AddTooltip` | `string` | `"Добавить"` | Подсказка команды добавления |
 | `ShowPagination` | `bool` | `true` | Показывать панель пагинации |
+| `ShowToolbar` | `bool` | `true` | Показывать toolbar и заголовок грида |
+| `AutoHeight` | `bool` | `false` | Отключить фиксированную высоту по viewport |
+| `Class` | `string?` | `null` | Дополнительный CSS-класс корневого контейнера |
+| `EmptyText` | `string` | `"Нет данных"` | Текст пустого списка |
 | `ColumnMenuMode` | `ColumnMenuMode` | `Mobile` | Режим кнопки меню (⋮) в заголовках |
 | `AllowColumnReorder` | `bool` | `true` | Разрешить перетаскивание колонок |
+| `AllowSorting` | `bool` | `true` | Разрешить сортировку щелчком по заголовку |
 | `EnableValueFilter` | `bool` | `true` | Глобальное включение фильтра по значению (Excel-style) |
 | `FilterColumnTypes` | `IReadOnlyDictionary<string, ColumnType>` | `[]` | Тип данных для каждой фильтруемой колонки |
 | `FilterLookupOptions` | `IReadOnlyDictionary<string, IReadOnlyList<ClayFilterOption>>?` | `null` | Источник вариантов для выпадающего списка в диалоге фильтра |
@@ -63,7 +72,15 @@
 - ~~`ShowFilterTray`~~ / ~~`AvailableFilterColumns`~~ — заменены на `ClayColumnDef` в `<ColumnDefs>`
 - ~~`ChildContent`~~ — переименован в `Columns`, заодно добавлен `ColumnDefs`
 - ~~`OnQueryChanged`~~ — заменён на `DataLoader` (IClayGridDataLoader)
-- Конфигурационные параметры сведены в `ClayGridOptions` (серия CGO): `Title`, `Id`, `ShowAddButton`, `PageSize`, `EditSuccessMessage`, `ShowPagination`, `AllowColumnReorder`, `FilterColumnTypes`, `FilterLookupOptions`, `SelectSql`, `SearchColumns`, `DefaultOrder`, `EditDialogType`, `ColumnMenuMode`, `SelectVisible`, `ShowPrint`, `ShowExcel`, `EnableValueFilter`, `CustomBatchGroups`, `Dynamic`, `DynamicGridId`
+- Конфигурационные параметры сведены в `ClayGridOptions` (серия CGO): `Title`, `Id`, `ShowAddButton`, `AddTooltip`, `PageSize`, `EditSuccessMessage`, `ShowPagination`, `ShowToolbar`, `AutoHeight`, `Class`, `EmptyText`, `AllowColumnReorder`, `AllowSorting`, `FilterColumnTypes`, `FilterLookupOptions`, `SelectSql`, `SearchColumns`, `DefaultOrder`, `EditDialogType`, `ColumnMenuMode`, `SelectVisible`, `ShowPrint`, `ShowExcel`, `EnableValueFilter`, `CustomBatchGroups`, `Dynamic`, `DynamicGridId`
+
+### Статический режим для табличных секций
+
+Для уже загруженной коллекции передаются только `Items`, `Options`, `ColumnDefs` и `Columns`; `DataLoader` не нужен.
+Для секции без общего toolbar используются `ShowToolbar=false`, `ShowPagination=false`, `AutoHeight=true`,
+`AllowSorting=false`, `AllowColumnReorder=false` и `ColumnMenuMode.Hidden`. `Title` в этом режиме не выводится.
+`OnAdd` рендерится в шапке сервисной колонки, а `RowActions` — в её ячейках. При изменении состава условных
+колонок компонент пересоздаётся через `@key`, чтобы реестр колонок не сохранял устаревшие записи.
 
 ## Публичные методы
 
@@ -113,6 +130,7 @@
 |---|---|---|---|
 | `ColumnId` | `int` | ✓ `EditorRequired` | Числовой идентификатор — связь с `ClayColumnDef` |
 | `CellTemplate` | `RenderFragment<CellContext<TEntity>>?` | — | Шаблон содержимого ячейки |
+| `TextSelector` | `Func<TEntity,string?>?` | — | Простой текст ячейки без отдельного шаблона; если задан `CellTemplate`, приоритет у него |
 
 ## ClayGroupHeader
 

@@ -68,10 +68,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private ClayGridOptions _opt = new();
 
-    private string _gridHeight
+    private string? _gridHeight
     {
         get
         {
+            if (_opt.AutoHeight)
+                return null;
             var trays = (_trayExpanded ? 1 : 0) + (_filterTrayExpanded ? 1 : 0);
             return trays switch
             {
@@ -106,6 +108,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Данные для отображения.</summary>
     [Parameter] public IEnumerable<TEntity> Items { get; set; } = [];
 
+    /// <summary>Дополнительный CSS-класс строки данных.</summary>
+    [Parameter] public Func<TEntity, string?>? RowClass { get; set; }
+
     /// <summary>Признак загрузки — управляет индикатором грида.</summary>
     [Parameter] public bool Loading { get; set; }
 
@@ -115,6 +120,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     [Parameter] public RenderFragment? Columns { get; set; }
 
+    /// <summary>Действия над строкой в сервисной колонке.</summary>
+    [Parameter] public RenderFragment<TEntity>? RowActions { get; set; }
+
     /// <summary>
     /// Метаданные колонок — <see cref="ClayColumnDef"/> компоненты.
     /// Рендерятся вне грида через <c>CascadingValue</c> для регистрации метаданных.
@@ -123,6 +131,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     /// <summary>Событие нажатия кнопки «Добавить».</summary>
     [Parameter] public EventCallback OnAdd { get; set; }
+
+    /// <summary>Блокировка команды добавления в текущем состоянии.</summary>
+    [Parameter] public bool AddDisabled { get; set; }
 
     /// <summary>Событие изменения параметров запроса (поиск, сортировка, пагинация и т.д.).</summary>
     [Parameter] public EventCallback<ClayDataQuery> OnQueryChanged { get; set; }
@@ -205,7 +216,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _dataKey++;
             StateHasChanged();
         }
-        else if (_columnsReady && !string.IsNullOrEmpty(_opt.Id))
+        else if (_columnsReady && _opt.AllowColumnReorder && !string.IsNullOrEmpty(_opt.Id))
         {
             _dotnetRef ??= DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("clayGridColumnDrag.init", _opt.Id, _dotnetRef);

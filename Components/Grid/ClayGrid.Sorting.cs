@@ -17,6 +17,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     public async Task ToggleSort(string sqlName)
     {
+        if (!_opt.AllowSorting)
+            return;
         var sortName = _columnBySqlName.TryGetValue(sqlName, out var meta)
             ? meta.SortName
             : sqlName;

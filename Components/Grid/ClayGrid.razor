@@ -13,7 +13,7 @@
    и ClayColumn внутри MudDataGrid (построение заголовков) получают одну ссылку на IClayGrid *@
 <CascadingValue Value="(IClayGrid)this" IsFixed="true">
 @ColumnDefs
-<MudPaper Elevation="1" Class="pa-4" Style="position:relative" id="@_opt.Id">
+<MudPaper Elevation="1" Class="@($"pa-4 {_opt.Class}")" Style="position:relative" id="@_opt.Id">
     @if (_dynamicError is not null)
     {
         <div class="clay-grid-error">
@@ -32,6 +32,8 @@
         </div>
     }
     else
+    {
+    @if (_opt.ShowToolbar)
     {
     <div class="d-flex flex-wrap justify-space-between gap-2 mb-4" style="align-items:center">
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
@@ -238,6 +240,7 @@
             }
         </MudStack>
     </div>
+    }
 
     var filterDesc = BuildFilterDescription();
     var groupDesc  = BuildGroupDescription();
@@ -406,14 +409,17 @@
                  @key="_dataKey"
                  Items="@Items"
                  Filterable="false"
-                 FixedHeader="true"
+                 FixedHeader="@(!_opt.AutoHeight)"
                  Height="@_gridHeight"
                  Dense="true"
                  Hover="true"
                  Striped="true"
                  Loading="@Loading"
-
+                 RowClassFunc="@((item, _) => RowClass?.Invoke(item) ?? string.Empty)"
                  RowsPerPage="@_pageSize">
+        <NoRecordsContent>
+            <div class="clay-grid-empty">@_opt.EmptyText</div>
+        </NoRecordsContent>
         <Columns>
             @if (!_columnsReady)
             {
@@ -455,14 +461,24 @@
                         </CellTemplate>
                     </TemplateColumn>
                 }
-                @if (_opt.EditDialogType is not null || HasDynamicEdit)
+                @if (_opt.EditDialogType is not null || HasDynamicEdit || RowActions is not null ||
+                     OnAdd.HasDelegate && !_opt.ShowToolbar && _opt.ShowAddButton)
                 {
                     <TemplateColumn @key="ServiceEditColumnKey" T="TEntity"
                                     Title=""
                                     Sortable="false"
                                     DragAndDropEnabled="false"
                                     CellClassFunc="@(item => item is GroupHeaderRow && GroupRowHostKey == "__edit__" ? "group-header-cell" : "")"
-                                    Style="@GetEditColumnStyle()">
+                                    Style="@(RowActions is null ? GetEditColumnStyle() : "width:1%;white-space:nowrap")">
+                        <HeaderTemplate>
+                            @if (!_opt.ShowToolbar && _opt.ShowAddButton && OnAdd.HasDelegate)
+                            {
+                                <ClayButton Icon="@Icons.Material.Filled.Add"
+                                            Text="@_opt.AddTooltip"
+                                            Disabled="@AddDisabled"
+                                            OnClick="OnAdd" />
+                            }
+                        </HeaderTemplate>
                         <CellTemplate>
                             @if (context.Item is GroupHeaderRow gh)
                             {
@@ -471,18 +487,25 @@
                                     <ClayGroupHeader Header="gh" OnToggle="HandleGroupToggle" />
                                 }
                             }
-                            else if (context.Item is IDetailRow detail)
+                            else
                             {
-                                <ClayButton Icon="@Icons.Material.Filled.Edit"
-                                             Text="Редактировать"
-                                             Size="Size.Small"
-                                             OnClick="async () => await HandleRowEditClick(detail)" />
-                                @if (HasDynamicDelete && detail is not null)
+                                if (context.Item is IDetailRow detail && (_opt.EditDialogType is not null || HasDynamicEdit))
                                 {
-                                    <ClayButton Icon="@Icons.Material.Filled.Delete"
-                                                 Text="Удалить"
-                                                 Size="Size.Small"
-                                                 OnClick="async () => await HandleDynamicDelete(detail.Item)" />
+                                    <ClayButton Icon="@Icons.Material.Filled.Edit"
+                                                Text="Редактировать"
+                                                Size="Size.Small"
+                                                OnClick="async () => await HandleRowEditClick(detail)" />
+                                    @if (HasDynamicDelete)
+                                    {
+                                        <ClayButton Icon="@Icons.Material.Filled.Delete"
+                                                    Text="Удалить"
+                                                    Size="Size.Small"
+                                                    OnClick="async () => await HandleDynamicDelete(detail.Item)" />
+                                    }
+                                }
+                                if (RowActions is not null)
+                                {
+                                    @RowActions(context.Item)
                                 }
                             }
                         </CellTemplate>
@@ -515,11 +538,14 @@
                                                    title="Фильтр по значению" />
                                 }
                                  <div style="flex:1;display:flex;align-items:center;cursor:grab"
-                                      draggable="true"
+                                      draggable="@_opt.AllowColumnReorder"
                                       data-col-sql="@sqlName"
                                       @onclick="() => HandleSortClick(sqlName)">
                                     <MudText Style="flex:1;text-align:center">@dispName</MudText>
-                                    @GetSortBadge(sqlName)
+                                    @if (_opt.AllowSorting)
+                                    {
+                                        @GetSortBadge(sqlName)
+                                    }
                                 </div>
                                 @if (_menuVisible(ordMeta))
                                 {

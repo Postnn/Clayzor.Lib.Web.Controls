@@ -14,9 +14,8 @@
 
 | Компонент | Документация |
 |---|---|
-| **ClayGrid\<T>** — грид с серверной пагинацией, поиском, сортировкой, группировкой, фильтрацией по колонкам. Разметка в `ClayGrid.razor`, логика в partial class-файлах. Конфигурация — `ClayGridOptions` | [docs/clay-grid.md](docs/clay-grid.md) |
+| **ClayGrid\<T>** — единственный компонент таблиц: статический и динамический режимы, серверная пагинация/поиск/сортировка/группировка/фильтрация; для табличных секций — `ShowToolbar=false`, `AutoHeight=true`, `OnAdd` в шапке сервисной колонки и `RowActions` в строках | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayGridPageBase\<T>** — базовый класс страниц с гридом. Предоставляет `LoadData`, `ToggleGroup`, `OpenAddDialog` | [docs/clay-grid.md](docs/clay-grid.md) |
-| **ClayDetailGrid\<TItem>** — компактная табличная секция формы: текстовые/шаблонные колонки (`CellTemplate`), условная видимость (`IsVisible`), класс строки (`RowClass`), действия и добавление без DynamicGrid | `Components/Detail/` |
 | **ClayColumn\<T>** — колонка грида с авто-заголовком | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayColumnDef** — невидимый регистратор метаданных колонки | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayGroupHeader** — заголовок строки группы | [docs/clay-grid.md](docs/clay-grid.md) |
