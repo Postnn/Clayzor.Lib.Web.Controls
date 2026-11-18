@@ -191,6 +191,8 @@ body {
 }
 
 .mud-table .mud-table-head .mud-table-cell {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
     background-color: var(--lh-navy) !important;
     color: var(--lh-white) !important;
     font-weight: 600;
