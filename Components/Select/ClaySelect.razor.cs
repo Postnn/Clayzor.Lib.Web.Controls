@@ -145,6 +145,10 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     [Parameter]
     public Func<TItem, Task>? ViewItem { get; set; }
 
+    /// <summary>Событие подтверждённой очистки выбора; промежуточное редактирование текста его не вызывает.</summary>
+    [Parameter]
+    public EventCallback Cleared { get; set; }
+
     /// <summary>
     /// Значение, проверяемое родительской <see cref="MudForm"/>.
     /// </summary>
@@ -201,6 +205,7 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
         _itemBeforeEdit = null;
         _valueBeforeEdit = default;
         await ClearSelectionAsync();
+        await Cleared.InvokeAsync();
     }
 
     /// <summary>

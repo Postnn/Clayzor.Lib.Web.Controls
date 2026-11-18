@@ -161,6 +161,13 @@ public partial class ClaySelect<TItem, TValue>
         Touched = true;
         if (IsMutable)
             await SearchAsync(_text, true, false);
+        if (_hasEditBackup && Value is null && string.IsNullOrWhiteSpace(_text))
+        {
+            _hasEditBackup = false;
+            _itemBeforeEdit = null;
+            _valueBeforeEdit = default;
+            await Cleared.InvokeAsync();
+        }
         await BeginValidateAsync();
     }
 
