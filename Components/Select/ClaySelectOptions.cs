@@ -41,7 +41,7 @@ public sealed class ClaySelectOptions
     public string Label { get; set; } = string.Empty;
 
     /// <summary>
-    /// Подсказка в пустом поле. В отключённом состоянии не отображается.
+    /// Подсказка в пустом поле. В отключённом и доступном только для чтения состояниях не отображается.
     /// </summary>
     public string Placeholder { get; set; } = string.Empty;
 

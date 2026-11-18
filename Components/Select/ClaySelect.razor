@@ -13,7 +13,7 @@
                class="clay-select-input"
                type="text"
                value="@DisplayText"
-               placeholder="@(ResolvedOptions.Disabled ? null : ResolvedOptions.Placeholder)"
+               placeholder="@(ResolvedOptions.Disabled || ResolvedOptions.ReadOnly ? null : ResolvedOptions.Placeholder)"
                disabled="@ResolvedOptions.Disabled"
                readonly="@ResolvedOptions.ReadOnly"
                required="@ResolvedOptions.Required"
