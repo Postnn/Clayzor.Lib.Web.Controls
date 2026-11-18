@@ -190,6 +190,10 @@ body {
     cursor: pointer;
 }
 
+.mud-table .mud-table-head .mud-table-row {
+    height: 32px;
+}
+
 .mud-table .mud-table-head .mud-table-cell {
     padding-top: 2px !important;
     padding-bottom: 2px !important;
@@ -1965,6 +1969,9 @@ body {
 }
 
 .clay-grid-service-add.mud-icon-button {
+    width: 24px;
+    height: 24px;
+    padding: 2px;
     color: var(--lh-gold) !important;
     opacity: 1;
 }
@@ -1973,6 +1980,23 @@ body {
     background-color: var(--mud-palette-action-default-hover) !important;
 }
 
+.mud-picker-toolbar {
+    height: 64px !important;
+    min-height: 64px !important;
+    padding: 0 16px !important;
+}
+
+.mud-picker-datepicker-toolbar .mud-button-year,
+.mud-picker-datepicker-toolbar .mud-button-date {
+    font-size: 1.25rem !important;
+    line-height: 1.25 !important;
+}
+
+.mud-picker-timepicker-toolbar .mud-timepicker-button,
+.mud-picker-timepicker-toolbar .mud-timepicker-separator {
+    font-size: 2rem !important;
+    line-height: 1.25 !important;
+}
 
 .clay-time.mud-picker {
     flex: 0 0 180px;
