@@ -1,0 +1,47 @@
+@inject IJSRuntime JS
+
+@if (Value is not null)
+{
+    <time class="@_opt.Class" datetime="@UtcValue.ToString("O")">@DisplayValue</time>
+}
+
+@code {
+    private ClayLocalTimeOptions _opt = new();
+    private DateTime? _localValue;
+    private DateTime? _convertedUtc;
+
+    /// <summary>Дата и время в UTC.</summary>
+    [Parameter] public DateTime? Value { get; set; }
+
+    /// <summary>Настройки формата и оформления.</summary>
+    [Parameter] public ClayLocalTimeOptions? Options { get; set; }
+
+    private DateTime UtcValue => DateTime.SpecifyKind(Value!.Value, DateTimeKind.Utc);
+    private string DisplayValue => _convertedUtc == Value && _localValue is not null
+        ? _localValue.Value.ToString(_opt.DateTimeFormat)
+        : string.Empty;
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() => _opt = Options ?? new ClayLocalTimeOptions();
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Value is null || _convertedUtc == Value) return;
+        var utc = UtcValue;
+        try
+        {
+            var offsetMinutes = await JS.InvokeAsync<int>("clayGridTimeZone.getOffsetMinutes", utc.ToString("O"));
+            if (Value != utc) return;
+            _localValue = utc.AddMinutes(offsetMinutes);
+            _convertedUtc = Value;
+            StateHasChanged();
+        }
+        catch (JSException)
+        {
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}

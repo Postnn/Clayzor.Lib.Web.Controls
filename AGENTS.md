@@ -53,6 +53,7 @@
 | **ClayToolbar / ClayToolbarButton** — панель команд формы редактирования | — |
 | **ClayEntityForm** — общий каркас отдельной формы: `Toolbar` и `Footer` неподвижны, прокручивается только `ChildContent`; стандартные отступы панели и выравнивание кнопок по золотой полосе | — |
 | **ClayChanged** — сотрудник и дата последнего изменения записи; выводится в `Footer` формы, UTC БД преобразуется во время клиента со смещением на дату записи | — |
+| **ClayLocalTime** — UTC-дата в таблицах и формах; преобразуется через `clayGridTimeZone.getOffsetMinutes` со смещением браузера на дату события, включая DST | — |
 | **ClayMenu** — обёртка `MudMenu`: иконка либо текстовый `ClayToolbarButton` через `ButtonOptions` | — |
 | **ClayCheckbox** — контролируемый чекбокс с tri-state поддержкой | — |
 | **ConfirmDialog** — диалог подтверждения | [docs/confirm-dialog.md](docs/confirm-dialog.md) |
