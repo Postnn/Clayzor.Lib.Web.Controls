@@ -6,7 +6,7 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
         target.searchParams.set('return', '1');
         target.searchParams.set('requestId', requestId);
         target.searchParams.set('returnOrigin', window.location.origin);
-        const child = window.open(target.toString(), '_blank', 'width=1100,height=700,resizable=yes,scrollbars=yes');
+        const child = window.clayOpen(target.toString(), 'advanced-search', { width: 1100, height: 700, left: 50, top: 50, resizable: true });
         if (!child) {
             dotnetRef.invokeMethodAsync('CancelAsync', requestId);
             return;

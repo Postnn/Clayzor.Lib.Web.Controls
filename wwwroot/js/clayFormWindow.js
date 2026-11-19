@@ -68,3 +68,12 @@ window.clayFormWindow = {
         return true;
     }
 };
+
+window.clayOpen = function (url, target, defaults) {
+    const targetUrl = new URL(url, window.location.href);
+    const formKey = target && !target.startsWith('_')
+        ? target
+        : 'entity:' + targetUrl.pathname.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+    const options = Object.assign({ width: 1100, height: 700, left: 50, top: 50, resizable: true }, defaults || {});
+    return window.clayFormWindow.open(targetUrl.toString(), formKey, options);
+};
