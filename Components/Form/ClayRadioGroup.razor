@@ -1,0 +1,31 @@
+@typeparam TValue
+@namespace Clayzor.Lib.Web.Controls.Components.Form
+
+<MudRadioGroup T="TValue" Value="@Value" ValueChanged="@ValueChanged" Class="@_opt.Class">
+    @if (Items is not null)
+    {
+        @foreach (var item in Items)
+        {
+            <MudRadio T="TValue" Value="@item.Value" Disabled="@(_opt.Disabled || _opt.ReadOnly)" Dense="true">@item.Text</MudRadio>
+        }
+    }
+</MudRadioGroup>
+
+@code {
+    private ClayRadioGroupOptions _opt = new();
+
+    /// <summary>Текущее значение перечисления или другого типизированного поля.</summary>
+    [Parameter] public TValue? Value { get; set; }
+
+    /// <summary>Событие подтверждённого изменения выбора.</summary>
+    [Parameter] public EventCallback<TValue?> ValueChanged { get; set; }
+
+    /// <summary>Варианты переключателей.</summary>
+    [Parameter] public IEnumerable<ClayRadioOption<TValue>>? Items { get; set; }
+
+    /// <summary>Настройки поведения и оформления.</summary>
+    [Parameter] public ClayRadioGroupOptions? Options { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() => _opt = Options ?? new ClayRadioGroupOptions();
+}

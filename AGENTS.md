@@ -49,6 +49,7 @@
 | **ClayButton** — обёртка `MudTooltip` + `MudIconButton` с авто-сбросом тултипа | — |
 | **ClayTextBox / ClayTextArea / ClayNumber / ClayDatePicker / ClayTime** — общие поля форм по аналогии с legacy | — |
 | **ClayDropDownList** — нередактируемый список фиксированных значений по аналогии с legacy | — |
+| **ClayRadioGroup\<TValue\>** — типизированная radio-группа для enum и других фактических значений поля, без индексов вариантов | — |
 | **ClayToolbar / ClayToolbarButton** — панель команд формы редактирования | — |
 | **ClayEntityForm** — общий каркас отдельной формы: `Toolbar` и `Footer` неподвижны, прокручивается только `ChildContent`; стандартные отступы панели и выравнивание кнопок по золотой полосе | — |
 | **ClayChanged** — сотрудник и дата последнего изменения записи; выводится в `Footer` формы, UTC БД преобразуется во время клиента со смещением на дату записи | — |
