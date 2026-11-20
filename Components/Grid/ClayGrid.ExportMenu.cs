@@ -38,7 +38,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         {
             _isExporting = false;
             _busyLabel   = null;
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
     }
 
