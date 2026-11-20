@@ -77,6 +77,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
         {
             if (_opt.AutoHeight)
                 return null;
+            if (_opt.FillAvailableHeight)
+                return "100%";
             var trays = (_trayExpanded ? 1 : 0) + (_filterTrayExpanded ? 1 : 0);
             return trays switch
             {
@@ -158,7 +160,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
     [Parameter] public IClayGridDataLoader? DataLoader { get; set; }
 
     /// <summary>Есть ли что показать в меню групповых операций.</summary>
-    private bool HasBatchOperations => _opt.ShowPrint || _opt.ShowExcel || (_opt.CustomBatchGroups?.Count > 0);
+    private bool HasBatchOperations => _opt.ShowPrint || _opt.ShowExcel || (_opt.CustomBatchGroups?.Count > 0)
+        || (_opt.Dynamic && _dynamicDef is not null && !_isSharedMode);
 
     /// <summary>
     /// Показывать кнопку «Выбрать записи». В динамическом режиме — только если известна

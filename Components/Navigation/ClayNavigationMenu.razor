@@ -1,0 +1,46 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Navigation
+
+<nav id="@RootId" class="clay-navigation-menu" aria-label="@Options.AriaLabel" data-clay-navigation-menu>
+    <ul class="clay-navigation-menu__roots" role="menubar">
+        @for (var index = 0; index < Items.Count; index++)
+        {
+            var path = index.ToString();
+            var item = Items[index];
+            var hasChildren = item.Children.Count > 0;
+            <li class="clay-navigation-menu__root" data-menu-container="@path">
+                @if (hasChildren)
+                {
+                    <button id="@ItemId(path)" type="button" role="menuitem"
+                            class="clay-navigation-menu__root-button"
+                            aria-haspopup="true" aria-expanded="@IsOpen(path)" aria-controls="@PanelId(path)"
+                            disabled="@item.Disabled" title="@(item.Title ?? item.Text)"
+                            @onclick="() => ToggleAsync(path)">
+                        <ClayNavigationMenuItemContent Item="item" HasChildren="true" />
+                    </button>
+                    @if (IsOpen(path))
+                    {
+                        <ClayNavigationMenuPanel Menu="this" Item="item" Path="@path" />
+                    }
+                }
+                else if (item.OnActivate is not null)
+                {
+                    <button id="@ItemId(path)" type="button" role="menuitem"
+                            class="clay-navigation-menu__root-button" disabled="@item.Disabled" title="@(item.Title ?? item.Text)"
+                            @onclick="() => ActivateAsync(item)">
+                        <ClayNavigationMenuItemContent Item="item" />
+                    </button>
+                }
+                else
+                {
+                    <a id="@ItemId(path)" role="menuitem" class="clay-navigation-menu__root-button"
+                       href="@(item.Disabled ? null : SafeHref(item.Href))"
+                       aria-disabled="@item.Disabled" aria-current="@(item.IsActive ? "page" : null)"
+                       disabled="@item.Disabled" title="@(item.Title ?? item.Text)"
+                       @onclick="CloseAllAsync">
+                        <ClayNavigationMenuItemContent Item="item" />
+                    </a>
+                }
+            </li>
+        }
+    </ul>
+</nav>

@@ -30,6 +30,7 @@ Dynamic runtime state одного компонента привязан к **va
 Same identity rerender не вызывает повторную dynamic initialization.
 
 Единственный владелец инициализации — `OnParametersSetAsync`. `_dynamicInitDone` удалён.
+`_dynamicInitGate` сериализует переинициализации и повторно проверяет identity после ожидания: параллельный запуск той же identity не должен повторно читать definition или смешивать `_columnOrder`. Нарушение приводило к duplicate `TemplateColumn` key и незавершающемуся busy-overlay при переходе через меню.
 
 **Test seam:** `DbManager.RunDbAsync` (internal) позволяет тестам использовать произвольную реализацию `DbConnection` без привязки к `SqlConnection`. `DynamicSql.QueryRowsAsync` использует `RunDbAsync`.
 

@@ -34,6 +34,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private IReadOnlyList<ClayColumnDefinition> _dynamicCols = [];
     /// <summary>Identity последней динамической инициализации. null — никогда не инициализировался или статический режим (CGFR1).</summary>
     private ClayGridDynamicKey? _currentDynamicKey;
+    private readonly SemaphoreSlim _dynamicInitGate = new(1, 1);
     private HashSet<string> _dynamicKnownColumns = [];
     private Dictionary<string, IReadOnlyDictionary<string, string>> _dynamicLookups = [];
     private Dictionary<string, IReadOnlyDictionary<string, (string Tooltip, string Href)>> _dynamicIconLookups = [];
@@ -133,9 +134,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (key == _currentDynamicKey)
             return; // та же identity — без повторной загрузки definition/columns/данных (CGFR1 §18)
 
-        ResetDynamicRuntimeState();
+        await _dynamicInitGate.WaitAsync();
         try
         {
+            if (key == _currentDynamicKey)
+                return;
+            ResetDynamicRuntimeState();
             await InitDynamicMode();
             _currentDynamicKey = key;   // только после normal completion (CGFR1.1)
         }
@@ -143,6 +147,10 @@ public partial class ClayGrid<TEntity> where TEntity : class
         {
             _currentDynamicKey = null;  // разблокировать retry той же identity (CGFR1.1)
             throw;
+        }
+        finally
+        {
+            _dynamicInitGate.Release();
         }
     }
 
@@ -1093,6 +1101,48 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         foreach (var (name, value) in toSave)
             _dynamicSavedParams[name] = value;
+    }
+
+    /// <summary>Сбрасывает параметры текущего динамического грида через групповые операции toolbar.</summary>
+    private async Task ClearDynamicStateAsync()
+    {
+        if (!_opt.Dynamic || _dynamicDef is null || _isSharedMode) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { dialog => dialog.Message, "Вы действительно хотите очистить параметры формы?" },
+            { dialog => dialog.ConfirmText, "Да" },
+            { dialog => dialog.CancelText, "Нет" },
+        };
+        var dialog = await DialogService.ShowExAsync<ConfirmDialog>(
+            "Очистить параметры формы", parameters,
+            new DialogOptionsEx { DragMode = MudDialogDragMode.Simple });
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        await RunBusyAsync("Очистка параметров формы…", async () =>
+        {
+            var opt = DynamicOpts.Value;
+            _searchText = null;
+            _sortState.Clear();
+            _groupColumns.Clear();
+            _trayExpanded = false;
+            _filterTrayExpanded = false;
+            _filterRoot = new ClayFilterGroupNode();
+            _dynamicQuickSearchCols.Clear();
+            foreach (var column in _dynamicCols.Where(column =>
+                         column.QuickSearch && ClayColumnKindExtensions.SupportsQuickSearch(column.Type)))
+                _dynamicQuickSearchCols.Add(column.Column);
+            _dynamicSavedParams.Clear();
+            _dynamicForcedParamNames.Clear();
+            ResetColumnsToDefinitionDefault();
+            _pageSize = _opt.PageSize;
+            _pageNumber = 1;
+
+            await SaveDynamicState();
+            await RefreshQuickSearchEffective(opt);
+            await NotifyQueryChanged();
+            Snackbar.Add("Параметры формы очищены", Severity.Success);
+        });
     }
 
     /// <summary>

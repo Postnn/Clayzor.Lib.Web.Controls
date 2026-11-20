@@ -1,0 +1,25 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Navigation
+
+@if (Item.IsActive)
+{
+    <span class="clay-navigation-menu__active-dot" aria-hidden="true"></span>
+}
+<span class="clay-navigation-menu__icon" aria-hidden="true">
+    @if (!string.IsNullOrWhiteSpace(Item.IconUrl))
+    {
+        <img src="@Item.IconUrl" alt="" loading="lazy" />
+    }
+</span>
+<span class="clay-navigation-menu__text">@Item.Text</span>
+@if (HasChildren)
+{
+    <span class="clay-navigation-menu__arrow" aria-hidden="true">›</span>
+}
+
+@code {
+    /// <summary>Отображаемый пункт.</summary>
+    [Parameter, EditorRequired] public ClayNavigationMenuItem Item { get; set; } = new();
+
+    /// <summary>Показывать индикатор вложенного уровня.</summary>
+    [Parameter] public bool HasChildren { get; set; }
+}

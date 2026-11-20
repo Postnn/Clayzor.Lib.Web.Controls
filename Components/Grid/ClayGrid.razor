@@ -13,7 +13,7 @@
    и ClayColumn внутри MudDataGrid (построение заголовков) получают одну ссылку на IClayGrid *@
 <CascadingValue Value="(IClayGrid)this" IsFixed="true">
 @ColumnDefs
-<MudPaper Elevation="1" Class="@($"pa-4 {_opt.Class} {(_opt.ShowHeader ? "" : "clay-grid-hide-header")}")" Style="position:relative" id="@_opt.Id">
+<MudPaper Elevation="1" Class="@($"pa-4 {_opt.Class} {(_opt.ShowHeader ? "" : "clay-grid-hide-header")} {(_opt.FillAvailableHeight ? "clay-grid--fill-height" : "")}")" Style="position:relative" id="@_opt.Id">
     @if (_dynamicError is not null)
     {
         <div class="clay-grid-error">
@@ -37,7 +37,10 @@
     {
     <div class="d-flex flex-wrap justify-space-between gap-2 mb-4" style="align-items:center">
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.h5">@_opt.Title</MudText>
+            @if (_opt.ShowTitle)
+            {
+                <MudText Typo="Typo.h5">@_opt.Title</MudText>
+            }
             @if (_isSharedMode)
             {
                 <span class="clay-shared-mode-badge">Общие настройки (изменения не сохраняются)</span>
@@ -227,6 +230,13 @@
                                     }
                                 }
                             }
+                        }
+                        @if (_opt.Dynamic && _dynamicDef is not null && !_isSharedMode)
+                        {
+                            <MudMenuItem OnClick="ClearDynamicStateAsync">
+                                <MudIcon Icon="@Icons.Material.Filled.SettingsBackupRestore" Size="Size.Small" Class="mr-2" />
+                                Очистить параметры формы
+                            </MudMenuItem>
                         }
                 </ClayMenu>
             }

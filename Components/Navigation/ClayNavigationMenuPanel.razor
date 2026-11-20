@@ -1,0 +1,61 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Navigation
+
+<div id="@Menu.PanelId(Path)" class="clay-navigation-menu__panel" data-menu-panel="@Path"
+     data-anchor-id="@Menu.ItemId(Path)" role="presentation">
+    <ul class="clay-navigation-menu__list" role="menu" aria-label="@Item.Text">
+        @for (var index = 0; index < Item.Children.Count; index++)
+        {
+            var childPath = $"{Path}.{index}";
+            var child = Item.Children[index];
+            var hasChildren = child.Children.Count > 0;
+            <li class="clay-navigation-menu__item" data-menu-container="@childPath">
+                @if (child.SeparatorBefore)
+                {
+                    <hr class="clay-navigation-menu__separator" />
+                }
+                @if (hasChildren)
+                {
+                    <button id="@Menu.ItemId(childPath)" type="button" role="menuitem"
+                            class="clay-navigation-menu__link" disabled="@child.Disabled" title="@(child.Title ?? child.Text)"
+                            aria-haspopup="true" aria-expanded="@Menu.IsOpen(childPath)" aria-controls="@Menu.PanelId(childPath)"
+                            @onclick="() => Menu.ToggleAsync(childPath)">
+                        <ClayNavigationMenuItemContent Item="child" HasChildren="true" />
+                    </button>
+                    @if (Menu.IsOpen(childPath))
+                    {
+                        <ClayNavigationMenuPanel Menu="Menu" Item="child" Path="@childPath" />
+                    }
+                }
+                else if (child.OnActivate is not null)
+                {
+                    <button id="@Menu.ItemId(childPath)" type="button" role="menuitem"
+                            class="clay-navigation-menu__link" disabled="@child.Disabled" title="@(child.Title ?? child.Text)"
+                            @onclick="() => Menu.ActivateAsync(child)">
+                        <ClayNavigationMenuItemContent Item="child" />
+                    </button>
+                }
+                else
+                {
+                    <a id="@Menu.ItemId(childPath)" role="menuitem" class="clay-navigation-menu__link"
+                       href="@(child.Disabled ? null : ClayNavigationMenu.SafeHref(child.Href))"
+                       aria-disabled="@child.Disabled" aria-current="@(child.IsActive ? "page" : null)"
+                       disabled="@child.Disabled" title="@(child.Title ?? child.Text)"
+                       @onclick="Menu.CloseAllAsync">
+                        <ClayNavigationMenuItemContent Item="child" />
+                    </a>
+                }
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    /// <summary>Экземпляр-владелец состояния меню.</summary>
+    [Parameter, EditorRequired] public ClayNavigationMenu Menu { get; set; } = default!;
+
+    /// <summary>Родительский пункт, чьи Children отображаются в панели.</summary>
+    [Parameter, EditorRequired] public ClayNavigationMenuItem Item { get; set; } = default!;
+
+    /// <summary>Путь панели в дереве, например 0.2.1.</summary>
+    [Parameter, EditorRequired] public string Path { get; set; } = string.Empty;
+}
