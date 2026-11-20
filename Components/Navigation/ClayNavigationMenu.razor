@@ -42,5 +42,9 @@
                 }
             </li>
         }
+        @if (AdditionalContent is not null)
+        {
+            <li class="clay-navigation-menu__actions">@AdditionalContent</li>
+        }
     </ul>
 </nav>

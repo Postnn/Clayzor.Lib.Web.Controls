@@ -18,6 +18,9 @@ public partial class ClayNavigationMenu : IAsyncDisposable
     /// <summary>Настройки взаимодействия и геометрии.</summary>
     [Parameter] public ClayNavigationMenuOptions Options { get; set; } = new();
 
+    /// <summary>Дополнительные действия внутри корневой полосы меню, выровненные вправо.</summary>
+    [Parameter] public RenderFragment? AdditionalContent { get; set; }
+
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     /// <inheritdoc />

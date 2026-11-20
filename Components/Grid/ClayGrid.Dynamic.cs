@@ -143,6 +143,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
             await InitDynamicMode();
             _currentDynamicKey = key;   // только после normal completion (CGFR1.1)
         }
+        catch (SqlException exception)
+        {
+            _currentDynamicKey = null;
+            ShowDynamicLoadError(exception);
+        }
         catch
         {
             _currentDynamicKey = null;  // разблокировать retry той же identity (CGFR1.1)
@@ -274,6 +279,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
         _opt.Title     = _dynamicDef.Title ?? "Список";
         _opt.SelectSql = _dynamicDef.Sql;
+        await TitleChanged.InvokeAsync(_opt.Title);
 
         _dynamicCols = await ClayGridDefinitionData.LoadColumnsAsync(
             Db, gridId, opt.ColumnsTable, opt.Schema,
@@ -655,6 +661,54 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// делегирования странице через <see cref="IClayGridDataLoader"/>.
     /// </summary>
     private async Task LoadDynamicData(ClayDataQuery query)
+    {
+        try
+        {
+            await LoadDynamicDataCore(query);
+        }
+        catch (SqlException exception)
+        {
+            ShowDynamicLoadError(exception);
+        }
+    }
+
+    private void ShowDynamicLoadError(SqlException exception) =>
+        _dynamicError = $"Не удалось загрузить данные запроса {_opt.Title} #{_dynamicGridId}.\n" +
+            $"Ошибка: {exception.Message}\n" +
+            $"Строка подключения: {MaskConnectionStringPassword(Db.ConnectionString)}";
+
+    internal static string MaskConnectionStringPassword(string connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString)) return string.Empty;
+        if (!System.Text.RegularExpressions.Regex.IsMatch(
+                connectionString, @"(?i)(?:^|;)\s*(?:password|pwd)\s*="))
+            return connectionString;
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString);
+            var passwordKeys = builder.Keys.Cast<string>()
+                .Where(key => string.Equals(key, "Password", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(key, "Pwd", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            foreach (var key in passwordKeys) builder[key] = "***";
+            return builder.ConnectionString;
+        }
+        catch (ArgumentException)
+        {
+            return System.Text.RegularExpressions.Regex.Replace(
+                connectionString, @"(?i)((?:password|pwd)\s*=\s*)[^;]*", "$1***");
+        }
+    }
+
+    private async Task RetryDynamicAsync()
+    {
+        _currentDynamicKey = null;
+        _dynamicError = null;
+        await OnParametersSetAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadDynamicDataCore(ClayDataQuery query)
     {
         await RunBusyAsync("Загрузка данных…", async () =>
         {

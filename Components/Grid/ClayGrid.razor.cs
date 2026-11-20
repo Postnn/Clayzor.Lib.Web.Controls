@@ -159,6 +159,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     [Parameter] public IClayGridDataLoader? DataLoader { get; set; }
 
+    /// <summary>Уведомление страницы о загруженном заголовке динамического определения.</summary>
+    [Parameter] public EventCallback<string> TitleChanged { get; set; }
+
     /// <summary>Есть ли что показать в меню групповых операций.</summary>
     private bool HasBatchOperations => _opt.ShowPrint || _opt.ShowExcel || (_opt.CustomBatchGroups?.Count > 0)
         || (_opt.Dynamic && _dynamicDef is not null && !_isSharedMode);

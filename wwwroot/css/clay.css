@@ -2085,11 +2085,14 @@ body {
 }
 
 .clay-navigation-menu__root-button:hover,
-.clay-navigation-menu__root-button:focus-visible,
 .clay-navigation-menu__root-button[aria-expanded="true"] {
     background: var(--mud-palette-background-gray);
-    outline: 2px solid var(--clay-gold);
-    outline-offset: -2px;
+}
+
+.clay-navigation-menu__root-button:focus-visible {
+    background: var(--mud-palette-background-gray);
+    box-shadow: inset 2px 0 0 var(--clay-gold);
+    outline: none;
 }
 
 .clay-navigation-menu__panel {
@@ -2110,7 +2113,7 @@ body {
 
 .clay-navigation-menu__list {
     margin: 0;
-    padding: 4px;
+    padding: 2px;
     list-style: none;
 }
 
@@ -2121,13 +2124,14 @@ body {
 }
 
 .clay-navigation-menu__link {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     box-sizing: border-box;
     width: 100%;
-    min-height: 30px;
-    padding: 5px 7px;
+    min-height: 24px;
+    padding: 2px 6px;
     border: 0;
     background: transparent;
     color: var(--mud-palette-text-primary);
@@ -2138,11 +2142,15 @@ body {
 }
 
 .clay-navigation-menu__link:hover,
-.clay-navigation-menu__link:focus-visible,
 .clay-navigation-menu__link[aria-expanded="true"] {
     background: var(--mud-palette-background-gray);
-    outline: 1px solid var(--clay-gold);
-    outline-offset: -1px;
+    box-shadow: inset 0 0 0 1px var(--clay-gold);
+}
+
+.clay-navigation-menu__link:focus-visible {
+    background: var(--mud-palette-background-gray);
+    box-shadow: inset 0 0 0 1px var(--clay-gold);
+    outline: none;
 }
 
 .clay-navigation-menu__link[aria-current="page"] {
@@ -2190,11 +2198,15 @@ body {
 }
 
 .clay-navigation-menu__active-dot {
-    flex: 0 0 6px;
-    width: 6px;
-    height: 6px;
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    width: 5px;
+    height: 5px;
+    transform: translateY(-50%);
     background: var(--mud-palette-success);
     border-radius: 50%;
+    pointer-events: none;
 }
 
 .clay-navigation-menu__arrow {
@@ -2236,4 +2248,80 @@ body {
     flex: 1 1 auto;
     height: 100%;
     min-height: 0;
+}
+
+/* Компактная полноэкранная компоновка грида. */
+.clay-grid--compact-layout {
+    padding: 5px !important;
+}
+
+.clay-grid--compact-layout .clay-grid-toolbar {
+    margin-bottom: 8px !important;
+}
+
+.clay-grid--compact-layout .clay-grid-toolbar .mud-typography-h5 {
+    font-size: 1rem;
+    line-height: 1.25;
+}
+
+/* Дополнительные действия являются частью той же корневой полосы меню. */
+.clay-navigation-menu__actions {
+    position: sticky;
+    right: 0;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    margin-left: auto;
+    padding: 0;
+    background: var(--mud-palette-surface);
+    list-style: none;
+}
+
+.clay-grid--compact-layout .clay-grid-toolbar .mud-typography-h5 {
+    font-size: 0.875rem;
+    line-height: 1.125rem;
+}
+
+.clay-grid--compact-layout .clay-grid-paginator {
+    height: 28px;
+    min-height: 28px;
+    margin-top: 4px !important;
+}
+
+.clay-grid--compact-layout .clay-grid-paginator .mud-input-control {
+    margin: 0;
+}
+
+.clay-grid--compact-layout .clay-grid-paginator .mud-input {
+    height: 28px;
+    min-height: 28px;
+}
+
+.clay-grid--compact-layout .clay-grid-paginator .mud-input-root {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.clay-grid--compact-layout .clay-grid-paginator .mud-icon-button {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+}
+
+.clay-grid--compact-layout .clay-grid-paginator p {
+    line-height: 18px;
+}
+
+.clay-grid-error-text {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.clay-grid-error .mud-alert-message,
+.clay-grid-error .mud-alert-message .mud-button {
+    color: var(--mud-palette-text-primary) !important;
+}
+
+.clay-grid-error .mud-alert-icon {
+    color: var(--mud-palette-warning) !important;
 }

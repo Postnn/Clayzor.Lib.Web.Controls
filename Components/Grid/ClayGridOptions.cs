@@ -76,6 +76,9 @@ public sealed class ClayGridOptions
     /// <summary>Занять доступную высоту flex-контейнера вместо расчёта от viewport.</summary>
     public bool FillAvailableHeight { get; set; }
 
+    /// <summary>Компактные padding, заголовок и расстояние toolbar для полноэкранного грида.</summary>
+    public bool CompactLayout { get; set; }
+
     /// <summary>Дополнительные CSS-классы корневого контейнера.</summary>
     public string? Class { get; set; }
 

@@ -115,6 +115,12 @@
 
     function refresh(instance, margin, maxWidth) {
         instance.root.querySelectorAll("[data-menu-container]").forEach(container => {
+            const activator = container.querySelector(":scope > [role=menuitem]");
+            if (activator?.getAttribute("aria-haspopup") !== "true") {
+                container.onpointerenter = null;
+                container.onpointerleave = null;
+                return;
+            }
             const path = container.dataset.menuContainer;
             container.onpointerenter = event => {
                 if (event.pointerType && event.pointerType !== "mouse") return;
@@ -203,7 +209,6 @@
                 timers: new Map(),
                 margin: 8,
                 maxWidth: 360,
-                resizeObserver: null,
                 pointerHandler: null,
                 keyHandler: null,
                 resizeHandler: null,
@@ -227,10 +232,6 @@
             window.addEventListener("resize", instance.resizeHandler);
             window.addEventListener("scroll", instance.scrollHandler, true);
             root.addEventListener("error", instance.errorHandler, true);
-            if (window.ResizeObserver) {
-                instance.resizeObserver = new ResizeObserver(instance.resizeHandler);
-                instance.resizeObserver.observe(root);
-            }
             instances.set(id, instance);
         },
         refresh(id, margin, maxWidth) {
@@ -249,7 +250,6 @@
             window.removeEventListener("resize", instance.resizeHandler);
             window.removeEventListener("scroll", instance.scrollHandler, true);
             instance.root.removeEventListener("error", instance.errorHandler, true);
-            instance.resizeObserver?.disconnect();
             instances.delete(id);
         }
     };
