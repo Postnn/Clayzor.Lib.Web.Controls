@@ -36,8 +36,10 @@
 
     /* Не-цветовые константы — единственные литералы в :root */
     --clay-font-family: Verdana, Arial, sans-serif;
-    --clay-font-size:   0.8rem;
-    --clay-radius:      2px;
+    --clay-font-size:   0.875rem;
+    --clay-font-size-secondary: 0.8125rem;
+    --clay-radius:      4px;
+    --clay-radius-surface: 8px;
     --clay-accent:      3px;        /* Gold underline accent */
     --clay-white:       #FFFFFF;
 }
@@ -166,13 +168,21 @@ body {
 }
 
 /* ── Buttons ── */
+.mud-button {
+    border-radius: var(--clay-radius) !important;
+    font-size: var(--clay-font-size) !important;
+}
+.mud-icon-button {
+    border-radius: var(--clay-radius) !important;
+}
+
 .mud-button-filled.mud-button-filled-primary {
     background-color: var(--lh-navy) !important;
     transition: background-color 0.15s ease;
 }
 
 .mud-button-filled.mud-button-filled-primary:hover {
-    background-color: #0A1D6B !important;
+    background-color: var(--clay-navy-light) !important;
 }
 
 .mud-button-filled.mud-button-filled-secondary {
@@ -197,13 +207,13 @@ body {
 .mud-table .mud-table-head .mud-table-cell {
     padding-top: 2px !important;
     padding-bottom: 2px !important;
-    background-color: var(--lh-navy) !important;
-    color: var(--lh-white) !important;
-    font-weight: 600;
+    background-color: var(--mud-palette-background-gray) !important;
+    color: var(--clay-navy) !important;
+    font-weight: 700;
     font-size: var(--clay-font-size);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    border-bottom: 2px solid var(--lh-gold) !important;
+    letter-spacing: normal;
+    text-transform: none;
+    border-bottom: 2px solid var(--clay-navy) !important;
 }
 
 .mud-table .mud-table-body .mud-table-row {
@@ -221,13 +231,13 @@ body {
 
 /* ── Paper / Cards ── */
 .mud-paper {
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius-surface) !important;
     border: 1px solid var(--lh-grey-light);
 }
 
 /* ── Inputs ── */
 .mud-input-outlined .mud-input-outlined-border {
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius) !important;
 }
 
 .mud-input.mud-input-underline:after {
@@ -242,7 +252,7 @@ body {
 }
 
 .mud-dialog {
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius-surface) !important;
     overflow: hidden;
 }
 
@@ -293,7 +303,7 @@ body {
 /* ── Grouping Toggle Button ── */
 .grouping-toggle-btn {
     color: var(--lh-grey-mid) !important;
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius) !important;
     transition: color 0.15s, background 0.15s;
 }
 
@@ -315,7 +325,7 @@ body {
 .toolbar-add-btn {
     color: var(--mud-palette-primary) !important;
     background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius) !important;
     box-shadow: inset 0 -2px 0 var(--lh-gold);
     transition: background 0.15s;
 }
@@ -327,7 +337,7 @@ body {
 .toolbar-share-btn {
     color: var(--mud-palette-primary) !important;
     background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius) !important;
     box-shadow: inset 0 -2px 0 var(--lh-gold);
     transition: background 0.15s;
 }
@@ -339,7 +349,7 @@ body {
 .toolbar-columns-btn {
     color: var(--mud-palette-primary) !important;
     background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius) !important;
     box-shadow: inset 0 -2px 0 var(--lh-gold);
     transition: background 0.15s;
 }
@@ -350,7 +360,7 @@ body {
 
 .toolbar-select-btn {
     color: var(--lh-grey-mid) !important;
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius) !important;
     transition: color 0.15s, background 0.15s;
 }
 
@@ -372,7 +382,7 @@ body {
 .toolbar-batch-btn .mud-icon-button {
     color: var(--mud-palette-primary) !important;
     background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius) !important;
     box-shadow: inset 0 -2px 0 var(--lh-gold);
     transition: background 0.15s;
 }
@@ -384,7 +394,7 @@ body {
 .toolbar-shared-list-btn .mud-icon-button {
     color: var(--mud-palette-primary) !important;
     background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius) !important;
     box-shadow: inset 0 -2px 0 var(--lh-gold);
     transition: background 0.15s;
 }
@@ -396,7 +406,7 @@ body {
 .toolbar-help-btn {
     color: var(--mud-palette-primary) !important;
     background: color-mix(in srgb, transparent 92%, var(--mud-palette-primary) 8%) !important;
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius) !important;
     box-shadow: inset 0 -2px 0 var(--lh-gold);
     transition: background 0.15s;
 }
@@ -474,7 +484,7 @@ body {
     height: 24px;
     background: var(--lh-navy);
     color: var(--lh-white);
-    border-radius: 0;
+    border-radius: 999px;
     font-size: var(--clay-font-size);
     font-weight: 400;
     letter-spacing: 0.01em;
@@ -649,7 +659,7 @@ body {
 /* ── Filter Toggle Button ── */
 .filter-toggle-btn {
     color: var(--lh-grey-mid) !important;
-    border-radius: 2px !important;
+    border-radius: var(--clay-radius) !important;
     transition: color 0.15s, background 0.15s;
 }
 
@@ -716,7 +726,7 @@ body {
     height: 24px;
     background: var(--lh-navy);
     color: var(--lh-white);
-    border-radius: 0;
+    border-radius: 999px;
     font-size: var(--clay-font-size);
     font-weight: 400;
     letter-spacing: 0.01em;
@@ -823,6 +833,20 @@ body {
 
 .mud-table-cell:last-child {
     border-right: none;
+}
+
+.clay-grid-column-drag-handle {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.clay-grid-column-drag-handle:active {
+    cursor: grabbing;
 }
 
 /* ── Индикатор вставки колонки (insert drag) ── */
@@ -1146,6 +1170,7 @@ body {
 }
 .clay-text-secondary {
     color: var(--mud-palette-text-secondary);
+    font-size: var(--clay-font-size-secondary);
 }
 .clay-icon-primary {
     color: var(--mud-palette-primary);
@@ -1925,7 +1950,7 @@ body {
     gap: 6px;
     min-height: 24px;
     color: var(--mud-palette-text-secondary);
-    font-size: var(--clay-font-size-small);
+    font-size: var(--clay-font-size-secondary);
 }
 
 .clay-changed-user {
@@ -1959,7 +1984,7 @@ body {
     min-height: 32px;
     padding: 0;
     color: var(--mud-palette-text-secondary);
-    font-size: var(--clay-font-size-small);
+    font-size: var(--clay-font-size-secondary);
     text-align: left !important;
 }
 

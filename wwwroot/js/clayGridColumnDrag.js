@@ -106,6 +106,7 @@ window.clayGridColumnDrag = (function () {
             // Синхронно — до Blazor
             e.dataTransfer.effectAllowed = 'move';
             try { e.dataTransfer.setData('text/plain', srcSqlName); } catch(_) {}
+            try { e.dataTransfer.setDragImage(div, Math.min(24, div.offsetWidth / 2), div.offsetHeight / 2); } catch(_) {}
             // Уведомляем C# для tray-drop (async — успеет до drop)
             dotnetRef.invokeMethodAsync('SetDraggedColumn', srcSqlName).catch(function(){});
         }

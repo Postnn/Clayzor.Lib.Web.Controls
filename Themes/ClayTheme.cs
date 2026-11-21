@@ -40,7 +40,7 @@ public static class ClayTheme
 
             // Text
             TextPrimary = ClayColors.TextDark,
-            TextSecondary = ClayColors.GreyDark,
+            TextSecondary = ClayColors.NavyMid,
             TextDisabled = ClayColors.GreyMid,
 
             // Actions
@@ -100,15 +100,15 @@ public static class ClayTheme
             },
             H4 = new H4Typography
             {
-                FontWeight = "700",
-                FontSize = "1.75rem",
+                FontWeight = "300",
+                FontSize = "2.25rem",
                 LineHeight = "1.2",
-                LetterSpacing = "-0.01em",
+                LetterSpacing = "0",
             },
             H5 = new H5Typography
             {
-                FontWeight = "600",
-                FontSize = "1.25rem",
+                FontWeight = "700",
+                FontSize = "1.5rem",
                 LineHeight = "1.3",
             },
             H6 = new H6Typography
@@ -137,24 +137,24 @@ public static class ClayTheme
             },
             Caption = new CaptionTypography
             {
-                FontSize = "var(--clay-font-size)",
+                FontSize = "var(--clay-font-size-secondary)",
             },
             Overline = new OverlineTypography
             {
-                FontSize = "var(--clay-font-size)",
+                FontSize = "var(--clay-font-size-secondary)",
             },
             Button = new ButtonTypography
             {
-                FontWeight = "600",
-                FontSize = "0.8125rem",
-                LetterSpacing = "0.04em",
-                TextTransform = "uppercase",
+                FontWeight = "700",
+                FontSize = "var(--clay-font-size)",
+                LetterSpacing = "normal",
+                TextTransform = "none",
             },
         },
 
         LayoutProperties = new LayoutProperties
         {
-            DefaultBorderRadius = "2px",
+            DefaultBorderRadius = "var(--clay-radius)",
             DrawerWidthLeft = "260px",
         }
     };

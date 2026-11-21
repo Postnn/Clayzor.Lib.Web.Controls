@@ -1,6 +1,6 @@
 (() => {
     const instances = new Map();
-    const itemSelector = ":scope > .clay-navigation-menu__list > .clay-navigation-menu__item > .clay-navigation-menu__link";
+    const itemSelector = ":scope > .clay-navigation-menu__list > .clay-navigation-menu__item > .clay-navigation-menu__link:not([aria-disabled=\"true\"]):not([disabled])";
 
     function pathDepth(path) {
         return path.split(".").length - 1;

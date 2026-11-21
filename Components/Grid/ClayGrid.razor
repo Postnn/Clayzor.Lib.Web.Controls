@@ -141,7 +141,7 @@
                                  OnClick="@ToggleFilterTray" />
                 </MudBadge>
             }
-            @if (_opt.ShowAddButton || HasDynamicAdd)
+            @if ((_opt.ShowAddButton || HasDynamicAdd) && !ShowAddInServiceHeader)
             {
                 <ClayButton Text="Добавить"
                              Icon="@Icons.Material.Filled.Add"
@@ -475,8 +475,7 @@
                         </CellTemplate>
                     </TemplateColumn>
                 }
-                @if (_opt.EditDialogType is not null || HasDynamicEdit || RowActions is not null ||
-                     OnAdd.HasDelegate && !_opt.ShowToolbar && _opt.ShowAddButton)
+                @if (HasServiceColumn)
                 {
                     <TemplateColumn @key="ServiceEditColumnKey" T="TEntity"
                                     Title=""
@@ -487,14 +486,14 @@
                                     HeaderStyle="@GetServiceColumnStyle()"
                                     CellStyle="@GetServiceColumnStyle()">
                         <HeaderTemplate>
-                            @if (!_opt.ShowToolbar && _opt.ShowAddButton && OnAdd.HasDelegate)
+                            @if (ShowAddInServiceHeader)
                             {
                                 <ClayButton Icon="@Icons.Material.Filled.Add"
                                             Text="@_opt.AddTooltip"
                                             Class="clay-grid-service-add"
                                             Size="Size.Small"
                                             Disabled="@AddDisabled"
-                                            OnClick="OnAdd" />
+                                            OnClick="async () => await HandleRowAddClick()" />
                             }
                         </HeaderTemplate>
                         <CellTemplate>
@@ -555,8 +554,8 @@
                                                    Style="padding:0;width:22px;height:22px;min-width:22px;margin-right:2px"
                                                    title="Фильтр по значению" />
                                 }
-                                 <div style="flex:1;display:flex;align-items:center;cursor:grab"
-                                      draggable="@_opt.AllowColumnReorder"
+                                 <div class="clay-grid-column-drag-handle"
+                                      draggable="@(_opt.AllowColumnReorder ? "true" : "false")"
                                       data-col-sql="@sqlName"
                                       @onclick="() => HandleSortClick(sqlName)">
                                     <MudText Style="flex:1;text-align:center">@dispName</MudText>

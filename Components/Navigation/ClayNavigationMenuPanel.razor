@@ -38,7 +38,7 @@
                 {
                     <a id="@Menu.ItemId(childPath)" role="menuitem" class="clay-navigation-menu__link"
                        href="@(child.Disabled ? null : ClayNavigationMenu.SafeHref(child.Href))"
-                       aria-disabled="@child.Disabled" aria-current="@(child.IsActive ? "page" : null)"
+                       aria-disabled="@(child.Disabled ? "true" : null)" aria-current="@(child.IsActive ? "page" : null)"
                        disabled="@child.Disabled" title="@(child.Title ?? child.Text)"
                        @onclick="Menu.CloseAllAsync">
                         <ClayNavigationMenuItemContent Item="child" />

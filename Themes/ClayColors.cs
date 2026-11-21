@@ -9,7 +9,8 @@ public static class ClayColors
 {
     // Core brand
     public const string Navy       = "#05164D";
-    public const string NavyDark   = "#030F35";
+    public const string NavyDark   = "#000245";
+    public const string NavyMid    = "#52627C";
     public const string NavyLight  = "#1A2D6B";
     public const string Navy2      = "#0A1D3D";
     public const string BlueMid    = "#00235F";
@@ -20,11 +21,11 @@ public static class ClayColors
 
     // Neutrals
     public const string White      = "#FFFFFF";
-    public const string OffWhite   = "#F7F8FA";
-    public const string GreyLight  = "#EBEDF0";
+    public const string OffWhite   = "#F5F5F5";
+    public const string GreyLight  = "#EBEBEB";
     public const string GreyMid    = "#9B9B9B";
     public const string GreyDark   = "#4A4A4A";
-    public const string TextDark   = "#1A1A2E";
+    public const string TextDark   = Navy;
 
     // Semantic
     public const string ErrorRed   = "#C62828";

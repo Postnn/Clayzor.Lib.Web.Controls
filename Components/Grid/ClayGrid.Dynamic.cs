@@ -223,7 +223,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _trayExpanded = false;
         _groupChildIds.Clear();
         _filterRoot = new ClayFilterGroupNode();
-        _filterTrayExpanded = false;
+        _filterTrayExpanded = _opt.FilterTrayExpandedByDefault;
         _valueFilterDisabledColumns.Clear();
         _pageNumber = 1;
         _pageSize = _opt.PageSize;
@@ -1103,7 +1103,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
         if (urlFilters.Count > 0)
         {
             _filterRoot ??= new ClayFilterGroupNode();
-            ClayGridUrlFilterParser.Apply(_filterRoot, urlFilters, _dynamicSavedParams);
+            var savedUrlParams = GetSavedUrlFilterParams(urlFilters, urlKeyToCol, opt);
+            ClayGridUrlFilterParser.Apply(_filterRoot, urlFilters, savedUrlParams);
         }
 
         // --- Колонки (видимость/порядок) ---
@@ -1123,6 +1124,36 @@ public partial class ClayGrid<TEntity> where TEntity : class
             ApplyColumnsState(Query[defColsParamName]!);
         }
     }
+
+    private Dictionary<string, string> GetSavedUrlFilterParams(
+        IEnumerable<ParsedUrlFilter> parsed,
+        IReadOnlyDictionary<string, ClayColumnDefinition> urlKeyToCol,
+        ClayGridDynamicSettings opt)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var filterParam = ClayGridUserParamsData.BuildParamName(opt.FilterParamPrefix, _dynamicGridId);
+        if (!_dynamicSavedParams.TryGetValue(filterParam, out var serialized) || string.IsNullOrWhiteSpace(serialized))
+            return result;
+        var savedRoot = GridStateSerializer.DeserializeFilter(serialized);
+        if (savedRoot is null) return result;
+
+        foreach (var item in parsed.Where(item => item.IsDefault))
+        {
+            if (!urlKeyToCol.TryGetValue(item.UrlKey, out var column)) continue;
+            if (FilterTreeHasColumn(savedRoot, column.Column)
+                || !string.IsNullOrWhiteSpace(column.UrlKey) && FilterTreeHasColumn(savedRoot, column.UrlKey))
+                result[item.UrlKey] = serialized;
+        }
+        return result;
+    }
+
+    private static bool FilterTreeHasColumn(IClayFilterNode node, string column) => node switch
+    {
+        ClayFilterGroupNode group => group.Nodes.Any(child => FilterTreeHasColumn(child, column)),
+        ColumnFilter filter => string.Equals(filter.Column, column, StringComparison.OrdinalIgnoreCase),
+        ValueFilter filter => string.Equals(filter.Column, column, StringComparison.OrdinalIgnoreCase),
+        _ => false,
+    };
 
     private async Task SaveDynamicState()
     {
@@ -1180,7 +1211,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _sortState.Clear();
             _groupColumns.Clear();
             _trayExpanded = false;
-            _filterTrayExpanded = false;
+            _filterTrayExpanded = _opt.FilterTrayExpandedByDefault;
             _filterRoot = new ClayFilterGroupNode();
             _dynamicQuickSearchCols.Clear();
             foreach (var column in _dynamicCols.Where(column =>
@@ -1191,6 +1222,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             ResetColumnsToDefinitionDefault();
             _pageSize = _opt.PageSize;
             _pageNumber = 1;
+            ApplyUrlParams(opt);
 
             await SaveDynamicState();
             await RefreshQuickSearchEffective(opt);

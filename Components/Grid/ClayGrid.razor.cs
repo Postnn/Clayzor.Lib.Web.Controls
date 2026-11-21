@@ -19,6 +19,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Единая фиксированная ширина сервисной колонки для всех режимов грида.</summary>
     private static string GetServiceColumnStyle() => "width:88px;min-width:88px;max-width:88px";
 
+    private bool HasServiceColumn => _opt.EditDialogType is not null || HasDynamicEdit || RowActions is not null
+        || OnAdd.HasDelegate && !_opt.ShowToolbar && _opt.ShowAddButton;
+
+    private bool ShowAddInServiceHeader => HasServiceColumn && (_opt.ShowAddButton || HasDynamicAdd);
+
     /// <summary>
     /// Срабатывает при регистрации или отмене регистрации колонки.
     /// <see cref="ClayColumn{TEntity}"/> подписывается и вызывает <c>StateHasChanged</c>,
@@ -181,6 +186,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         _opt = ResolveOptions();
         _pageSize = _opt.PageSize;
         _searchText = _opt.InitialSearchText;
+        _filterTrayExpanded = _opt.FilterTrayExpandedByDefault;
     }
 
     /// <inheritdoc/>
