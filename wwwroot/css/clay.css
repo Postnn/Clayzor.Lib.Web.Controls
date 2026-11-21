@@ -40,6 +40,7 @@
     --clay-font-size-secondary: 0.8125rem;
     --clay-radius:      4px;
     --clay-radius-surface: 8px;
+    --clay-control-height: 32px;
     --clay-accent:      3px;        /* Gold underline accent */
     --clay-white:       #FFFFFF;
 }
@@ -88,6 +89,23 @@ body {
 .mud-input.mud-typography-subtitle1 {
     line-height: 1.5 !important;
     letter-spacing: 0.01em !important;
+}
+
+/* Единая высота однострочных полей на страницах и в диалогах. */
+.mud-input-control:has(input:not([type="checkbox"]):not([type="radio"])) .mud-input {
+    height: var(--clay-control-height);
+    min-height: var(--clay-control-height);
+    box-sizing: border-box;
+}
+
+.mud-input-control:has(input:not([type="checkbox"]):not([type="radio"])) .mud-input-root {
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+.mud-input-control-helper-container {
+    min-height: 0;
+    padding: 0;
 }
 
 #blazor-error-ui {
@@ -1749,7 +1767,7 @@ body {
     position: relative;
     display: flex;
     align-items: stretch;
-    height: 32px;
+    height: var(--clay-control-height);
 }
 
 .clay-select-input {
@@ -2048,8 +2066,6 @@ body {
 }
 
 .clay-time .mud-input {
-    height: 32px;
-    min-height: 32px;
     box-sizing: border-box;
 }
 
