@@ -4,7 +4,7 @@ namespace Clayzor.Lib.Web.Controls.Services;
 public sealed class ClayFormWindowOptions
 {
     /// <summary>Ширина окна в пикселях.</summary>
-    public int Width { get; init; } = 760;
+    public int Width { get; init; } = 1100;
 
     /// <summary>Высота окна в пикселях.</summary>
     public int Height { get; init; } = 760;

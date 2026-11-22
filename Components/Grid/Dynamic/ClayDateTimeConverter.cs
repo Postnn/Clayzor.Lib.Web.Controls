@@ -29,7 +29,7 @@ public static class ClayDateTimeConverter
     /// Форматирует дату с учётом смещения и строки формата.
     /// </summary>
     /// <param name="value">Сырое значение (DateTime или строка).</param>
-    /// <param name="format">Строка формата .NET (напр. "dd.MM.yyyy" или "HH:mm").</param>
+    /// <param name="format">Строка формата .NET (напр. "dd.MM.yyyy" или "HH:mm") либо legacy "dd.mm.yy hh:mi".</param>
     /// <param name="offset">Смещение локального пояса (если null — без конвертации).</param>
     /// <returns>Отформатированная строка.</returns>
     public static string Format(object? value, string? format, TimeSpan? offset = null)
@@ -47,7 +47,9 @@ public static class ClayDateTimeConverter
         if (dt is null) return value.ToString() ?? "";
 
         var local = offset.HasValue ? ConvertFromUtc(dt, offset.Value) : dt;
-        var fmt   = string.IsNullOrWhiteSpace(format) ? "G" : format;
+        var fmt = string.IsNullOrWhiteSpace(format) ? "G"
+            : format == "dd.mm.yy hh:mi" ? "dd.MM.yy HH:mm"
+            : format;
 
         return local?.ToString(fmt, CultureInfo.InvariantCulture) ?? "";
     }
