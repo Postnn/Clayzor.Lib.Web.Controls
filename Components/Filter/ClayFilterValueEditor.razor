@@ -8,7 +8,7 @@
 {
     @if (Options is not null)
     {
-        <MudSelect T="object" Label="Значение" Value="@Value" ValueChanged="@OnLookupChanged"
+        <MudSelect T="object" Placeholder="Значение" Value="@Value" ValueChanged="@OnLookupChanged"
                    Variant="Variant.Outlined" Margin="Margin.Dense"
                    AnchorOrigin="Origin.BottomLeft" Clearable="true" AutoFocus="@AutoFocus">
             @foreach (var opt in Options)
@@ -22,7 +22,7 @@
         switch (Type.Kind)
         {
             case ColumnType.Text:
-                <MudTextField T="string" Label="Значение"
+                <MudTextField T="string" Placeholder="Значение"
                               Value="@(_typedValue as string)"
                               ValueChanged="@((string? v) => OnTypedChanged(v))"
                               Variant="Variant.Outlined" Margin="Margin.Dense"
@@ -30,7 +30,7 @@
                 break;
 
             case ColumnType.Number:
-                <MudNumericField T="int?" Label="Значение"
+                <MudNumericField T="int?" Placeholder="Значение"
                                  Value="@(_typedValue as int?)"
                                  ValueChanged="@((int? v) => OnTypedChanged(v))"
                                  Variant="Variant.Outlined" Margin="Margin.Dense"
@@ -38,7 +38,7 @@
                 break;
 
             case ColumnType.Decimal:
-                <MudNumericField T="decimal?" Label="Значение"
+                <MudNumericField T="decimal?" Placeholder="Значение"
                                  Value="@(_typedValue as decimal?)"
                                  ValueChanged="@((decimal? v) => OnTypedChanged(v))"
                                  Variant="Variant.Outlined" Margin="Margin.Dense"
@@ -46,7 +46,7 @@
                 break;
 
             case ColumnType.Date:
-                <MudDatePicker Label="Значение"
+                <MudDatePicker Placeholder="Значение"
                                Date="@(_typedValue as DateTime?)"
                                DateChanged="@((DateTime? v) => OnTypedChanged(v))"
                                Variant="Variant.Outlined" Margin="Margin.Dense"
@@ -54,7 +54,7 @@
                 break;
 
             case ColumnType.Boolean:
-                <MudSelect T="bool?" Label="Значение"
+                <MudSelect T="bool?" Placeholder="Значение"
                            Value="@(_typedValue as bool?)"
                            ValueChanged="@((bool? v) => OnTypedChanged(v))"
                            Variant="Variant.Outlined" Margin="Margin.Dense"

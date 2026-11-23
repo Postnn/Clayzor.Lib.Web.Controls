@@ -222,7 +222,6 @@ public partial class ClayGrid<TEntity> where TEntity : class
         {
             if (_opt.Dynamic)
             {
-                await InitClientOffset();
                 _dotnetRef ??= DotNetObjectReference.Create(this);
                 await JS.InvokeVoidAsync("clayFormWindow.registerRefresh", _formWindowRegistrationId, _dotnetRef);
             }
@@ -259,6 +258,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 }
             }
         }
+        if (_columnsReady && _opt.Dynamic && !_clientOffsetInitialized)
+            await InitClientOffset();
     }
 
     /// <summary>

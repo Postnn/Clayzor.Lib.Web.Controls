@@ -554,7 +554,7 @@
                                                    Style="padding:0;width:22px;height:22px;min-width:22px;margin-right:2px"
                                                    title="Фильтр по значению" />
                                 }
-                                 <div class="clay-grid-column-drag-handle"
+                                 <div class="@("clay-grid-column-drag-handle" + (_opt.AllowSorting ? " clay-grid-column-sortable" : ""))"
                                       draggable="@(_opt.AllowColumnReorder ? "true" : "false")"
                                       data-col-sql="@sqlName"
                                       @onclick="() => HandleSortClick(sqlName)">

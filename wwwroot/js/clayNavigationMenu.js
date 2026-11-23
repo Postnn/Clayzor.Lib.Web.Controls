@@ -124,10 +124,12 @@
             const path = container.dataset.menuContainer;
             container.onpointerenter = event => {
                 if (event.pointerType && event.pointerType !== "mouse") return;
+                if (Date.now() < instance.suppressHoverUntil) return;
                 schedule(instance, path, true);
             };
             container.onpointerleave = event => {
                 if (event.pointerType && event.pointerType !== "mouse") return;
+                if (Date.now() < instance.suppressHoverUntil) return;
                 schedule(instance, path, false);
             };
         });
@@ -210,6 +212,8 @@
                 margin: 8,
                 maxWidth: 360,
                 pointerHandler: null,
+                activationHandler: null,
+                suppressHoverUntil: 0,
                 keyHandler: null,
                 resizeHandler: null,
                 scrollHandler: null,
@@ -217,6 +221,13 @@
             };
             instance.pointerHandler = event => {
                 if (!root.contains(event.target)) invoke(instance, "CloseAllAsync");
+            };
+            instance.activationHandler = event => {
+                if (!(event.target instanceof Element)) return;
+                const container = event.target.closest("[data-menu-container]");
+                if (!container || !root.contains(container)) return;
+                clearTimer(instance, container.dataset.menuContainer);
+                instance.suppressHoverUntil = Date.now() + 400;
             };
             instance.keyHandler = event => onKeyDown(instance, event);
             instance.resizeHandler = () => positionPanels(instance, instance.margin, instance.maxWidth);
@@ -231,6 +242,7 @@
             document.addEventListener("keydown", instance.keyHandler);
             window.addEventListener("resize", instance.resizeHandler);
             window.addEventListener("scroll", instance.scrollHandler, true);
+            root.addEventListener("pointerdown", instance.activationHandler, true);
             root.addEventListener("error", instance.errorHandler, true);
             instances.set(id, instance);
         },
@@ -249,6 +261,7 @@
             document.removeEventListener("keydown", instance.keyHandler);
             window.removeEventListener("resize", instance.resizeHandler);
             window.removeEventListener("scroll", instance.scrollHandler, true);
+            instance.root.removeEventListener("pointerdown", instance.activationHandler, true);
             instance.root.removeEventListener("error", instance.errorHandler, true);
             instances.delete(id);
         }

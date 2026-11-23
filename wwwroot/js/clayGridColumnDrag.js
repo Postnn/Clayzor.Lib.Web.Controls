@@ -28,6 +28,10 @@ window.clayGridColumnDrag = (function () {
 
         var srcSqlName = null;
         var indicator  = null;
+        var scrollTimer = null;
+        var scrollDirection = 0;
+        var scrollHint = null;
+        var lastClientX = 0;
 
         // ── Индикатор вставки ────────────────────────────────────────────────
 
@@ -56,6 +60,63 @@ window.clayGridColumnDrag = (function () {
 
         function removeIndicator() {
             if (indicator) { indicator.remove(); indicator = null; }
+        }
+
+        function stopAutoScroll() {
+            if (scrollTimer) clearInterval(scrollTimer);
+            scrollTimer = null;
+            scrollDirection = 0;
+            root.classList.remove('clay-grid-auto-scrolling');
+            root.removeAttribute('data-auto-scroll');
+            if (scrollHint) { scrollHint.remove(); scrollHint = null; }
+        }
+
+        function showScrollHint(direction, rect) {
+            if (!scrollHint) {
+                scrollHint = document.createElement('div');
+                scrollHint.className = 'clay-grid-auto-scroll-indicator';
+                document.body.appendChild(scrollHint);
+            }
+            scrollHint.textContent = direction < 0 ? '← Прокрутка' : 'Прокрутка →';
+            scrollHint.style.left = (direction < 0 ? rect.left + 8 : rect.right - 8) + 'px';
+            scrollHint.style.top = (rect.top + 12) + 'px';
+            scrollHint.style.transform = direction < 0 ? 'none' : 'translateX(-100%)';
+        }
+
+        function updateAutoScroll(clientX) {
+            lastClientX = clientX;
+            var container = root.querySelector('.mud-table-container');
+            if (!container || container.scrollWidth <= container.clientWidth) {
+                stopAutoScroll();
+                return;
+            }
+            var rect = container.getBoundingClientRect();
+            var edge = 56;
+            var direction = 0;
+            if (clientX >= rect.left && clientX <= rect.left + edge && container.scrollLeft > 0)
+                direction = -1;
+            else if (clientX <= rect.right && clientX >= rect.right - edge &&
+                     container.scrollLeft + container.clientWidth < container.scrollWidth)
+                direction = 1;
+            if (!direction) {
+                stopAutoScroll();
+                return;
+            }
+            root.classList.add('clay-grid-auto-scrolling');
+            root.setAttribute('data-auto-scroll', direction < 0 ? 'left' : 'right');
+            showScrollHint(direction, rect);
+            if (scrollTimer && scrollDirection === direction) return;
+            if (scrollTimer) clearInterval(scrollTimer);
+            scrollDirection = direction;
+            scrollTimer = setInterval(function () {
+                var before = container.scrollLeft;
+                container.scrollLeft = Math.max(0, Math.min(
+                    container.scrollWidth - container.clientWidth,
+                    before + scrollDirection * 12));
+                var target = findDropTarget(lastClientX);
+                if (target) showIndicator(target.targetEl, target.insertBefore);
+                if (container.scrollLeft === before) stopAutoScroll();
+            }, 16);
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────
@@ -115,12 +176,14 @@ window.clayGridColumnDrag = (function () {
             if (!srcSqlName) return;
             if (!isOverOurThead(e.target)) {
                 hideIndicator();
+                stopAutoScroll();
                 return;
             }
             // Синхронно — до Blazor — убирает запрещающий знак
             e.preventDefault();
             e.stopPropagation();
             e.dataTransfer.dropEffect = 'move';
+            updateAutoScroll(e.clientX);
             var target = findDropTarget(e.clientX);
             if (target) showIndicator(target.targetEl, target.insertBefore);
             else hideIndicator();
@@ -134,6 +197,7 @@ window.clayGridColumnDrag = (function () {
                 // JS-side state; the C# handler will call SetDraggedColumn(null).
                 srcSqlName = null;
                 hideIndicator();
+                stopAutoScroll();
                 return;
             }
             e.preventDefault();
@@ -158,6 +222,7 @@ window.clayGridColumnDrag = (function () {
             }
             srcSqlName = null;
             hideIndicator();
+            stopAutoScroll();
         }
 
         // Все обработчики с capture:true — перехватываем до Blazor
@@ -172,6 +237,7 @@ window.clayGridColumnDrag = (function () {
             document.removeEventListener('drop',      onDrop,      true);
             document.removeEventListener('dragend',   onDragEnd,   true);
             removeIndicator();
+            stopAutoScroll();
         });
     }
 

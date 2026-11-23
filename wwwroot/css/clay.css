@@ -41,6 +41,7 @@
     --clay-radius:      4px;
     --clay-radius-surface: 8px;
     --clay-control-height: 32px;
+    --clay-date-time-width: 180px;
     --clay-accent:      3px;        /* Gold underline accent */
     --clay-white:       #FFFFFF;
 }
@@ -215,6 +216,12 @@ body {
 
 /* ── Data Grid & Tables ── */
 .mud-table-row {
+    cursor: default;
+}
+.mud-table-row a,
+.mud-table-row button:not([disabled]),
+.mud-table-row [role="button"]:not([aria-disabled="true"]),
+.mud-table-row .clay-checkbox--clickable {
     cursor: pointer;
 }
 
@@ -858,13 +865,21 @@ body {
     display: flex;
     align-items: center;
     min-width: 0;
-    cursor: grab;
+    cursor: default;
     user-select: none;
     -webkit-user-select: none;
 }
 
-.clay-grid-column-drag-handle:active {
+.clay-grid-column-drag-handle[draggable="true"] {
+    cursor: grab;
+}
+
+.clay-grid-column-drag-handle[draggable="true"]:active {
     cursor: grabbing;
+}
+
+.clay-grid-column-drag-handle.clay-grid-column-sortable[draggable="false"] {
+    cursor: pointer;
 }
 
 /* ── Индикатор вставки колонки (insert drag) ── */
@@ -877,6 +892,25 @@ body {
     border-radius: 2px;
     box-shadow: 0 0 6px color-mix(in srgb, var(--lh-gold) 60%, transparent);
     display: none;
+}
+
+.clay-grid-auto-scroll-indicator {
+    position: fixed;
+    z-index: 10000;
+    padding: 4px 8px;
+    pointer-events: none;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+    border: 1px solid var(--clay-gold);
+    border-radius: var(--clay-radius);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+    font-size: var(--clay-font-size-secondary);
+    white-space: nowrap;
+}
+
+.clay-grid-auto-scrolling .mud-table-container {
+    outline: 2px solid var(--clay-gold);
+    outline-offset: -2px;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -2057,10 +2091,12 @@ body {
     line-height: 1.25 !important;
 }
 
+.clay-date.mud-picker,
 .clay-time.mud-picker {
-    flex: 0 0 180px;
-    width: 180px;
-    min-width: 180px;
+    flex: 0 0 var(--clay-date-time-width);
+    width: var(--clay-date-time-width);
+    min-width: var(--clay-date-time-width);
+    max-width: var(--clay-date-time-width);
     margin-top: 0;
     margin-bottom: 0;
 }

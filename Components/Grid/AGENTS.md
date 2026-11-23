@@ -126,7 +126,7 @@ Blanket catch на shared-load boundary запрещён.
 | `ClayHtmlSanitizer` | `Sanitize(html)` — вырезает `<script>`, `onXxx`-атрибуты, `javascript:` |
 | `ClayDateTimeLocalColumnType` | Дескриптор Тип 10: дата-время из UTC в локальный пояс. Формат = .NET-строка (напр. `"dd.MM.yyyy HH:mm"`). Фильтруется как Date |
 | `ClayTimeLocalColumnType` | Дескриптор Тип 13: время из UTC в локальный пояс. Формат = .NET-строка (напр. `"HH:mm"`). Фильтруется как Date |
-| `ClayDateTimeConverter` | Статический конвертер: `ConvertFromUtc(DateTime?, TimeSpan)` и `Format(object?, string?, TimeSpan?)`. Чистые функции (без DateTime.Now), тестируемо |
+| `ClayDateTimeConverter` | Статический конвертер: `ConvertFromUtc(DateTime?, TimeSpan)` и `Format(object?, string?, TimeSpan?)`. SQL datetime всегда UTC, включая Kind=Unspecified; поддерживаются DateTimeOffset и TimeSpan. Чистые функции (без DateTime.Now), тестируемо |
 | `ClayDynamicRow` | Строка динамического грида. Реализует `IClayGridRow` + `IDetailRow` + `IReadOnlyDictionary<string, object?>`. `IDetailRow.Item => this` — строка сама является словарём для `GetRowIdValue`. Заменяет `InvalidCastException`-каст в `LoadDynamicData` |
 | `ClayGroupRowMapper` | Статический маппер словарей агрегатного GROUP BY в `GridGroupRow` для `ClayGroupingEngine`. `MapRow(row, levelCount)` / `MapRows(rows, levelCount)`, нормализация DBNull. Общий для статического и динамического режимов. Чистые функции. Заменил `ClayDynamicGroupMapper` (GN1) |
 | `ClayDynamicCellReader` | Реализация `IClayGridCellReader` для динамических строк-словарей. Типы 1/2/3/7 сырыми, 5/9 через справочники, 10/13 со смещением, 8 StripHtml, 12 полный текст. Без БД (GE2) |

@@ -18,11 +18,8 @@ public static class ClayDateTimeConverter
     {
         if (utc is null) return null;
 
-        if (utc.Value.Kind == DateTimeKind.Utc)
-            return utc.Value + offset;
-
-        // Если Kind не UTC — считаем, что значение уже локальное
-        return utc.Value;
+        var utcValue = DateTime.SpecifyKind(utc.Value, DateTimeKind.Utc);
+        return utcValue + offset;
     }
 
     /// <summary>
@@ -39,7 +36,8 @@ public static class ClayDateTimeConverter
         DateTime? dt = value switch
         {
             DateTime d => d,
-            DateTimeOffset dto => dto.DateTime,
+            DateTimeOffset dto => dto.UtcDateTime,
+            TimeSpan t => DateTime.UnixEpoch.Add(t),
             string s when DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed) => parsed,
             _ => null
         };

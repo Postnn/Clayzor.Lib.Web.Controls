@@ -12,7 +12,7 @@
                Clearable="@_opt.Clearable"
                Variant="@_opt.Variant"
                Margin="@_opt.Margin"
-               Class="@_opt.Class" />
+               Class="@($"clay-date {_opt.Class}")" />
 
 @code {
     private ClayDatePickerOptions _opt = new();

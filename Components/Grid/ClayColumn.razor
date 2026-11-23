@@ -32,7 +32,7 @@
                                Style="padding:0;width:22px;height:22px;min-width:22px;margin-right:2px"
                                title="Фильтр по значению" />
             }
-            <div class="clay-grid-column-drag-handle" draggable="@(Grid?.Options.AllowColumnReorder == true ? "true" : "false")"
+            <div class="@("clay-grid-column-drag-handle" + (Grid?.Options.AllowSorting == true ? " clay-grid-column-sortable" : ""))" draggable="@(Grid?.Options.AllowColumnReorder == true ? "true" : "false")"
                  data-col-sql="@_meta?.SqlName" @onclick="HandleSortClick">
                 <MudText Style="flex:1;text-align:center">@_meta?.DisplayName</MudText>
                 @if (Grid is not null && _meta is not null && Grid.Options.AllowSorting)

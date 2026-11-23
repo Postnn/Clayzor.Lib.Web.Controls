@@ -12,7 +12,7 @@
         {
             <span class="clay-changed-user">@DisplayName</span>
         }
-        <time class="clay-changed-date" datetime="@UtcChangedAt.ToString("O")">@DisplayChangedAt.ToString(_opt.DateTimeFormat)</time>
+        <time class="clay-changed-date" datetime="@UtcChangedAt.ToString("O")">@DisplayChangedAt</time>
     }
 </div>
 
@@ -38,9 +38,9 @@
 
     private string DisplayName => !string.IsNullOrWhiteSpace(ChangedByName) ? ChangedByName : $"#{ChangedById}";
     private DateTime UtcChangedAt => DateTime.SpecifyKind(ChangedAt!.Value, DateTimeKind.Utc);
-    private DateTime DisplayChangedAt => _convertedUtc == ChangedAt && _localChangedAt is not null
-        ? _localChangedAt.Value
-        : UtcChangedAt;
+    private string DisplayChangedAt => _convertedUtc == ChangedAt && _localChangedAt is not null
+        ? _localChangedAt.Value.ToString(_opt.DateTimeFormat)
+        : string.Empty;
 
     /// <inheritdoc />
     protected override void OnParametersSet() => _opt = Options ?? new ClayChangedOptions();
