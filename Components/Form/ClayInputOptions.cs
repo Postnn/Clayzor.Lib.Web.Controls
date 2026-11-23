@@ -23,6 +23,9 @@ public abstract class ClayInputOptions
     /// <summary>Дополнительные CSS-классы.</summary>
     public string? Class { get; set; }
 
+    /// <summary>Стабильный ключ восстановления незавершённого ввода DR-01.</summary>
+    public string? DraftKey { get; set; }
+
     /// <summary>Вариант оформления поля MudBlazor.</summary>
     public MudBlazor.Variant Variant { get; set; } = MudBlazor.Variant.Outlined;
 

@@ -147,6 +147,12 @@ public partial class ClaySelect<TItem, TValue>
             await SelectItemAsync(item);
     }
 
+    /// <summary>Идентификатор кнопки расширенного поиска.</summary>
+    protected string AdvancedActionId => $"{_listboxId}-advanced";
+
+    /// <summary>Идентификатор кнопки создания элемента.</summary>
+    protected string CreateActionId => $"{_listboxId}-create";
+
     /// <summary>
     /// Выполняет поиск при потере фокуса без открытия popup и проверяет выбранное значение.
     /// </summary>
@@ -155,12 +161,21 @@ public partial class ClaySelect<TItem, TValue>
         if (_advancedRunning || _disposed)
             return;
 
+        var resolveVersion = _resolveVersion;
+        var searchVersion = _searchVersion;
+        var searchText = _text;
+        if (_open && await JS.InvokeAsync<bool>("claySelect.containsFocus", _inputId))
+            return;
+        if (resolveVersion != _resolveVersion || searchVersion != _searchVersion ||
+            _advancedRunning || _disposed)
+            return;
+
         CancelSearch();
         _open = false;
         _activeIndex = -1;
         Touched = true;
         if (IsMutable)
-            await SearchAsync(_text, true, false);
+            await SearchAsync(searchText, true, false);
         if (_hasEditBackup && Value is null && string.IsNullOrWhiteSpace(_text))
         {
             _hasEditBackup = false;
@@ -186,11 +201,17 @@ public partial class ClaySelect<TItem, TValue>
         {
             case "ArrowDown":
                 if (_open && _results.Count > 0)
+                {
                     _activeIndex = Math.Min(_activeIndex + 1, _results.Count - 1);
+                    await EnsureVisibleAsync(GetOptionId(_activeIndex));
+                }
                 break;
             case "ArrowUp":
                 if (_open && _results.Count > 0)
+                {
                     _activeIndex = Math.Max(_activeIndex - 1, 0);
+                    await EnsureVisibleAsync(GetOptionId(_activeIndex));
+                }
                 break;
             case "Enter":
                 if (_open && _activeIndex >= 0 && _activeIndex < _results.Count)
@@ -202,11 +223,29 @@ public partial class ClaySelect<TItem, TValue>
                 await RestorePreviousSelectionAsync();
                 break;
             case "Tab":
-                CancelSearch();
-                _open = false;
-                _activeIndex = -1;
+                if (_loading || !(ShowCreateItem || ShowAdvancedSearch))
+                {
+                    CancelSearch();
+                    _open = false;
+                    _activeIndex = -1;
+                }
                 break;
         }
+    }
+
+    private async Task HandlePopupKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key != "Escape" || !IsMutable || _advancedRunning)
+            return;
+
+        await RestorePreviousSelectionAsync();
+        await FocusAsync();
+    }
+
+    private async Task EnsureVisibleAsync(string elementId)
+    {
+        if (!_disposed)
+            await JS.InvokeVoidAsync("claySelect.ensureVisible", _inputId, elementId);
     }
 
     /// <summary>

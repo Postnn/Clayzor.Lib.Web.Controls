@@ -35,13 +35,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
     {
         e.DataTransfer.EffectAllowed = "move";
         _dragSourceIndex = index;
-        ClayDragState.DraggedColumn = _groupColumns[index];
+        _dragState.DraggedColumn = _groupColumns[index];
     }
 
     private void OnChipDragEnd()
     {
         _dragSourceIndex = -1;
-        ClayDragState.DraggedColumn = null;
+        _dragState.DraggedColumn = null;
     }
 
     private void OnTrayDragOver(DragEventArgs e)
@@ -51,8 +51,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task OnTrayDrop(DragEventArgs e, int targetIndex)
     {
-        var draggedData = ClayDragState.DraggedColumn;
-        ClayDragState.DraggedColumn = null;
+        var draggedData = _dragState.DraggedColumn;
+        _dragState.DraggedColumn = null;
 
         if (!string.IsNullOrEmpty(draggedData)
             && _columnBySqlName.TryGetValue(draggedData, out var m) && m.Groupable

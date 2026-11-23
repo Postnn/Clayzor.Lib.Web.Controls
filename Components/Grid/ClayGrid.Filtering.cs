@@ -58,8 +58,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     private async Task OnFilterTrayDrop(DragEventArgs e)
     {
-        var draggedSqlName = ClayDragState.DraggedColumn;
-        ClayDragState.DraggedColumn = null;
+        var draggedSqlName = _dragState.DraggedColumn;
+        _dragState.DraggedColumn = null;
 
         if (string.IsNullOrEmpty(draggedSqlName))
             return;

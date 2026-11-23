@@ -9,7 +9,7 @@
 //   - dragover на document с capture:true + e.preventDefault() во всех
 //     обработчиках где мы над thead — убирает запрещающий знак.
 //   - После drop вызывается C# OnColumnDrop(srcSql, targetSql, insertBefore).
-//   - SetDraggedColumn(sql) устанавливает ClayDragState для tray-drop.
+//   - SetDraggedColumn(sql) устанавливает состояние конкретного grid для tray-drop.
 
 window.clayGridColumnDrag = (function () {
 
@@ -192,10 +192,7 @@ window.clayGridColumnDrag = (function () {
         function onDrop(e) {
             if (!srcSqlName) return;
             if (!isOverOurThead(e.target)) {
-                // Drop on grouping tray — don't call cleanup(), let Blazor's
-                // OnTrayDrop read ClayDragState.DraggedColumn. We only clear
-                // JS-side state; the C# handler will call SetDraggedColumn(null).
-                srcSqlName = null;
+                // Blazor tray-drop читает состояние этого grid до последующего dragend.
                 hideIndicator();
                 stopAutoScroll();
                 return;
@@ -232,6 +229,7 @@ window.clayGridColumnDrag = (function () {
         document.addEventListener('dragend',   onDragEnd,   true);
 
         _cleanups.set(gridId, function () {
+            cleanup();
             document.removeEventListener('dragstart', onDragStart, true);
             document.removeEventListener('dragover',  onDragOver,  true);
             document.removeEventListener('drop',      onDrop,      true);

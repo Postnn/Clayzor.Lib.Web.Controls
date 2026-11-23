@@ -24,9 +24,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
         else
         {
-            var scrollTop = await JS.InvokeAsync<double>("clayGridScroll.capture", new object[] { _opt.Id });
+            var scrollTop = await JS.InvokeAsync<double>("clayGridScroll.capture", new object[] { GridDomId });
             await OnGroupToggle.InvokeAsync(header);
-            await JS.InvokeVoidAsync("clayGridScroll.restore", _opt.Id, scrollTop);
+            await JS.InvokeVoidAsync("clayGridScroll.restore", GridDomId, scrollTop);
         }
     }
 

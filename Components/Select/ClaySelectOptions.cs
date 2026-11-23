@@ -77,6 +77,9 @@ public sealed class ClaySelectOptions
     /// </summary>
     public string? Class { get; set; }
 
+    /// <summary>Стабильный ключ восстановления неподтверждённого текста DR-01.</summary>
+    public string? DraftKey { get; set; }
+
     /// <summary>
     /// Текст состояния без результатов.
     /// </summary>

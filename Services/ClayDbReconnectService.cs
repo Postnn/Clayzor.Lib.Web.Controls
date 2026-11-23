@@ -1,6 +1,7 @@
 using Clayzor.Lib.DALC;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Data.SqlClient;
+using Microsoft.JSInterop;
 
 namespace Clayzor.Lib.Web.Controls;
 
@@ -33,6 +34,7 @@ public class ClayDbReconnectService : IDisposable
     private readonly ClayErrorService _errorService;
     private readonly DbManager _db;
     private readonly NavigationManager _nav;
+    private readonly IJSRuntime? _js;
     private CancellationTokenSource? _cts;
 
     /// <summary>Текущее состояние переподключения.</summary>
@@ -47,11 +49,12 @@ public class ClayDbReconnectService : IDisposable
     /// <summary>Событие изменения состояния — UI-компонент подписывается и вызывает <c>InvokeAsync(StateHasChanged)</c>.</summary>
     public event Action? StateChanged;
 
-    public ClayDbReconnectService(ClayErrorService errorService, DbManager db, NavigationManager nav)
+    public ClayDbReconnectService(ClayErrorService errorService, DbManager db, NavigationManager nav, IJSRuntime? js = null)
     {
         _errorService = errorService;
         _db = db;
         _nav = nav;
+        _js = js;
         _errorService.OnConnectionLost += OnConnectionLost;
     }
 
@@ -83,8 +86,16 @@ public class ClayDbReconnectService : IDisposable
                 var healthOk = await TryHealthCheckAsync(ct);
                 if (healthOk)
                 {
-                    // Успех — полная перезагрузка страницы для пересоздания компонентов
-                    _nav.NavigateTo(_nav.Uri, forceLoad: true);
+                    if (await CanReloadAsync(ct))
+                    {
+                        _nav.NavigateTo(_nav.Uri, forceLoad: true);
+                    }
+                    else
+                    {
+                        State = ReconnectState.Failed;
+                        LastError = "Соединение восстановлено, но черновик ещё не сохранён. Автоматическая перезагрузка отменена.";
+                        StateChanged?.Invoke();
+                    }
                     return;
                 }
 
@@ -117,6 +128,20 @@ public class ClayDbReconnectService : IDisposable
             LastError = ex.Message;
             State = ReconnectState.Failed;
             StateChanged?.Invoke();
+        }
+    }
+
+    private async Task<bool> CanReloadAsync(CancellationToken ct)
+    {
+        if (_js is null)
+            return true;
+        try
+        {
+            return await _js.InvokeAsync<bool>("clayDraftStore.canReload", ct);
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or OperationCanceledException)
+        {
+            return false;
         }
     }
 

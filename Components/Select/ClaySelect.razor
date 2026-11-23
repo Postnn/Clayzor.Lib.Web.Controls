@@ -10,6 +10,7 @@
     <div class="clay-select-field">
         <input @ref="_inputRef"
                id="@InputId"
+               data-draft-key="@ResolvedOptions.DraftKey"
                class="clay-select-input"
                type="text"
                value="@DisplayText"
@@ -90,8 +91,11 @@
                     @if (ShowCreateItem)
                     {
                         <button type="button"
+                                id="@CreateActionId"
                                 class="clay-select-create"
                                 @onmousedown:preventDefault="true"
+                                @onfocus="() => EnsureVisibleAsync(CreateActionId)"
+                                @onkeydown="HandlePopupKeyDownAsync"
                                 @onclick="OpenCreateItemAsync">
                             @ResolvedOptions.CreateItemText
                         </button>
@@ -100,8 +104,11 @@
                     @if (ShowAdvancedSearch)
                     {
                         <button type="button"
+                                id="@AdvancedActionId"
                                 class="clay-select-advanced"
                                 @onmousedown:preventDefault="true"
+                                @onfocus="() => EnsureVisibleAsync(AdvancedActionId)"
+                                @onkeydown="HandlePopupKeyDownAsync"
                                 @onclick="OpenAdvancedSearchAsync">
                             @ResolvedOptions.AdvancedSearchText
                         </button>

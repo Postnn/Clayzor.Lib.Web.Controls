@@ -170,7 +170,11 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
             await JS.InvokeVoidAsync("claySelect.register", _inputId, _dotnetRef);
         }
         if (IsOpen)
+        {
             await JS.InvokeVoidAsync("claySelect.positionPopup", _inputId);
+            if (ActiveDescendant is not null)
+                await JS.InvokeVoidAsync("claySelect.ensureVisible", _inputId, ActiveDescendant);
+        }
     }
 
     /// <summary>
@@ -184,6 +188,16 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
 
         _open = false;
         _activeIndex = -1;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Восстанавливает неподтверждённый текст DR-01 без поиска, выбора ID и бизнес-событий.</summary>
+    [Microsoft.JSInterop.JSInvokable]
+    public async Task RestoreDraftTextAsync(string? text)
+    {
+        if (_disposed)
+            return;
+        _text = text ?? string.Empty;
         await InvokeAsync(StateHasChanged);
     }
 

@@ -19,7 +19,7 @@
 | **ClayColumn\<T>** — колонка грида с авто-заголовком | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayColumnDef** — невидимый регистратор метаданных колонки | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayGroupHeader** — заголовок строки группы | [docs/clay-grid.md](docs/clay-grid.md) |
-| **ClayDragState** — статическое хранилище SQL-имени перетаскиваемой колонки | [docs/clay-grid.md](docs/clay-grid.md) |
+| **ClayDragState** — состояние перетаскиваемой колонки конкретного экземпляра ClayGrid и его drag-session | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayGridPrintHtmlGenerator** — генератор HTML для печати | [docs/clay-grid.md](docs/clay-grid.md) |
 | **ClayGridPrintStyles** — символы для печатных форм | — |
 | **ClayColumnFilterDialog** — диалог настройки фильтра по колонке (гридовый, в `Components/Grid/`) | [docs/clay-column-filter-dialog.md](docs/clay-column-filter-dialog.md) |
@@ -92,7 +92,8 @@
 |---|---|
 | **ClayErrorService** (Scoped) — хранит состояние последней ошибки SQL, реализует `ISqlErrorHandler` |
 | **ISqlErrorHandler** (DALC) — интерфейс, вызываемый `DbManager` при `SqlException` |
-| **ClayDbReconnectService** (Scoped) — авто-переподключение к SQL Server (3×30s health-check) |
+| **ClayDbReconnectService** (Scoped) — авто-переподключение к SQL Server (3×30s health-check); forceLoad разрешён только после подтверждения сохранности черновиков через `clayDraftStore.canReload` |
+| **ClayDraftService** (Scoped) — общий DR-01 API: изолированный IndexedDB-draft пользователя/формы/сущности/вкладки, WebCrypto AES-GCM, raw input, ревизии, operation snapshot, миграция схемы и восстановление без replay |
 | **ClayFormWindowService** (Scoped) — отдельные окна форм; `clayOpen` — единственный разрешённый API открытия карточек/форм с устойчивым ключом и сохранением размера/позиции в `localStorage`; прямой `window.open` вне этой реализации запрещён |
 | **ClayReflectionCellReader** — читает значение ячейки через рефлексию |
 | **ClayGridExportFileName** — `Sanitize(title)` — убирает недопустимые символы из имени файла |

@@ -13,7 +13,7 @@
    и ClayColumn внутри MudDataGrid (построение заголовков) получают одну ссылку на IClayGrid *@
 <CascadingValue Value="(IClayGrid)this" IsFixed="true">
 @ColumnDefs
-<MudPaper Elevation="1" Class="@($"pa-4 {_opt.Class} {(_opt.ShowHeader ? "" : "clay-grid-hide-header")} {(_opt.FillAvailableHeight ? "clay-grid--fill-height" : "")} {(_opt.CompactLayout ? "clay-grid--compact-layout" : "")}")" Style="position:relative" id="@_opt.Id">
+<MudPaper Elevation="1" Class="@($"pa-4 {_opt.Class} {(_opt.ShowHeader ? "" : "clay-grid-hide-header")} {(_opt.FillAvailableHeight ? "clay-grid--fill-height" : "")} {(_opt.CompactLayout ? "clay-grid--compact-layout" : "")}")" Style="position:relative" id="@GridDomId">
     @if (_dynamicError is not null)
     {
         <div class="clay-grid-error">

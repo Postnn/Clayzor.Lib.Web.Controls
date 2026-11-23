@@ -63,6 +63,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>DotNetObjectReference для передачи в JS (insert-drag заголовков).</summary>
     private DotNetObjectReference<ClayGrid<TEntity>>? _dotnetRef;
 
+    private readonly ClayDragState _dragState = new();
+    private readonly string _defaultDomId = $"clay-grid-{Guid.NewGuid():N}";
+    private string? _dragInitializedId;
+    private string GridDomId => !_opt.Dynamic && _opt.Id == "clay-grid" ? _defaultDomId : _opt.Id;
+
     /// <summary>Стабильный идентификатор регистрации callback дочерних форм.</summary>
     private readonly string _formWindowRegistrationId = Guid.NewGuid().ToString("N");
 
@@ -230,10 +235,16 @@ public partial class ClayGrid<TEntity> where TEntity : class
             _dataKey++;
             StateHasChanged();
         }
-        else if (_columnsReady && _opt.AllowColumnReorder && !string.IsNullOrEmpty(_opt.Id))
+        else if (_columnsReady && _opt.AllowColumnReorder && !string.IsNullOrEmpty(GridDomId))
         {
+            if (_dragInitializedId != GridDomId)
+            {
+                if (_dragInitializedId is not null)
+                    await JS.InvokeVoidAsync("clayGridColumnDrag.dispose", _dragInitializedId);
+                _dragInitializedId = GridDomId;
+            }
             _dotnetRef ??= DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("clayGridColumnDrag.init", _opt.Id, _dotnetRef);
+            await JS.InvokeVoidAsync("clayGridColumnDrag.init", GridDomId, _dotnetRef);
 
             if (_selectMode && (_opt.Dynamic || DataLoader is not null) && !_loadingChildIds)
             {
@@ -264,11 +275,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
 
     /// <summary>
     /// Вызывается из JS при начале drag заголовка колонки.
-    /// Устанавливает <see cref="ClayDragState.DraggedColumn"/> для tray-drop обработчиков.
+    /// Устанавливает состояние drag только для текущего экземпляра грида.
     /// </summary>
     [JSInvokable]
     public void SetDraggedColumn(string? sqlName)
-        => ClayDragState.DraggedColumn = sqlName;
+        => _dragState.DraggedColumn = sqlName;
 
     /// <summary>
     /// Вызывается из JS после завершения drag-and-drop заголовка колонки.
@@ -281,6 +292,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     [JSInvokable]
     public async Task OnColumnDrop(string srcSql, string targetSql, bool insertBefore)
     {
+        _dragState.DraggedColumn = null;
         if (!_columnBySqlName.TryGetValue(srcSql, out var srcMeta)) return;
         if (!_columnBySqlName.TryGetValue(targetSql, out var tgtMeta)) return;
 
@@ -312,9 +324,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        if (!string.IsNullOrEmpty(_opt.Id))
+        _dragState.DraggedColumn = null;
+        _dragSourceIndex = -1;
+        if (_dragInitializedId is not null)
         {
-            try { await JS.InvokeVoidAsync("clayGridColumnDrag.dispose", _opt.Id); } catch { }
+            try { await JS.InvokeVoidAsync("clayGridColumnDrag.dispose", _dragInitializedId); } catch { }
+            _dragInitializedId = null;
         }
         if (_opt.Dynamic && _dotnetRef is not null)
         {

@@ -12,7 +12,8 @@
                Clearable="@_opt.Clearable"
                Variant="@_opt.Variant"
                Margin="@_opt.Margin"
-               Class="@($"clay-date {_opt.Class}")" />
+               Class="@($"clay-date {_opt.Class}")"
+               data-draft-key="@_opt.DraftKey" />
 
 @code {
     private ClayDatePickerOptions _opt = new();

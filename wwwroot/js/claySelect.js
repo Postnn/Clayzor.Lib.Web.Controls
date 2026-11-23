@@ -14,13 +14,20 @@ window.claySelect = window.claySelect || {
         const onFocusOut = event => {
             if (event.relatedTarget && !root.contains(event.relatedTarget)) close();
         };
+        const onKeyDown = event => {
+            if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') &&
+                root.querySelector('.clay-select-popup')) {
+                event.preventDefault();
+            }
+        };
 
         const reposition = () => this.positionPopup(inputId);
         document.addEventListener('mousedown', onMouseDown, true);
         document.addEventListener('scroll', reposition, true);
         window.addEventListener('resize', reposition);
         root.addEventListener('focusout', onFocusOut);
-        this.instances[inputId] = { root, onMouseDown, onFocusOut, close, reposition };
+        input.addEventListener('keydown', onKeyDown);
+        this.instances[inputId] = { root, input, dotnetRef, onMouseDown, onFocusOut, onKeyDown, close, reposition };
     },
 
     closeOthers: function (exceptInputId) {
@@ -28,6 +35,25 @@ window.claySelect = window.claySelect || {
             if (inputId !== exceptInputId)
                 instance.close();
         }
+    },
+
+    restoreDraftText: async function (inputId, text) {
+        const instance = this.instances[inputId];
+        if (!instance) return;
+        instance.input.value = text || '';
+        await instance.dotnetRef.invokeMethodAsync('RestoreDraftTextAsync', text || '');
+    },
+
+    containsFocus: function (inputId) {
+        const instance = this.instances[inputId];
+        return !!instance && instance.root.contains(document.activeElement);
+    },
+
+    ensureVisible: function (inputId, elementId) {
+        const instance = this.instances[inputId];
+        const element = document.getElementById(elementId);
+        if (!instance || !element || !instance.root.contains(element)) return;
+        element.scrollIntoView({ block: 'nearest' });
     },
 
     positionPopup: function (inputId) {
@@ -68,6 +94,7 @@ window.claySelect = window.claySelect || {
         document.removeEventListener('scroll', instance.reposition, true);
         window.removeEventListener('resize', instance.reposition);
         instance.root.removeEventListener('focusout', instance.onFocusOut);
+        instance.input.removeEventListener('keydown', instance.onKeyDown);
         delete this.instances[inputId];
     }
 };

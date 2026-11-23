@@ -129,7 +129,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// </summary>
     private async Task ToggleDynamicGroup(GroupHeaderRow header)
     {
-        var scrollTop = await JS.InvokeAsync<double>("clayGridScroll.capture", new object[] { _opt.Id });
+        var scrollTop = await JS.InvokeAsync<double>("clayGridScroll.capture", new object[] { GridDomId });
 
         var wasExpanded = _dynamicExpandedGroups.Contains(header.FullKey);
         if (wasExpanded)
@@ -172,7 +172,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         // Автопереход на другую страницу — осмысленная смена контекста,
         // возвращать старую позицию прокрутки не нужно.
         if (!pageChanged)
-            await JS.InvokeVoidAsync("clayGridScroll.restore", _opt.Id, scrollTop);
+            await JS.InvokeVoidAsync("clayGridScroll.restore", GridDomId, scrollTop);
     }
 
     /// <summary>
