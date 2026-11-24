@@ -1,0 +1,37 @@
+@typeparam TKey where TKey : notnull
+
+<details>
+    <summary>@Label</summary>
+    @if (Items.Count > 0)
+    {
+        <div class="d-flex flex-column gap-1 mt-1">
+            <ClayCheckbox Label="Выделить всё" State="All" StateChanged="ChangeAllAsync" />
+            @foreach (var option in Items)
+            {
+                <ClayCheckbox @key="option.Key" Label="@option.Value" State="@Selected.Contains(option.Key)" StateChanged="@(value => ChangeAsync(option.Key, value))" />
+            }
+        </div>
+    }
+</details>
+
+@code {
+    /// <summary>Подпись списка.</summary>
+    [Parameter, EditorRequired] public required string Label { get; set; }
+    /// <summary>Доступные варианты в порядке отображения.</summary>
+    [Parameter, EditorRequired] public required IReadOnlyList<KeyValuePair<TKey, string>> Items { get; set; }
+    /// <summary>Текущее множество выбранных ключей.</summary>
+    [Parameter, EditorRequired] public required IReadOnlySet<TKey> Selected { get; set; }
+    /// <summary>Снимок выбора, включая пустой набор.</summary>
+    [Parameter] public EventCallback<IReadOnlySet<TKey>> SelectedChanged { get; set; }
+
+    private bool? All => Selected.Count == 0 ? false : Items.All(item => Selected.Contains(item.Key)) ? true : null;
+    private Task ChangeAllAsync(bool? value) => SelectedChanged.InvokeAsync(value == true ? Items.Select(item => item.Key).ToHashSet() : new HashSet<TKey>());
+
+    private Task ChangeAsync(TKey key, bool? value)
+    {
+        var selected = Selected.ToHashSet();
+        if (value == true) selected.Add(key);
+        else selected.Remove(key);
+        return SelectedChanged.InvokeAsync(selected);
+    }
+}
