@@ -1,0 +1,33 @@
+<div class="d-flex align-center flex-wrap gap-2">
+    <ClayDropDownList TItem="PeriodOption" TValue="ClayPeriodKind" Options="PeriodOptions" Items="Kinds"
+                      ValueSelector="@(item => item.Kind)" TextSelector="@(item => item.Label)"
+                      Value="Value.Kind" ValueChanged="ChangeKindAsync" />
+    <ClayDatePicker Value="Value.From" ValueChanged="@(date => ChangeAsync(Value.Start(date)))" Options="FromOptions" />
+    @if (Value.Kind != ClayPeriodKind.Day)
+    {
+        <ClayDatePicker Value="Value.To" ValueChanged="@(date => ChangeAsync(Value.End(date)))" Options="ToOptions" />
+    }
+    <MudIconButton title="Предыдущий период" aria-label="Предыдущий период" Icon="@Icons.Material.Filled.ChevronLeft" Disabled="@(!CanMove)" OnClick="@(() => ChangeAsync(Value.Move(-1)))" />
+    <MudIconButton title="Следующий период" aria-label="Следующий период" Icon="@Icons.Material.Filled.ChevronRight" Disabled="@(!CanMove)" OnClick="@(() => ChangeAsync(Value.Move(1)))" />
+</div>
+
+@code {
+    private sealed record PeriodOption(ClayPeriodKind Kind, string Label);
+    private static readonly PeriodOption[] Kinds =
+    [
+        new(ClayPeriodKind.Day, "День"), new(ClayPeriodKind.Week, "Неделя"), new(ClayPeriodKind.Month, "Месяц"),
+        new(ClayPeriodKind.Quarter, "Квартал"), new(ClayPeriodKind.Year, "Год"), new(ClayPeriodKind.Custom, "Произвольно")
+    ];
+    private static readonly ClayDropDownListOptions PeriodOptions = new() { Label = "Период" };
+    private static readonly ClayDatePickerOptions FromOptions = new() { Label = "С", Required = true };
+    private static readonly ClayDatePickerOptions ToOptions = new() { Label = "По", Required = true };
+
+    /// <summary>Текущий период формы.</summary>
+    [Parameter, EditorRequired] public required ClayPeriod Value { get; set; }
+    /// <summary>Изменение календарного интервала.</summary>
+    [Parameter] public EventCallback<ClayPeriod> ValueChanged { get; set; }
+
+    private bool CanMove => Value.From is not null && Value.Kind != ClayPeriodKind.Custom;
+    private Task ChangeAsync(ClayPeriod value) => ValueChanged.InvokeAsync(value);
+    private Task ChangeKindAsync(ClayPeriodKind kind) => ChangeAsync(Value.Select(kind, DateTime.Today));
+}
