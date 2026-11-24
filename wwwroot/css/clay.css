@@ -2437,6 +2437,25 @@ body {
 
 /* The document scope includes popovers and dialogs rendered outside the page body. */
 @media screen {
+    /* Native text controls and ClaySelect expose required-value validity as the user types.
+       The readonly input in MudSelect instead gets the empty state from its wrapper. */
+    :is(.mud-input-outlined:has(> :required:invalid), .clay-required-empty .mud-input-outlined):not(.mud-disabled, .mud-readonly),
+    .clay-select-input:required:invalid {
+        --clay-field-bg: var(--clay-input-required-bg);
+        background-color: var(--clay-field-bg);
+        caret-color: var(--clay-input-required-fg);
+    }
+
+    .mud-input-outlined:not(.mud-disabled, .mud-readonly) > :required:invalid::placeholder,
+    .clay-select-input:required:invalid::placeholder,
+    .clay-required-empty .mud-select-input:not(:disabled)::placeholder {
+        color: var(--clay-input-required-fg);
+    }
+
+    :is(.mud-input-outlined:has(> :required:invalid), .clay-required-empty .mud-input-outlined):not(.mud-disabled, .mud-readonly, .mud-shrink, :focus-within) ~ .mud-input-label:not(.mud-input-error, .mud-error-text) {
+        color: var(--clay-input-required-fg);
+    }
+
     :root:has(template[data-clay-theme]:not([data-clay-theme^="classic:"])) {
         .mud-table .mud-table-head .mud-table-cell {
             background-color: var(--clay-grid-header-bg) !important;
@@ -2460,6 +2479,10 @@ body {
 
         .mud-table-head .clay-checkbox-box--unchecked {
             border-color: var(--clay-grid-header-fg);
+        }
+
+        .mud-table-striped .mud-table-body {
+            background-color: var(--clay-grid-row-bg);
         }
 
         .mud-table .mud-table-body .mud-table-row:hover {
@@ -2516,12 +2539,7 @@ body {
 
         .mud-input-outlined:not(.mud-disabled, .mud-readonly),
         .clay-select-input:not(:disabled, [readonly]) {
-            background-color: var(--clay-input-bg);
-        }
-
-        .mud-input-outlined:not(.mud-disabled, .mud-readonly):has(:required),
-        .clay-select-input:required:not(:disabled, [readonly]) {
-            background-color: var(--clay-input-required-bg);
+            background-color: var(--clay-field-bg, var(--clay-input-bg));
         }
 
         .mud-input-outlined.mud-readonly,

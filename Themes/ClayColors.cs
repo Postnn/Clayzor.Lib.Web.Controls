@@ -31,6 +31,9 @@ public static class ClayColors
     public const string ErrorRed   = "#C62828";
     public const string SuccessGreen = "#2E7D32";
 
+    /// <summary>Фон доступного пустого обязательного поля.</summary>
+    public const string EmptyRequiredBackground = "#FFFF99";
+
     // MudBlazor palette extras
     public const string DrawerTextColor    = "#C8CDD8";
     public const string DrawerIconColor    = "#8A93A8";
