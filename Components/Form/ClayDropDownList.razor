@@ -26,9 +26,13 @@
 @code {
     private ClayDropDownListOptions _opt = new();
 
-    private string? FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly && Value is null
+    private string? FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly && IsDisplayEmpty
         ? $"clay-required-empty {_opt.Class}"
         : _opt.Class;
+
+    private bool IsDisplayEmpty => Value is null || Value is string { Length: 0 } &&
+        Items?.Any(item => EqualityComparer<TValue>.Default.Equals(ValueSelector(item), Value) &&
+                          !string.IsNullOrEmpty(TextSelector(item))) != true;
 
     /// <summary>Элементы списка.</summary>
     [Parameter] public IEnumerable<TItem>? Items { get; set; }
