@@ -223,7 +223,7 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
         InitializeDefaultFilter();
 
         // TF_G: применить фильтр из query-параметров URL (перекрывает FilterDefaults)
-        ApplyQueryFilter(NavigationManager.Uri);
+        ApplyQueryFilter(new Uri(NavigationManager.Uri).Query);
 
         // Пересчитать после query — forced-параметры могли сбросить дефолтный режим
         _isDefaultOnly = ComputeIsDefaultOnly();
