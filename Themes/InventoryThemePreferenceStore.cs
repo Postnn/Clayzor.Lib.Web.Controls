@@ -9,8 +9,7 @@ namespace Clayzor.Lib.Web.Controls.Themes;
 /// <summary>Адресует личные настройки только после проверки аутентифицированного сотрудника.</summary>
 public sealed class InventoryThemePreferenceStore(
     Func<Task<ClaimsPrincipal>> getUser,
-    ClayAppSettings settings,
-    string parameter) : IClayThemePreferenceStore, IDisposable
+    ClayAppSettings settings) : IClayThemePreferenceStore, IDisposable
 {
     private DbManager? _db;
     private string? _principal;
@@ -19,13 +18,18 @@ public sealed class InventoryThemePreferenceStore(
     /// <summary>Загружает тему текущего проверенного сотрудника.</summary>
     /// <param name="cancellationToken">Токен отмены загрузки.</param>
     public async Task<string?> LoadAsync(CancellationToken cancellationToken) =>
-        await ClayThemeSettingsData.LoadAsync(await GetTrustedDbAsync(cancellationToken), parameter, cancellationToken);
+        await ClayThemeSettingsData.LoadAsync(await GetTrustedDbAsync(cancellationToken), cancellationToken);
 
     /// <summary>Сохраняет тему текущего проверенного сотрудника.</summary>
     /// <param name="value">Сериализованное сочетание темы и режима.</param>
     /// <param name="cancellationToken">Токен отмены сохранения.</param>
-    public async Task SaveAsync(string value, CancellationToken cancellationToken) =>
-        await ClayThemeSettingsData.SaveAsync(await GetTrustedDbAsync(cancellationToken), parameter, value, cancellationToken);
+    public async Task SaveAsync(string value, CancellationToken cancellationToken)
+    {
+        if (!string.Equals(value, ClayThemeCatalog.Parse(value).Serialize(), StringComparison.Ordinal))
+            throw new ArgumentException("Неверное значение темы оформления.", nameof(value));
+
+        await ClayThemeSettingsData.SaveAsync(await GetTrustedDbAsync(cancellationToken), value, cancellationToken);
+    }
 
     private async Task<DbManager> GetTrustedDbAsync(CancellationToken cancellationToken)
     {

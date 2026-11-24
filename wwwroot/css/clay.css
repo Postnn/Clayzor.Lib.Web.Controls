@@ -2437,26 +2437,61 @@ body {
 
 /* The document scope includes popovers and dialogs rendered outside the page body. */
 @media screen {
-    /* Native text controls and ClaySelect expose required-value validity as the user types.
-       The readonly input in MudSelect instead gets the empty state from its wrapper. */
-    :is(.mud-input-outlined:has(> :required:invalid), .clay-required-empty .mud-input-outlined):not(.mud-disabled, .mud-readonly),
+    /* A blank placeholder detects the live value without interpreting validation errors as emptiness.
+       Plain text without other native constraints and ClaySelect use the browser's required check. */
+    :is(.mud-input:has(> :required:placeholder-shown:not(:disabled, [readonly])),
+        .mud-input:has(> :is(input[type="text"], textarea):required:invalid:not([pattern], [minlength])),
+        .clay-required-picker .mud-input:has(> :required:placeholder-shown:not(:disabled)),
+        .clay-required-empty .mud-input):not(.mud-disabled, .mud-readonly) {
+        --clay-field-bg: var(--clay-input-required-bg);
+        background-color: var(--clay-field-bg);
+        caret-color: var(--clay-input-required-fg);
+
+        & > .mud-input-slot {
+            color: var(--clay-input-required-fg);
+        }
+
+        & > :is(input, textarea)::placeholder {
+            color: var(--clay-input-required-fg) !important;
+            opacity: 1;
+        }
+
+        & :is(.mud-input-adornment .mud-icon-root, .mud-input-numeric-spin .mud-button-root) {
+            color: var(--clay-input-required-fg);
+        }
+
+        &:not(.mud-shrink, :focus-within) ~ .mud-input-label:not(.mud-input-error, .mud-error-text) {
+            color: var(--clay-input-required-fg);
+        }
+
+        &:is(.mud-shrink, :focus-within) ~ .mud-input-label-outlined {
+            background-color: var(--mud-palette-surface);
+            z-index: 2;
+        }
+    }
+
     .clay-select-input:required:invalid {
         --clay-field-bg: var(--clay-input-required-bg);
         background-color: var(--clay-field-bg);
         caret-color: var(--clay-input-required-fg);
-    }
 
-    .mud-input-outlined:not(.mud-disabled, .mud-readonly) > :required:invalid::placeholder,
-    .clay-select-input:required:invalid::placeholder,
-    .clay-required-empty .mud-select-input:not(:disabled)::placeholder {
-        color: var(--clay-input-required-fg);
-    }
-
-    :is(.mud-input-outlined:has(> :required:invalid), .clay-required-empty .mud-input-outlined):not(.mud-disabled, .mud-readonly, .mud-shrink, :focus-within) ~ .mud-input-label:not(.mud-input-error, .mud-error-text) {
-        color: var(--clay-input-required-fg);
+        &::placeholder {
+            color: var(--clay-input-required-fg);
+            opacity: 1;
+        }
     }
 
     :root:has(template[data-clay-theme]:not([data-clay-theme^="classic:"])) {
+        --clay-grid-badge-bg: var(--clay-accent-color);
+        --clay-grid-badge-fg: var(--mud-palette-secondary-text);
+        --clay-grid-active-filter-bg: var(--mud-palette-white);
+        --clay-grid-active-filter-fg: var(--clay-accent-color);
+
+        :is(.chip-sort-badge, .chip-group-badge) {
+            background-color: var(--clay-grid-badge-bg);
+            color: var(--clay-grid-badge-fg);
+        }
+
         .mud-table .mud-table-head .mud-table-cell {
             background-color: var(--clay-grid-header-bg) !important;
             color: var(--clay-grid-header-fg) !important;
@@ -2468,8 +2503,18 @@ body {
             color: var(--clay-grid-header-fg) !important;
         }
 
-        .mud-table-head :is(.clay-column-menu, .clay-vf-icon) .mud-svg-icon path:not([fill="none"]) {
+        .mud-table-head :is(.clay-column-menu, .clay-vf-icon:not(.clay-vf-icon--active)) .mud-svg-icon path:not([fill="none"]) {
             fill: var(--clay-grid-header-fg) !important;
+            opacity: 1;
+        }
+
+        .mud-table-head .clay-vf-icon--active {
+            background-color: var(--clay-grid-active-filter-bg) !important;
+            box-shadow: inset 0 0 0 1px var(--clay-grid-active-filter-fg);
+        }
+
+        .mud-table-head .clay-vf-icon--active .mud-svg-icon path:not([fill="none"]) {
+            fill: var(--clay-grid-active-filter-fg) !important;
             opacity: 1;
         }
 
