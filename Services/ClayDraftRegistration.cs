@@ -33,6 +33,18 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     public Task<ClayDraftRawApplyResult> ApplyRawWithResultAsync(CancellationToken cancellationToken = default) =>
         _owner.ApplyRawWithResultAsync(RegistrationId, cancellationToken);
 
+    /// <summary>Применяет raw только этой editor scope после отдельной permission/DOM readiness.</summary>
+    public Task<ClayDraftRawApplyResult> ApplyRawWithResultAsync(string scope, CancellationToken cancellationToken = default) =>
+        _owner.ApplyRawWithResultAsync(RegistrationId, scope, cancellationToken);
+
+    /// <summary>Возвращает pending/failed области без значений полей; Complete=false запрещает объявлять restore завершённым.</summary>
+    public Task<ClayDraftRestoreReadiness> GetRestoreReadinessAsync(CancellationToken cancellationToken = default) =>
+        _owner.GetRestoreReadinessAsync(RegistrationId, cancellationToken);
+
+    /// <summary>Сохраняет failed readiness области и защищённый raw для последующего разрешённого retry.</summary>
+    public Task ReportRestoreScopeFailureAsync(string scope, CancellationToken cancellationToken = default) =>
+        _owner.ReportRestoreScopeFailureAsync(RegistrationId, scope, cancellationToken);
+
     /// <summary>Сохраняет legacy running marker; не принимает автоматически ни одну область при commit.</summary>
     public Task<long> BeginOperationAsync(string operation, CancellationToken cancellationToken = default) =>
         _owner.BeginOperationAsync(RegistrationId, operation, cancellationToken);
@@ -69,7 +81,7 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     public Task EnsureCommandAllowedAsync(CancellationToken cancellationToken = default) =>
         _owner.EnsureCommandAllowedAsync(RegistrationId, cancellationToken);
 
-    /// <summary>Явно удаляет весь draft и backup этой регистрации.</summary>
+    /// <summary>Удаляет editable values и backup; running/unknown marker остаётся durable до доказанного outcome.</summary>
     public Task DiscardAsync(CancellationToken cancellationToken = default) =>
         _owner.DiscardAsync(RegistrationId, cancellationToken);
 

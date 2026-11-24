@@ -167,9 +167,44 @@
         return 'main';
     }
 
-    function fieldKey(element) {
+    function registrationRoots(reg) {
+        if (reg.rootSelector)
+            return Array.from(document.querySelectorAll(reg.rootSelector));
+        const roots = reg.root ? [reg.root] : [];
+        if (reg.activeScope && reg.activeScope !== 'main') {
+            const claimants = [...registrations.values()]
+                .filter(item => !item.released && !item.discarded && item.activeScope === reg.activeScope);
+            if (claimants.length === 1 && claimants[0] === reg) {
+                for (const portal of document.querySelectorAll('.mud-dialog,.mud-popover')) {
+                    if (portal.dataset.draftScope === reg.activeScope ||
+                        Array.from(portal.querySelectorAll('[data-draft-scope]'))
+                            .some(item => item.dataset.draftScope === reg.activeScope))
+                        roots.push(portal);
+                }
+            }
+        }
+        return roots;
+    }
+
+    function ownedBy(reg, element, roots = registrationRoots(reg)) {
+        if (!roots.some(root => root === element || root.contains(element))) return false;
+        for (const other of registrations.values()) {
+            if (other !== reg && !other.released && !other.discarded &&
+                registrationRoots(other).some(root => root === element || root.contains(element)))
+                return false;
+        }
+        return true;
+    }
+
+    function ownedFields(reg) {
+        const roots = registrationRoots(reg);
+        return Array.from(document.querySelectorAll('input,textarea,select'))
+            .filter(element => ownedBy(reg, element, roots));
+    }
+
+    function fieldKey(element, reg) {
         if (element.dataset.draftKey) {
-            const matches = Array.from(document.querySelectorAll('[data-draft-key]'))
+            const matches = ownedFields(reg)
                 .filter(item => item.dataset.draftKey === element.dataset.draftKey);
             return `data:${element.dataset.draftKey}:${Math.max(0, matches.indexOf(element))}`;
         }
@@ -184,23 +219,25 @@
         return `path:${parts.join('/')}`;
     }
 
-    function findField(key) {
+    function findField(key, reg) {
+        let element;
         if (key.startsWith('data:')) {
             const separator = key.lastIndexOf(':');
             const name = key.slice(5, separator);
             const index = Number(key.slice(separator + 1));
-            return Array.from(document.querySelectorAll('[data-draft-key]'))
-                .filter(item => item.dataset.draftKey === name)[index] || null;
+            element = ownedFields(reg).filter(item => item.dataset.draftKey === name)[index] || null;
+        } else {
+            const parts = key.slice(5).split('/');
+            let current = document.body;
+            for (const part of parts) {
+                const [tag, rawIndex] = part.split(':');
+                const child = Array.from(current.children).filter(item => item.tagName === tag)[Number(rawIndex)];
+                if (!child) return null;
+                current = child;
+            }
+            element = current.matches('input,textarea,select') ? current : null;
         }
-        const parts = key.slice(5).split('/');
-        let current = document.body;
-        for (const part of parts) {
-            const [tag, rawIndex] = part.split(':');
-            const child = Array.from(current.children).filter(item => item.tagName === tag)[Number(rawIndex)];
-            if (!child) return null;
-            current = child;
-        }
-        return current.matches('input,textarea,select') ? current : null;
+        return element && ownedBy(reg, element) ? element : null;
     }
 
     function sameFieldValue(left, right) {
@@ -209,11 +246,11 @@
 
     function captureField(reg, element) {
         if (reg.discarded || reg.released ||
-            !element?.matches?.('input,textarea,select') || element.disabled || element.type === 'file') return;
-        if (!element.closest('.equipment-form,.mud-dialog,.mud-popover')) return;
+            !element?.matches?.('input,textarea,select') || element.disabled || element.type === 'file' ||
+            !ownedBy(reg, element)) return;
         const scope = fieldScope(element, reg);
         if (reg.cancelledScopes[scope]) return;
-        const key = fieldKey(element);
+        const key = fieldKey(element, reg);
         const value = fieldValue(element);
         const previous = reg.raw[key];
         if (previous?.scope === scope && sameFieldValue(previous, value)) return;
@@ -222,51 +259,76 @@
     }
 
     function captureAll(reg) {
-        document.querySelectorAll('.equipment-form input,.equipment-form textarea,.equipment-form select,.mud-dialog input,.mud-dialog textarea,.mud-dialog select')
-            .forEach(element => captureField(reg, element));
+        ownedFields(reg).forEach(element => captureField(reg, element));
     }
 
     function isCurrentApply(reg, id, version) {
         return registrations.get(id) === reg && !reg.discarded && !reg.released && reg.applyVersion === version;
     }
 
-    async function applyRaw(id) {
+    function scopeResult(result, scope) {
+        return result.scopes[scope] ||= { applied: [], pending: [] };
+    }
+
+    function appliedRaw(reg, result, key, scope) {
+        result.applied.push(key);
+        scopeResult(result, scope).applied.push(key);
+        reg.restorePending.delete(key);
+    }
+
+    function pendingRaw(reg, result, key, scope) {
+        result.pending.push(key);
+        scopeResult(result, scope).pending.push(key);
+        reg.restorePending.add(key);
+    }
+
+    async function applyRaw(id, scope) {
         const reg = get(id);
+        if (scope !== undefined && scope !== null) validateScope(scope);
+        if (scope) reg.restoreFailures.delete(scope);
+        else reg.restoreFailures.clear();
         const version = ++reg.applyVersion;
-        const result = { applied: [], pending: [] };
+        const result = { applied: [], pending: [], scopes: {} };
         for (const key of Object.keys(reg.raw)) {
             while (isCurrentApply(reg, id, version)) {
                 const state = reg.raw[key];
-                if (!state || reg.cancelledScopes[state.scope || 'main']) break;
-                let element = findField(key);
-                if (!element && (key.startsWith('data:computer.hd:') || key.startsWith('data:computer.ssd:'))) {
-                    const selector = key.startsWith('data:computer.hd:') ? '.equipment-add-hd' : '.equipment-add-ssd';
-                    document.querySelector(selector)?.click();
-                    for (let attempt = 0; attempt < 40 && !element; attempt++) {
-                        await new Promise(resolve => setTimeout(resolve, 50));
-                        if (!isCurrentApply(reg, id, version)) break;
-                        element = findField(key);
+                const stateScope = state?.scope || 'main';
+                if (!state || (scope && stateScope !== scope) || reg.cancelledScopes[stateScope]) break;
+                try {
+                    let element = findField(key, reg);
+                    if (!element && (key.startsWith('data:computer.hd:') || key.startsWith('data:computer.ssd:'))) {
+                        const selector = key.startsWith('data:computer.hd:') ? '.equipment-add-hd' : '.equipment-add-ssd';
+                        registrationRoots(reg).map(root => root.querySelector(selector)).find(Boolean)?.click();
+                        for (let attempt = 0; attempt < 40 && !element; attempt++) {
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                            if (!isCurrentApply(reg, id, version)) break;
+                            element = findField(key, reg);
+                        }
                     }
-                }
-                if (!isCurrentApply(reg, id, version)) break;
-                if (!element || element.disabled || fieldScope(element, reg) !== (state.scope || 'main')) {
-                    result.pending.push(key);
-                    break;
-                }
-                if (element.getAttribute('role') === 'combobox' && window.claySelect?.restoreDraftText) {
-                    await window.claySelect.restoreDraftText(element.id, state.value || '');
                     if (!isCurrentApply(reg, id, version)) break;
-                    if (reg.raw[key] !== state) continue;
-                    result.applied.push(key);
+                    if (!element || element.disabled || fieldScope(element, reg) !== stateScope) {
+                        pendingRaw(reg, result, key, stateScope);
+                        break;
+                    }
+                    if (element.getAttribute('role') === 'combobox' && window.claySelect?.restoreDraftText) {
+                        await window.claySelect.restoreDraftText(element.id, state.value || '');
+                        if (!isCurrentApply(reg, id, version)) break;
+                        if (reg.raw[key] !== state) continue;
+                        appliedRaw(reg, result, key, stateScope);
+                        break;
+                    }
+                    if (state.kind === 'checked') element.checked = state.value;
+                    else if (state.kind === 'radio') element.checked = state.value && element.value === state.data;
+                    else element.value = state.value;
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (state.kind !== 'value') element.dispatchEvent(new Event('change', { bubbles: true }));
+                    appliedRaw(reg, result, key, stateScope);
                     break;
+                } catch (error) {
+                    reg.restorePending.add(key);
+                    reg.restoreFailures.add(stateScope);
+                    throw error;
                 }
-                if (state.kind === 'checked') element.checked = state.value;
-                else if (state.kind === 'radio') element.checked = state.value && element.value === state.data;
-                else element.value = state.value;
-                element.dispatchEvent(new Event('input', { bubbles: true }));
-                if (state.kind !== 'value') element.dispatchEvent(new Event('change', { bubbles: true }));
-                result.applied.push(key);
-                break;
             }
         }
         return result;
@@ -343,8 +405,18 @@
         return result;
     }
 
-    async function register(formKey, entityKey, userKeyValue, schema) {
+    async function register(formKey, entityKey, userKeyValue, schema, rootSelector) {
         if (!formKey || !entityKey || !userKeyValue) throw new Error('Draft scope is required.');
+        if (rootSelector !== undefined && rootSelector !== null &&
+            (typeof rootSelector !== 'string' || !rootSelector.trim()))
+            throw new Error('Draft DOM root selector is invalid.');
+        const roots = rootSelector
+            ? Array.from(document.querySelectorAll(rootSelector))
+            : Array.from(document.querySelectorAll('.equipment-form'));
+        if (rootSelector && roots.length === 0)
+            throw new Error('Draft DOM root is not available.');
+        if (!rootSelector && roots.length !== 1)
+            throw new Error('Draft DOM root is ambiguous; pass an explicit root selector.');
         const sessionKey = `clay-draft:${userKeyValue}:${formKey}:${entityKey}`;
         let draftId = sessionStorage.getItem(sessionKey) || crypto.randomUUID();
         let releaseLock = await claimLock(`clay-draft:${formKey}:${entityKey}:${draftId}`);
@@ -359,10 +431,11 @@
             sessionStorage.setItem(sessionKey, draftId);
             reg = {
                 formKey, entityKey, userKey: userKeyValue, schema, draftId,
+                rootSelector: rootSelector || null, root: rootSelector ? null : roots[0],
                 revision: 0, epoch: 0, typedState: null, typedRevision: 0, typedScopes: {},
                 operation: null, raw: {}, cancelledScopes: {}, pending: Promise.resolve(), pendingWrites: 0,
                 persistedRevision: 0, lastError: null, discarded: false, released: false, releaseLock,
-                applyVersion: 0,
+                applyVersion: 0, restorePending: new Set(), restoreFailures: new Set(),
             };
             const id = draftKey(reg);
             const stored = await request('drafts', 'readonly', store => store.get(id));
@@ -392,6 +465,9 @@
                     persistedRevision: restored.revision || 0,
                 });
             }
+            reg.restorePending = new Set(Object.entries(reg.raw)
+                .filter(([, value]) => !reg.cancelledScopes[value.scope || 'main'])
+                .map(([key]) => key));
             if (migrated) await queue(reg);
             const registrationId = crypto.randomUUID();
             reg.listener = event => captureField(reg, event.target);
@@ -553,8 +629,10 @@
                     delete reg.typedScopes[scope.name];
                 for (const [key, acceptedRevision] of Object.entries(scope.rawRevisions || {})) {
                     if (reg.raw[key]?.revision === acceptedRevision &&
-                        (reg.raw[key]?.scope || 'main') === scope.name)
+                        (reg.raw[key]?.scope || 'main') === scope.name) {
                         delete reg.raw[key];
+                        reg.restorePending.delete(key);
+                    }
                 }
             }
             if (reg.typedRevision === operation.legacyTypedRevision) {
@@ -580,13 +658,15 @@
             validateScope(scope);
             reg.activeScope = 'main';
             await waitForIdle(reg);
-            if ((reg.operation?.scopes || []).some(item => item.name === scope))
-                throw new Error('Нельзя отменить область незавершённой операции.');
             reg.cancelledScopes[scope] = true;
             delete reg.typedScopes[scope];
             for (const [key, value] of Object.entries(reg.raw)) {
-                if ((value.scope || 'main') === scope) delete reg.raw[key];
+                if ((value.scope || 'main') === scope) {
+                    delete reg.raw[key];
+                    reg.restorePending.delete(key);
+                }
             }
+            reg.restoreFailures.delete(scope);
             reg.revision++;
             await queue(reg);
         },
@@ -597,7 +677,25 @@
             document.removeEventListener('input', reg.listener, true);
             document.removeEventListener('change', reg.listener, true);
             await reg.pending.catch(() => { });
-            await remove(reg, true);
+            if (reg.operation) {
+                reg.typedState = null;
+                reg.typedScopes = {};
+                reg.raw = {};
+                reg.cancelledScopes = {};
+                reg.restorePending.clear();
+                reg.restoreFailures.clear();
+                reg.revision++;
+                const state = snapshot(reg);
+                const payload = await encrypt(await userKey(reg.userKey), state);
+                await request('drafts', 'readwrite', store => {
+                    store.delete(`${draftKey(reg)}:schema1-backup`);
+                    return store.put({ id: draftKey(reg), ...payload });
+                });
+                reg.persistedRevision = state.revision;
+                reg.lastError = null;
+            } else {
+                await remove(reg, true);
+            }
             registrations.delete(id);
             await reg.releaseLock?.();
         },
@@ -614,6 +712,24 @@
             }
         },
         async getHealth(id) { return health(get(id)); },
+        async getRestoreReadiness(id) {
+            const reg = get(id);
+            const pendingScopes = new Set();
+            for (const key of reg.restorePending) {
+                if (reg.raw[key]) pendingScopes.add(reg.raw[key].scope || 'main');
+            }
+            const failedScopes = [...reg.restoreFailures].sort();
+            return {
+                complete: pendingScopes.size === 0 && failedScopes.length === 0,
+                pendingScopes: [...pendingScopes].sort(),
+                failedScopes,
+            };
+        },
+        async reportRestoreScopeFailure(id, scope) {
+            const reg = get(id);
+            validateScope(scope);
+            reg.restoreFailures.add(scope);
+        },
         async getReloadHealth() {
             const active = [...registrations.values()];
             const states = await Promise.all(active.map(health));

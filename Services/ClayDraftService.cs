@@ -19,10 +19,22 @@ public sealed record ClayDraftRestore(
         : ClayDraftOperationSerializer.Deserialize(Operation);
 }
 
-/// <summary>Результат ожидаемого raw restore.</summary>
+/// <summary>Результат ожидаемого raw restore; pending ключи остаются в защищённом draft.</summary>
 public sealed record ClayDraftRawApplyResult(
     [property: JsonPropertyName("applied")] IReadOnlyList<string> Applied,
+    [property: JsonPropertyName("pending")] IReadOnlyList<string> Pending,
+    [property: JsonPropertyName("scopes")] IReadOnlyDictionary<string, ClayDraftRawScopeApplyResult>? Scopes = null);
+
+/// <summary>Raw restore одной editor scope без раскрытия значений полей.</summary>
+public sealed record ClayDraftRawScopeApplyResult(
+    [property: JsonPropertyName("applied")] IReadOnlyList<string> Applied,
     [property: JsonPropertyName("pending")] IReadOnlyList<string> Pending);
+
+/// <summary>Readiness восстановления по именам областей; значения и секреты не покидают защищённый store.</summary>
+public sealed record ClayDraftRestoreReadiness(
+    [property: JsonPropertyName("complete")] bool Complete,
+    [property: JsonPropertyName("pendingScopes")] IReadOnlyList<string> PendingScopes,
+    [property: JsonPropertyName("failedScopes")] IReadOnlyList<string> FailedScopes);
 
 /// <summary>Health регистрации для command/reload gates.</summary>
 public sealed record ClayDraftStorageHealth(
@@ -50,7 +62,21 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
         int schemaVersion,
         CancellationToken cancellationToken = default)
     {
-        var registration = await RegisterCoreAsync(formKey, entityKey, userKey, schemaVersion, cancellationToken);
+        var registration = await RegisterCoreAsync(formKey, entityKey, userKey, schemaVersion, null, cancellationToken);
+        _registrationId = registration.RegistrationId;
+        return registration.Restore;
+    }
+
+    /// <summary>Регистрирует draft с явным CSS root; selector может охватывать форму и её portal dialogs.</summary>
+    public async Task<ClayDraftRestore?> RegisterAsync(
+        string formKey,
+        string entityKey,
+        string userKey,
+        int schemaVersion,
+        string rootSelector,
+        CancellationToken cancellationToken = default)
+    {
+        var registration = await RegisterCoreAsync(formKey, entityKey, userKey, schemaVersion, rootSelector, cancellationToken);
         _registrationId = registration.RegistrationId;
         return registration.Restore;
     }
@@ -63,7 +89,21 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
         int schemaVersion,
         CancellationToken cancellationToken = default)
     {
-        var registration = await RegisterCoreAsync(formKey, entityKey, userKey, schemaVersion, cancellationToken);
+        var registration = await RegisterCoreAsync(formKey, entityKey, userKey, schemaVersion, null, cancellationToken);
+        _registrationId ??= registration.RegistrationId;
+        return registration;
+    }
+
+    /// <summary>Создаёт handle с собственным DOM root, не пересекающимся с другими формами и entities.</summary>
+    public async Task<ClayDraftRegistration> RegisterHandleAsync(
+        string formKey,
+        string entityKey,
+        string userKey,
+        int schemaVersion,
+        string rootSelector,
+        CancellationToken cancellationToken = default)
+    {
+        var registration = await RegisterCoreAsync(formKey, entityKey, userKey, schemaVersion, rootSelector, cancellationToken);
         _registrationId ??= registration.RegistrationId;
         return registration;
     }
@@ -73,17 +113,39 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
         string entityKey,
         string userKey,
         int schemaVersion,
+        string? rootSelector,
         CancellationToken cancellationToken)
     {
-        var restore = await js.InvokeAsync<ClayDraftRestore?>(
-            "clayDraftStore.register", cancellationToken, formKey, entityKey, userKey, schemaVersion);
+        if (rootSelector is not null && string.IsNullOrWhiteSpace(rootSelector))
+            throw new ArgumentException("Draft DOM root selector is required.", nameof(rootSelector));
+        var restore = rootSelector is null
+            ? await js.InvokeAsync<ClayDraftRestore?>(
+                "clayDraftStore.register", cancellationToken, formKey, entityKey, userKey, schemaVersion)
+            : await js.InvokeAsync<ClayDraftRestore?>(
+                "clayDraftStore.register", cancellationToken, formKey, entityKey, userKey, schemaVersion, rootSelector);
         if (restore is null || string.IsNullOrWhiteSpace(restore.RegistrationId))
             throw new InvalidOperationException("Draft store did not confirm registration; commands remain blocked.");
-        if (restore.Operation is not null)
-            _ = restore.OperationSnapshot;
-        if (!_registrations.TryAdd(restore.RegistrationId, new ClayDraftRegistration(this, restore)))
+        if (_registrations.ContainsKey(restore.RegistrationId))
             throw new InvalidOperationException("Draft store returned a duplicate registration ID.");
-        return _registrations[restore.RegistrationId];
+        try
+        {
+            if (restore.Operation is not null)
+                _ = restore.OperationSnapshot;
+            var registration = new ClayDraftRegistration(this, restore);
+            _registrations.Add(restore.RegistrationId, registration);
+            return registration;
+        }
+        catch
+        {
+            try
+            {
+                await js.InvokeVoidAsync("clayDraftStore.unregister", restore.RegistrationId);
+            }
+            catch (Exception ex) when (ex is JSException or JSDisconnectedException or OperationCanceledException or InvalidOperationException)
+            {
+            }
+            throw;
+        }
     }
 
     /// <summary>Сохраняет legacy typed состояние текущей регистрации.</summary>
@@ -124,6 +186,39 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
     {
         RequireRegistration(registrationId);
         return await js.InvokeAsync<ClayDraftRawApplyResult>("clayDraftStore.applyRaw", cancellationToken, registrationId);
+    }
+
+    /// <summary>Применяет raw только в указанной области после её отдельной DOM/permission readiness.</summary>
+    public async Task<ClayDraftRawApplyResult> ApplyRawWithResultAsync(
+        string registrationId,
+        string scope,
+        CancellationToken cancellationToken = default)
+    {
+        RequireRegistration(registrationId);
+        ValidateScope(scope);
+        return await js.InvokeAsync<ClayDraftRawApplyResult>(
+            "clayDraftStore.applyRaw", cancellationToken, registrationId, scope);
+    }
+
+    /// <summary>Возвращает незавершённые и отклонённые области restore без raw значений или секретов.</summary>
+    public async Task<ClayDraftRestoreReadiness> GetRestoreReadinessAsync(
+        string registrationId,
+        CancellationToken cancellationToken = default)
+    {
+        RequireRegistration(registrationId);
+        return await js.InvokeAsync<ClayDraftRestoreReadiness>(
+            "clayDraftStore.getRestoreReadiness", cancellationToken, registrationId);
+    }
+
+    /// <summary>Фиксирует failed readiness области; защищённый raw сохраняется для разрешённого retry.</summary>
+    public async Task ReportRestoreScopeFailureAsync(
+        string registrationId,
+        string scope,
+        CancellationToken cancellationToken = default)
+    {
+        RequireRegistration(registrationId);
+        ValidateScope(scope);
+        await js.InvokeVoidAsync("clayDraftStore.reportRestoreScopeFailure", cancellationToken, registrationId, scope);
     }
 
     /// <summary>Фиксирует legacy snapshot без автоматического принятия main/child областей.</summary>
@@ -219,7 +314,7 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
     public Task DiscardAsync(CancellationToken cancellationToken = default) =>
         DiscardAsync(RequireRegistration().RegistrationId, cancellationToken);
 
-    /// <summary>Явно отбрасывает draft указанной регистрации, включая migration backup.</summary>
+    /// <summary>Отбрасывает editable draft; running/unknown operation сохраняется до доказанного outcome.</summary>
     public async Task DiscardAsync(string registrationId, CancellationToken cancellationToken = default)
     {
         RequireRegistration(registrationId);
@@ -254,9 +349,14 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
     private async Task InvokeScope(string registrationId, string method, string scope, CancellationToken cancellationToken)
     {
         RequireRegistration(registrationId);
+        ValidateScope(scope);
+        await js.InvokeVoidAsync(method, cancellationToken, registrationId, scope);
+    }
+
+    private static void ValidateScope(string scope)
+    {
         if (string.IsNullOrWhiteSpace(scope))
             throw new ArgumentException("Draft scope is required.", nameof(scope));
-        await js.InvokeVoidAsync(method, cancellationToken, registrationId, scope);
     }
 
     private ClayDraftRegistration RequireRegistration() =>
