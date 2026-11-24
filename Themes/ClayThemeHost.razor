@@ -1,0 +1,39 @@
+@implements IDisposable
+@inject ClayThemeState ThemeState
+
+<ClayThemeTokenProvider Theme="_theme"
+                        Preference="_preference"
+                        IsDarkMode="@(_preference == ClayThemePreference.ClassicDark)"
+                        ObserveSystemDarkModeChange="false" />
+<template data-clay-theme="@_preference.Serialize()"></template>
+
+@code {
+    private ClayThemePreference _preference;
+    private MudTheme _theme = ClayTheme.Create();
+
+    protected override void OnInitialized()
+    {
+        UpdateTheme();
+        ThemeState.Changed += OnThemeChanged;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender) =>
+        firstRender ? ThemeState.InitializeAsync() : Task.CompletedTask;
+
+    private void OnThemeChanged() => _ = InvokeAsync(() =>
+    {
+        if (_preference == ThemeState.Preference)
+            return;
+
+        UpdateTheme();
+        StateHasChanged();
+    });
+
+    private void UpdateTheme()
+    {
+        _preference = ThemeState.Preference;
+        _theme = ClayTheme.Create(_preference);
+    }
+
+    public void Dispose() => ThemeState.Changed -= OnThemeChanged;
+}

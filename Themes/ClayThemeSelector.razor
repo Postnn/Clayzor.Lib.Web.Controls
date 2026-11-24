@@ -1,0 +1,45 @@
+@implements IDisposable
+@inject ClayThemeState ThemeState
+@inject ISnackbar Snackbar
+
+<MudMenu Size="Size.Small" Icon="@Icons.Material.Outlined.Palette"
+         AriaLabel="Тема оформления" title="@Title">
+    @foreach (var preference in ClayThemeCatalog.Available)
+    {
+        <MudMenuItem OnClick="@(() => SelectAsync(preference))"
+                     aria-current="@(preference == ThemeState.Preference ? "true" : null)"
+                     data-clay-theme-option="@preference.Serialize()">
+            <span aria-hidden="true" class="clay-theme-swatch" data-clay-theme-swatch="@preference.Serialize()"></span>
+            @preference.Label()
+            @if (preference == ThemeState.Preference)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Class="ml-2" />
+            }
+        </MudMenuItem>
+    }
+    @if (ThemeState.SaveFailed)
+    {
+        <MudMenuItem OnClick="@(() => SelectAsync(ThemeState.Preference))">Повторить сохранение темы</MudMenuItem>
+    }
+    else if (ThemeState.LoadFailed)
+    {
+        <MudMenuItem Disabled="true">Не удалось загрузить сохранённую тему</MudMenuItem>
+    }
+</MudMenu>
+
+@code {
+    private string Title => ThemeState.SaveFailed ? "Тема не сохранена" : $"Тема оформления: {ThemeState.Preference.Label()}";
+
+    protected override void OnInitialized() => ThemeState.Changed += OnThemeChanged;
+
+    private void OnThemeChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async Task SelectAsync(ClayThemePreference preference)
+    {
+        await ThemeState.SelectAsync(preference);
+        if (ThemeState.SaveFailed && ThemeState.Preference == preference)
+            Snackbar.Add("Тема применена к этому окну. Сохранить выбор не удалось.", Severity.Warning);
+    }
+
+    public void Dispose() => ThemeState.Changed -= OnThemeChanged;
+}

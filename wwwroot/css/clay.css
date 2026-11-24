@@ -2418,3 +2418,158 @@ body {
 .clay-grid-error .mud-alert-icon {
     color: var(--mud-palette-warning) !important;
 }
+
+.clay-theme-swatch {
+    width: 0.875em;
+    height: 0.875em;
+    margin-inline-end: 0.5em;
+    display: inline-block;
+    border: 1px solid var(--mud-palette-lines-inputs);
+    border-radius: 50%;
+    background: var(--clay-swatch);
+}
+
+.clay-theme-swatch[data-clay-theme-swatch="classic:light"] { --clay-swatch: var(--clay-swatch-classic-light); }
+.clay-theme-swatch[data-clay-theme-swatch="classic:dark"] { --clay-swatch: var(--clay-swatch-classic-dark); }
+.clay-theme-swatch[data-clay-theme-swatch="legacy:light"] { --clay-swatch: var(--clay-swatch-legacy); }
+.clay-theme-swatch[data-clay-theme-swatch="corporate:light"] { --clay-swatch: var(--clay-swatch-corporate); }
+.clay-theme-swatch[data-clay-theme-swatch="modern:light"] { --clay-swatch: var(--clay-swatch-modern); }
+
+/* The document scope includes popovers and dialogs rendered outside the page body. */
+@media screen {
+    :root:has(template[data-clay-theme]:not([data-clay-theme^="classic:"])) {
+        .mud-table .mud-table-head .mud-table-cell {
+            background-color: var(--clay-grid-header-bg) !important;
+            color: var(--clay-grid-header-fg) !important;
+            border-bottom-color: var(--clay-accent-color) !important;
+        }
+
+        .mud-table-head .mud-icon-button,
+        .mud-table-head .clay-grid-service-add.mud-icon-button {
+            color: var(--clay-grid-header-fg) !important;
+        }
+
+        .mud-table-head :is(.clay-column-menu, .clay-vf-icon) .mud-svg-icon path:not([fill="none"]) {
+            fill: var(--clay-grid-header-fg) !important;
+            opacity: 1;
+        }
+
+        .mud-table-head .clay-column-menu .mud-icon-button {
+            opacity: 1;
+        }
+
+        .mud-table-head .clay-checkbox-box--unchecked {
+            border-color: var(--clay-grid-header-fg);
+        }
+
+        .mud-table .mud-table-body .mud-table-row:hover {
+            background-color: var(--clay-grid-row-hover) !important;
+        }
+
+        .mud-table .mud-table-body .mud-table-row:has(.clay-checkbox[title="Выбрать запись"][aria-checked="true"]) {
+            background-color: var(--clay-grid-row-selected) !important;
+        }
+
+        .mud-table .mud-table-row:has(.group-header-cell) {
+            background-color: var(--clay-command-bg) !important;
+        }
+
+        .mud-dialog .mud-dialog-title {
+            background: var(--clay-dialog-header-bg);
+            color: var(--clay-dialog-header-fg);
+        }
+
+        .mud-dialog .mud-dialog-title .mud-icon-button {
+            color: var(--clay-dialog-header-fg) !important;
+        }
+
+        :is(.clay-form-toolbar, .grouping-tray, .filter-tray) {
+            background-color: var(--clay-command-bg);
+        }
+
+        .mud-button-filled.mud-button-filled-primary:not(:disabled) {
+            background-color: var(--clay-primary-button-bg) !important;
+            color: var(--clay-primary-button-fg) !important;
+            border-color: var(--mud-palette-lines-inputs);
+        }
+
+        .mud-button-filled.mud-button-filled-primary:not(:disabled):hover {
+            background-color: var(--clay-primary-button-hover) !important;
+        }
+
+        .mud-button-filled.mud-button-filled-secondary:not(:disabled),
+        .clay-form-toolbar .mud-button-outlined:not(:disabled) {
+            background-color: var(--clay-secondary-button-bg) !important;
+            color: var(--clay-secondary-button-fg) !important;
+            border-color: var(--mud-palette-lines-inputs);
+        }
+
+        .mud-button-filled:not(:disabled):focus-visible,
+        .mud-button-outlined:not(:disabled):focus-visible {
+            outline-color: var(--clay-focus);
+        }
+
+        .mud-button-filled:disabled {
+            background-color: var(--mud-palette-action-disabled-background) !important;
+            color: var(--mud-palette-action-disabled) !important;
+        }
+
+        .mud-input-outlined:not(.mud-disabled, .mud-readonly),
+        .clay-select-input:not(:disabled, [readonly]) {
+            background-color: var(--clay-input-bg);
+        }
+
+        .mud-input-outlined:not(.mud-disabled, .mud-readonly):has(:required),
+        .clay-select-input:required:not(:disabled, [readonly]) {
+            background-color: var(--clay-input-required-bg);
+        }
+
+        .mud-input-outlined.mud-readonly,
+        .clay-select-input[readonly]:not(:disabled) {
+            background-color: var(--clay-command-bg);
+        }
+
+        .mud-input-outlined.mud-disabled {
+            background-color: var(--mud-palette-action-disabled-background);
+        }
+
+        .mud-input-outlined:not(.mud-input-error) .mud-input-outlined-border {
+            border-color: var(--mud-palette-lines-inputs);
+        }
+
+        .mud-input-outlined:not(.mud-input-error):focus-within .mud-input-outlined-border {
+            border-color: var(--clay-focus);
+        }
+
+        .mud-popover .mud-menu-list,
+        .clay-navigation-menu__panel {
+            background: var(--clay-menu-bg);
+        }
+
+        .mud-popover .mud-menu-item:not(.mud-disabled):hover,
+        .clay-navigation-menu__link:not([aria-disabled="true"]):hover,
+        .clay-navigation-menu__root-button:hover {
+            background: var(--clay-menu-hover);
+        }
+
+        .mud-nav-link:hover {
+            background-color: color-mix(in srgb, var(--clay-accent-color) 8%, transparent) !important;
+        }
+
+        .mud-nav-link.active {
+            background-color: color-mix(in srgb, var(--clay-accent-color) 12%, transparent) !important;
+        }
+
+        .toolbar-add-btn:not(:disabled) {
+            color: var(--clay-add-action) !important;
+        }
+
+        :is(.grouping-chip, .column-settings-chip, .filter-chip):hover {
+            background-color: var(--mud-palette-primary-darken);
+        }
+
+        :is(.grouping-chip, .column-settings-chip, .filter-chip) {
+            color: var(--mud-palette-primary-text);
+        }
+    }
+}
