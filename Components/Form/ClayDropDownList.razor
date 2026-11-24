@@ -12,7 +12,7 @@
            ReadOnly="@_opt.ReadOnly"
            Variant="@_opt.Variant"
            Margin="@_opt.Margin"
-           Class="@_opt.Class"
+           Class="@FieldClass"
            data-draft-key="@_opt.DraftKey">
     @if (Items is not null)
     {
@@ -25,6 +25,10 @@
 
 @code {
     private ClayDropDownListOptions _opt = new();
+
+    private string? FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly && Value is null
+        ? $"clay-required-empty {_opt.Class}"
+        : _opt.Class;
 
     /// <summary>Элементы списка.</summary>
     [Parameter] public IEnumerable<TItem>? Items { get; set; }

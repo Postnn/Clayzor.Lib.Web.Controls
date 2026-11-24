@@ -8,7 +8,7 @@
            Variant="@Variant"
            Required="@Required"
            RequiredError="@RequiredError"
-           Class="@Class"
+           Class="@(Required && string.IsNullOrEmpty(ToStringFunc(Value)) ? $"clay-required-empty {Class}" : Class)"
            Margin="Margin.Dense"
            Dense="true"
            PopoverClass="clay-combo-popover">
