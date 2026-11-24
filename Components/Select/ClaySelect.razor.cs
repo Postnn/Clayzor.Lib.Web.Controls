@@ -149,6 +149,10 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     [Parameter]
     public EventCallback Cleared { get; set; }
 
+    /// <summary>Уведомление об ошибке Search/GetById; компонент сохраняет ввод и предлагает retry чтения.</summary>
+    [Parameter]
+    public EventCallback<ClaySelectReadError> ReadError { get; set; }
+
     /// <summary>
     /// Значение, проверяемое родительской <see cref="MudForm"/>.
     /// </summary>
@@ -351,6 +355,7 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
         if (Value is null)
             return;
 
+        _readError = null;
         var requestedValue = Value;
         var source = DataSource;
         var previousItem = _currentItem;
@@ -367,25 +372,38 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
         _resolveCts?.Dispose();
         var cts = new CancellationTokenSource();
         _resolveCts = cts;
+        TItem? item;
         try
         {
-            var item = await source.GetByIdAsync((TValue)requestedValue, cts.Token);
+            item = await source.GetByIdAsync((TValue)requestedValue, cts.Token);
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
             if (version != _resolveVersion || cts.IsCancellationRequested ||
                 !EqualityComparer<TValue?>.Default.Equals(Value, requestedValue) ||
                 !ReferenceEquals(source, DataSource))
                 return;
-
-            if (item is null || !EqualityComparer<TValue?>.Default.Equals(ValueSelector(item), requestedValue))
-            {
-                await SelectedItemChanged.InvokeAsync(null);
-                return;
-            }
-
-            await ApplyResolvedItemAsync(item, true);
+            _readError = new ClaySelectReadError(ClaySelectReadOperation.Resolve, ex, null);
+            await ReadError.InvokeAsync(_readError);
+            return;
         }
-        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+
+        if (version != _resolveVersion || cts.IsCancellationRequested ||
+            !EqualityComparer<TValue?>.Default.Equals(Value, requestedValue) ||
+            !ReferenceEquals(source, DataSource))
+            return;
+
+        if (item is null || !EqualityComparer<TValue?>.Default.Equals(ValueSelector(item), requestedValue))
         {
+            await SelectedItemChanged.InvokeAsync(null);
+            return;
         }
+
+        await ApplyResolvedItemAsync(item, true);
     }
 
     private async Task ApplyResolvedItemAsync(TItem item, bool notify)

@@ -17,6 +17,7 @@ public partial class ClaySelect<TItem, TValue>
     private TItem? _itemBeforeEdit;
     private TValue? _valueBeforeEdit;
     private bool _hasEditBackup;
+    private ClaySelectReadError? _readError;
 
     /// <summary>
     /// Признак открытого списка результатов.
@@ -27,6 +28,21 @@ public partial class ClaySelect<TItem, TValue>
     /// Признак выполняющегося поиска.
     /// </summary>
     protected bool IsLoading => _loading;
+
+    /// <summary>Признак ожидаемой ошибки Search/GetById с доступным retry.</summary>
+    protected bool HasReadError => _readError is not null;
+
+    /// <summary>Повторяет только failed read и никогда не выполняет auto-select по кнопке retry.</summary>
+    protected async Task RetryReadAsync()
+    {
+        var error = _readError;
+        if (error is null || _disposed)
+            return;
+        if (error.Operation == ClaySelectReadOperation.Search)
+            await SearchAsync(error.SearchText ?? string.Empty, false);
+        else
+            await ResolveItemAsync();
+    }
 
     /// <summary>
     /// Признак дополнительных результатов сверх видимого лимита.
@@ -340,7 +356,7 @@ public partial class ClaySelect<TItem, TValue>
             return;
 
         CancelSearch();
-        _results.Clear();
+        _readError = null;
         var version = _searchVersion;
         if (searchText.Length < _options.MinSearchLength)
         {
@@ -358,15 +374,14 @@ public partial class ClaySelect<TItem, TValue>
         }
         _open = openPopup;
         _loading = true;
-        _hasMore = false;
         _activeIndex = -1;
         await InvokeAsync(StateHasChanged);
         if (!IsCurrentSearch(version, cts))
             return;
 
+        ClaySelectResult<TItem> result;
         try
         {
-            ClaySelectResult<TItem> result;
             if (DataSource is not null)
             {
                 result = await DataSource.SearchAsync(new ClaySelectSearchRequest
@@ -379,27 +394,36 @@ public partial class ClaySelect<TItem, TValue>
             {
                 result = SearchStatic(searchText);
             }
-
-            if (!IsCurrentSearch(version, cts))
-                return;
-
-            _results.Clear();
-            _results.AddRange(result.Items.Take(_options.MaxItems));
-            _hasMore = result.HasMore || result.Items.Count > _options.MaxItems;
-            _activeIndex = _results.Count > 0 ? 0 : -1;
-
-            if (allowAutoSelect && !string.IsNullOrWhiteSpace(searchText) && !_hasMore &&
-                TryGetAutoSelection(searchText, out var selected))
-                await SelectItemAsync(selected!);
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
         {
+            return;
+        }
+        catch (Exception ex)
+        {
+            if (!IsCurrentSearch(version, cts))
+                return;
+            _readError = new ClaySelectReadError(ClaySelectReadOperation.Search, ex, searchText);
+            await ReadError.InvokeAsync(_readError);
+            return;
         }
         finally
         {
             if (version == _searchVersion)
                 _loading = false;
         }
+
+        if (!IsCurrentSearch(version, cts))
+            return;
+
+        _results.Clear();
+        _results.AddRange(result.Items.Take(_options.MaxItems));
+        _hasMore = result.HasMore || result.Items.Count > _options.MaxItems;
+        _activeIndex = _results.Count > 0 ? 0 : -1;
+
+        if (allowAutoSelect && !string.IsNullOrWhiteSpace(searchText) && !_hasMore &&
+            TryGetAutoSelection(searchText, out var selected))
+            await SelectItemAsync(selected!);
     }
 
     private bool IsCurrentSearch(int version, CancellationTokenSource cts) =>
@@ -559,6 +583,7 @@ public partial class ClaySelect<TItem, TValue>
     private void InvalidateSearchResults()
     {
         CancelSearch();
+        _readError = null;
         _results.Clear();
         _hasMore = false;
         _activeIndex = -1;
@@ -568,6 +593,7 @@ public partial class ClaySelect<TItem, TValue>
     private void InvalidatePendingOperations()
     {
         CancelSearch();
+        _readError = null;
         _resolveVersion++;
         _resolveCts?.Cancel();
         _resolveCts?.Dispose();

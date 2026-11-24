@@ -2,7 +2,7 @@
 @typeparam TValue
 @inherits MudFormComponent<TValue, TValue>
 
-<div class="clay-select @ResolvedOptions.Class @(HasErrors ? "clay-select--error" : null)">
+<div class="clay-select @ResolvedOptions.Class @(HasErrors || HasReadError ? "clay-select--error" : null)">
     @if (!string.IsNullOrWhiteSpace(ResolvedOptions.Label))
     {
         <label class="clay-select-label" for="@InputId">@ResolvedOptions.Label</label>
@@ -24,7 +24,7 @@
                aria-expanded="@IsOpen"
                aria-controls="@ListboxId"
                aria-activedescendant="@ActiveDescendant"
-               aria-invalid="@HasErrors"
+               aria-invalid="@(HasErrors || HasReadError)"
                @oninput="HandleInputAsync"
                @onblur="HandleBlurAsync"
                @onkeydown="HandleKeyDownAsync" />
@@ -55,6 +55,10 @@
                 @if (IsLoading)
                 {
                     <div class="clay-select-status">@ResolvedOptions.LoadingText</div>
+                }
+                else if (HasReadError)
+                {
+                    <div class="clay-select-status">@ResolvedOptions.ReadErrorText</div>
                 }
                 else
                 {
@@ -117,6 +121,17 @@
             </div>
         }
     </div>
+
+    @if (HasReadError)
+    {
+        <div class="clay-select-validation clay-select-read-error" role="alert">
+            <span>@ResolvedOptions.ReadErrorText</span>
+            <button type="button"
+                    class="clay-select-retry"
+                    disabled="@(!IsMutable)"
+                    @onclick="RetryReadAsync">@ResolvedOptions.RetryText</button>
+        </div>
+    }
 
     @if (!string.IsNullOrWhiteSpace(ValidationMessage))
     {

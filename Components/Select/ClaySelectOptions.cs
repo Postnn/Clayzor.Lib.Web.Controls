@@ -110,6 +110,12 @@ public sealed class ClaySelectOptions
     /// </summary>
     public string LoadingText { get; set; } = "Загрузка...";
 
+    /// <summary>Текст ожидаемой ошибки обязательного чтения источника.</summary>
+    public string ReadErrorText { get; set; } = "Не удалось загрузить данные. Введённое значение сохранено.";
+
+    /// <summary>Текст кнопки повторного чтения без изменения выбора.</summary>
+    public string RetryText { get; set; } = "Повторить";
+
     /// <summary>
     /// Доступное название кнопки открытия списка.
     /// </summary>

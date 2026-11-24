@@ -1942,6 +1942,22 @@ body {
     color: var(--mud-palette-error);
 }
 
+.clay-select-read-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.clay-select-retry {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--mud-palette-primary);
+    cursor: pointer;
+    font: inherit;
+    white-space: nowrap;
+}
+
 .clay-select--error .clay-select-input,
 .clay-select--error .clay-select-button {
     border-color: var(--mud-palette-error);
