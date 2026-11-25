@@ -26,7 +26,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         dp.Add("search", $"%{query.SearchText}%");     // GF16
 
         var searchWhere = query.BuildWhereClause(_opt.SearchColumns);
-        var filterWhere = ClayCompositeSqlBuilder.Build(query.CompositeFilter, dp, _dynamicKnownColumns);
+        var filterWhere = BuildDynamicFilter(query.CompositeFilter, dp);
         return (ClayDataQuery.CombineWhere(searchWhere, filterWhere), dp);
     }
 

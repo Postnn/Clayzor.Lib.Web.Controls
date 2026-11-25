@@ -423,7 +423,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
         dp.Add("search", $"%{query.SearchText}%");
 
         var clonedRoot     = CloneFilterTreeWithoutColumn(query.CompositeFilter, sqlName);
-        var compositeWhere = ClayCompositeSqlBuilder.Build(clonedRoot, dp, _dynamicKnownColumns);
+        var compositeWhere = BuildDynamicFilter(clonedRoot, dp);
         var where          = ClayDataQuery.CombineWhere(searchWhere, compositeWhere);
         var bracketedCol   = $"[{sqlName}]";
 

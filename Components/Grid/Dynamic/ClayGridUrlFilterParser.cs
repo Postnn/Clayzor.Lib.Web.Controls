@@ -80,7 +80,8 @@ public static class ClayGridUrlFilterParser
     public static void Apply(
         ClayFilterGroupNode root,
         IEnumerable<ParsedUrlFilter> parsed,
-        IReadOnlyDictionary<string, string> savedUserParams)
+        IReadOnlyDictionary<string, string> savedUserParams,
+        IReadOnlyDictionary<string, string>? columnNames = null)
     {
         foreach (var pf in parsed)
         {
@@ -90,7 +91,7 @@ public static class ClayGridUrlFilterParser
 
             root.Nodes.Add(new ColumnFilter
             {
-                Column   = pf.UrlKey,
+                Column   = columnNames?.GetValueOrDefault(pf.UrlKey) ?? pf.UrlKey,
                 Operator = pf.Operator,
                 Value    = pf.Value
             });

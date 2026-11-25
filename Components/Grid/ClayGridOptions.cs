@@ -79,6 +79,9 @@ public sealed class ClayGridOptions
     /// <summary>Компактные padding, заголовок и расстояние toolbar для полноэкранного грида.</summary>
     public bool CompactLayout { get; set; }
 
+    /// <summary>Граница, на которой ячейки переходят в мобильное представление.</summary>
+    public MudBlazor.Breakpoint Breakpoint { get; set; } = MudBlazor.Breakpoint.Xs;
+
     /// <summary>Дополнительные CSS-классы корневого контейнера.</summary>
     public string? Class { get; set; }
 
@@ -168,4 +171,7 @@ public sealed class ClayGridOptions
     /// с именем <see cref="ClayGridDynamicSettings.GridIdQueryParam"/>.
     /// </summary>
     public int? DynamicGridId { get; set; }
+
+    /// <summary>Обязательный контекст вложенного динамического списка, заданный вызывающей страницей.</summary>
+    public ClayGridDynamicContext? DynamicContext { get; set; }
 }

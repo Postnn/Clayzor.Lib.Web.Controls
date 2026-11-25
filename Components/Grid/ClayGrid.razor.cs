@@ -127,6 +127,13 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Дополнительный CSS-класс строки данных.</summary>
     [Parameter] public Func<TEntity, string?>? RowClass { get; set; }
 
+    /// <summary>Активация строки данных. При отсутствии подписчика клики по строкам не обрабатываются.</summary>
+    [Parameter] public EventCallback<TEntity> OnRowActivate { get; set; }
+
+    private EventCallback<DataGridRowClickEventArgs<TEntity>> RowActivation => OnRowActivate.HasDelegate
+        ? EventCallback.Factory.Create<DataGridRowClickEventArgs<TEntity>>(this, args => OnRowActivate.InvokeAsync(args.Item))
+        : default;
+
     /// <summary>Признак загрузки — управляет индикатором грида.</summary>
     [Parameter] public bool Loading { get; set; }
 

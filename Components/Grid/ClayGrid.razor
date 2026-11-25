@@ -424,12 +424,14 @@
                  Items="@Items"
                  Filterable="false"
                  FixedHeader="@(!_opt.AutoHeight)"
+                 Breakpoint="@_opt.Breakpoint"
                  Height="@_gridHeight"
                  Dense="true"
                  Hover="true"
                  Striped="true"
                  Loading="@Loading"
                  RowClassFunc="@((item, _) => RowClass?.Invoke(item) ?? string.Empty)"
+                 RowClick="@RowActivation"
                  RowsPerPage="@_pageSize">
         <NoRecordsContent>
             <div class="clay-grid-empty">@_opt.EmptyText</div>

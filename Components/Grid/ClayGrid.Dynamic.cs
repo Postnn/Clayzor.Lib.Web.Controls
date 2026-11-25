@@ -382,7 +382,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 DisplayName      = col.Header ?? col.Column,
                 SortName         = col.Column,
                 Groupable        = true,
-                Filterable       = col.Type != (int)ClayColumnKind.List,
+                Filterable       = col.Type != (int)ClayColumnKind.List &&
+                                   !string.Equals(col.Column, _opt.DynamicContext?.Column, StringComparison.OrdinalIgnoreCase),
                 AllowValueFilter = allowValueFilter,
                 Type             = desc,
             };
@@ -486,6 +487,11 @@ public partial class ClayGrid<TEntity> where TEntity : class
         }
 
         // Действия строк: резолвим URL/SQL из определения
+        if (_opt.DynamicContext is { } context && !_dynamicKnownColumns.Contains(context.Column))
+        {
+            _dynamicError = "В настройках запроса отсутствует колонка контекста списка.";
+            return;
+        }
         _dynamicEditUrl   = ClayGridLinkResolver.Resolve(_dynamicDef.EditForm, Config);
         _dynamicNewUrl    = ClayGridLinkResolver.Resolve(_dynamicDef.NewForm, Config);
         _dynamicDeleteSql = string.IsNullOrWhiteSpace(_dynamicDef.SqlDelete) ? null : _dynamicDef.SqlDelete;
@@ -586,7 +592,12 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private async Task HandleRowAddClick()
     {
         if (HasDynamicAdd)
-            await OpenDynamicFormAsync(_dynamicNewUrl!, _dynamicNewUrl!);
+        {
+            var url = _opt.DynamicContext is { } context
+                ? BuildContextCreateUrl(Nav.ToAbsoluteUri(_dynamicNewUrl!), context)
+                : _dynamicNewUrl!;
+            await OpenDynamicFormAsync(url, _dynamicNewUrl!);
+        }
         else
             await OnAdd.InvokeAsync();
     }
@@ -736,7 +747,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 query.SearchText = null;
             }
 
-            var filterWhere = ClayCompositeSqlBuilder.Build(query.CompositeFilter, dp, _dynamicKnownColumns);
+            var filterWhere = BuildDynamicFilter(query.CompositeFilter, dp);
             var where       = ClayDataQuery.CombineWhere(searchWhere, filterWhere);
 
             if (query.GroupEnabled && query.GroupColumns.Count > 0)
@@ -784,7 +795,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     // ── Персистенция состояния ─────────────────────────────────────────────────
 
     private int ResolveClientId(ClayGridDynamicSettings opt)
-        => int.TryParse(Query[opt.ClientIdQueryParam], out var clid) ? clid : 0;
+        => _opt.DynamicContext?.ClientId ?? (int.TryParse(Query[opt.ClientIdQueryParam], out var clid) ? clid : 0);
 
     /// <summary>
     /// Разбирает sharedId из URL.
@@ -1086,6 +1097,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
             if (key is null) continue;
             var cleanKey = key.StartsWith('_') ? key[1..] : key;
             if (!urlKeyToCol.TryGetValue(cleanKey, out var col)) continue;
+            if (string.Equals(col.Column, _opt.DynamicContext?.Column, StringComparison.OrdinalIgnoreCase)) continue;
 
             var desc = ClayColumnTypeMap.Resolve(col.Type);
             if (desc is null) continue;
@@ -1102,7 +1114,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
         {
             _filterRoot ??= new ClayFilterGroupNode();
             var savedUrlParams = GetSavedUrlFilterParams(urlFilters, urlKeyToCol, opt);
-            ClayGridUrlFilterParser.Apply(_filterRoot, urlFilters, savedUrlParams);
+            var columnNames = _opt.DynamicContext is null ? null : urlKeyToCol.ToDictionary(
+                entry => entry.Key, entry => entry.Value.Column, StringComparer.OrdinalIgnoreCase);
+            ClayGridUrlFilterParser.Apply(_filterRoot, urlFilters, savedUrlParams, columnNames);
         }
 
         // --- Колонки (видимость/порядок) ---
