@@ -117,13 +117,15 @@ public partial class ClayTreeView
     {
         if (Options is null || candidate is null || ancestor is null) return false;
 
-        if (Options.HierarchyMode == ClayTreeHierarchyMode.NestedSet
+        if ((Options.HierarchyMode == ClayTreeHierarchyMode.NestedSet || Options.ReparentNodeAsync is not null)
             && candidate.Left.HasValue && candidate.Right.HasValue
             && ancestor.Left.HasValue && ancestor.Right.HasValue)
         {
             // candidate внутри поддерева ancestor
             return candidate.Left > ancestor.Left && candidate.Right < ancestor.Right;
         }
+
+        if (Options.ReparentNodeAsync is not null) return true;
 
         // ParentKey (или нет L/R) — спрашиваем БД.
         if (candidate.RawId is null || ancestor.RawId is null) return false;
@@ -176,7 +178,14 @@ public partial class ClayTreeView
 
         await RunBusyAsync("Перемещение…", async () =>
         {
-            try { await Mutations.ReparentAsync(dragged.RawId!, newParent?.RawId); }
+            try
+            {
+                if (Options.ReparentNodeAsync is { } reparent)
+                {
+                    if (!await reparent(dragged, newParent)) return;
+                }
+                else await Mutations.ReparentAsync(dragged.RawId!, newParent?.RawId);
+            }
             catch (SqlException) { return; }
 
             await ReloadLevelAsync(oldParent);
