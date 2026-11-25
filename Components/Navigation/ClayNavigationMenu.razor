@@ -46,5 +46,9 @@
         {
             <li class="clay-navigation-menu__actions">@AdditionalContent</li>
         }
+        @if (ThemeState is not null)
+        {
+            <li class="clay-navigation-menu__actions inventory-theme-toggle"><Clayzor.Lib.Web.Controls.Themes.ClayThemeSelector /></li>
+        }
     </ul>
 </nav>

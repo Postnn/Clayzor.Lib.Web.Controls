@@ -4,7 +4,7 @@ namespace Clayzor.Lib.Web.Controls.Components.Form;
 public sealed class ClayEntityFormOptions
 {
     /// <summary>Максимальная ширина формы.</summary>
-    public string MaxWidth { get; set; } = "760px";
+    public string MaxWidth { get; set; } = "100%";
 
     /// <summary>Дополнительные CSS-классы содержимого формы.</summary>
     public string? Class { get; set; }

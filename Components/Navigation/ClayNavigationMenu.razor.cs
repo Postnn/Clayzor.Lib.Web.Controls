@@ -1,3 +1,4 @@
+using Clayzor.Lib.Web.Controls.Themes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -20,6 +21,9 @@ public partial class ClayNavigationMenu : IAsyncDisposable
 
     /// <summary>Дополнительные действия внутри корневой полосы меню, выровненные вправо.</summary>
     [Parameter] public RenderFragment? AdditionalContent { get; set; }
+
+    /// <summary>Состояние темы, предоставленное layout приложения.</summary>
+    [CascadingParameter] private ClayThemeState? ThemeState { get; set; }
 
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
