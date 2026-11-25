@@ -73,6 +73,21 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     public Task DiscardScopeAsync(string scope, CancellationToken cancellationToken = default) =>
         _owner.DiscardScopeAsync(RegistrationId, scope, cancellationToken);
 
+    /// <summary>Повторяет только запись черновика, сохраняя маркер любого неподтверждённого исхода.</summary>
+    public Task<ClayDraftOperation?> RetryStorageAsync(string? notSentAttemptId, CancellationToken cancellationToken = default) =>
+        _owner.RetryStorageAsync(RegistrationId, notSentAttemptId, cancellationToken);
+
+
+    /// <summary>Читает версию и сырые ключи области перед явным разрешением конфликта.</summary>
+    public Task<ClayDraftRebaseState> ReadRebaseStateAsync(string scope, CancellationToken cancellationToken) =>
+        _owner.ReadRebaseStateAsync(RegistrationId, scope, cancellationToken);
+
+    /// <summary>Сохраняет выбранную пользователем baseline и значения области.</summary>
+    public Task<bool> RebaseScopeAsync(string scope, long expectedRevision, string snapshotJson, IReadOnlyList<string> discardedRaw,
+        CancellationToken cancellationToken) =>
+        _owner.RebaseScopeAsync(RegistrationId, scope, expectedRevision, snapshotJson, discardedRaw, cancellationToken);
+
+
     /// <summary>Возвращает health хранилища, pending writes и наличие unresolved marker.</summary>
     public Task<ClayDraftStorageHealth> GetHealthAsync(CancellationToken cancellationToken = default) =>
         _owner.GetHealthAsync(RegistrationId, cancellationToken);

@@ -45,6 +45,12 @@ public sealed record ClayDraftStorageHealth(
     [property: JsonPropertyName("revision")] long Revision,
     [property: JsonPropertyName("persistedRevision")] long PersistedRevision);
 
+/// <summary>Версия и ключи незакоммиченного ввода без его значений.</summary>
+public sealed record ClayDraftRebaseState(
+    [property: JsonPropertyName("revision")] long Revision,
+    [property: JsonPropertyName("rawKeys")] IReadOnlyList<string> RawKeys);
+
+
 /// <summary>Общий DR-01 API долговечного клиентского черновика и snapshot бизнес-операции.</summary>
 public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
 {
@@ -283,6 +289,32 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
     /// <summary>Очищает только cancelled scope и запрещает его поздний autosave.</summary>
     public Task DiscardScopeAsync(string registrationId, string scope, CancellationToken cancellationToken = default) =>
         InvokeScope(registrationId, "clayDraftStore.discardScope", scope, cancellationToken);
+
+    /// <summary>Повторяет только сохранение браузерного черновика и сверяет метку неотправленной команды.</summary>
+    public async Task<ClayDraftOperation?> RetryStorageAsync(string registrationId, string? notSentAttemptId, CancellationToken cancellationToken = default)
+    {
+        RequireRegistration(registrationId);
+        var operation = await js.InvokeAsync<string?>("clayDraftStore.retryStorage", cancellationToken, registrationId, notSentAttemptId);
+        return operation is null ? null : ClayDraftOperationSerializer.Deserialize(operation);
+    }
+
+
+    /// <summary>Читает версию и сырые ключи области перед явным выбором пользователя.</summary>
+    public async Task<ClayDraftRebaseState> ReadRebaseStateAsync(string registrationId, string scope, CancellationToken cancellationToken)
+    {
+        RequireRegistration(registrationId);
+        return await js.InvokeAsync<ClayDraftRebaseState>("clayDraftStore.readRebaseState", cancellationToken, registrationId, scope);
+    }
+
+    /// <summary>Принимает выбранный снимок, если с начала сверки не появился новый ввод.</summary>
+    public async Task<bool> RebaseScopeAsync(string registrationId, string scope, long expectedRevision, string snapshotJson,
+        IReadOnlyList<string> discardedRaw, CancellationToken cancellationToken)
+    {
+        RequireRegistration(registrationId);
+        return await js.InvokeAsync<bool>("clayDraftStore.rebaseScope", cancellationToken,
+            registrationId, scope, expectedRevision, snapshotJson, discardedRaw);
+    }
+
 
     /// <summary>Возвращает health текущей регистрации.</summary>
     public Task<ClayDraftStorageHealth> GetHealthAsync(CancellationToken cancellationToken = default) =>

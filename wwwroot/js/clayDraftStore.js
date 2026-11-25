@@ -530,6 +530,7 @@
                 .filter(([, value]) => (value.scope || 'main') === scope)
                 .map(([key, value]) => [key, value.revision])),
         }));
+        reg.confirmedCommitRevision = null;
         reg.operation = {
             version: OPERATION_VERSION,
             attemptId: intent.attemptId || crypto.randomUUID(),
@@ -567,6 +568,11 @@
             revision: reg.revision,
             persistedRevision: reg.persistedRevision,
         };
+    }
+
+    async function flushCommittedDraft(reg) {
+        await queue(reg);
+        if (!hasDraftState(reg)) await remove(reg, false);
     }
 
     window.clayDraftStore = {
@@ -622,6 +628,12 @@
         },
         async commitOperation(id, revision, typedState) {
             const reg = get(id);
+            if (!reg.operation && reg.confirmedCommitRevision === revision) {
+                await flushCommittedDraft(reg);
+                return;
+            }
+            requireOperation(reg, revision);
+            if (reg.lastError) await queue(reg);
             await waitForIdle(reg);
             const operation = requireOperation(reg, revision);
             for (const scope of operation.scopes || []) {
@@ -640,9 +652,10 @@
                 else if (operation.acceptLegacyTyped) reg.typedState = null;
             }
             reg.operation = null;
+            // Повтор после ошибки хранилища завершает уже подтверждённую попытку этого handle.
+            reg.confirmedCommitRevision = revision;
             reg.revision++;
-            await queue(reg);
-            if (!hasDraftState(reg)) await remove(reg, false);
+            await flushCommittedDraft(reg);
         },
         async openScope(id, scope) {
             const reg = get(id);
@@ -709,6 +722,46 @@
                 reg.released = true;
                 registrations.delete(id);
                 await reg.releaseLock?.();
+            }
+        },
+        async retryStorage(id, notSentAttemptId) {
+            const reg = get(id);
+            if (notSentAttemptId && reg.operation?.attemptId === notSentAttemptId && reg.operation.status === 'running') {
+                reg.operation = null;
+                reg.revision++;
+            }
+            await queue(reg);
+            return reg.operation ? JSON.stringify(reg.operation) : null;
+        },
+        async readRebaseState(id, scope) {
+            const reg = get(id);
+            validateScope(scope);
+            await waitForIdle(reg);
+            if (reg.operation) throw new Error('Сначала требуется сверка предыдущей операции.');
+            return {
+                revision: reg.revision,
+                rawKeys: Object.keys(reg.raw).filter(key => (reg.raw[key]?.scope || 'main') === scope)
+            };
+        },
+        async rebaseScope(id, scope, expectedRevision, snapshotJson, discardedRaw) {
+            const reg = get(id);
+            validateScope(scope);
+            await waitForIdle(reg);
+            if (reg.operation || reg.revision !== expectedRevision || reg.cancelledScopes[scope])
+                throw new Error('Черновик изменился после открытия сверки.');
+            const pending = [...reg.restorePending].some(key => (reg.raw[key]?.scope || 'main') === scope);
+            if (pending || reg.restoreFailures.has(scope))
+                throw new Error('Сначала полностью восстановите ввод этой области.');
+
+            if (!Array.isArray(discardedRaw) || discardedRaw.some(key => !reg.raw[key] || (reg.raw[key].scope || 'main') !== scope))
+                throw new Error('Выбранный для замены ввод принадлежит другой области.');
+            for (const key of discardedRaw) delete reg.raw[key];
+            reg.typedScopes[scope] = { data: snapshotJson, revision: ++reg.revision };
+            try {
+                await queue(reg);
+                return true;
+            } catch {
+                return false;
             }
         },
         async getHealth(id) { return health(get(id)); },
