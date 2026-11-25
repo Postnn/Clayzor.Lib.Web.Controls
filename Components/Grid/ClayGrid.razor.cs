@@ -2,6 +2,7 @@ using Clayzor.Lib.Entities;
 using Clayzor.Lib.Web.Controls.Components.Grid.Dynamic;
 using Clayzor.Lib.Web.Settings;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using MudBlazor;
 using MudBlazor.Extensions;
@@ -245,9 +246,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
                 if (_dragInitializedId is not null)
                     await JS.InvokeVoidAsync("clayGridColumnDrag.dispose", _dragInitializedId);
                 _dragInitializedId = GridDomId;
+                _dotnetRef ??= DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("clayGridColumnDrag.init", GridDomId, _dotnetRef);
             }
-            _dotnetRef ??= DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("clayGridColumnDrag.init", GridDomId, _dotnetRef);
 
             if (_selectMode && (_opt.Dynamic || DataLoader is not null) && !_loadingChildIds)
             {
@@ -283,6 +284,16 @@ public partial class ClayGrid<TEntity> where TEntity : class
     [JSInvokable]
     public void SetDraggedColumn(string? sqlName)
         => _dragState.DraggedColumn = sqlName;
+
+    /// <summary>Передаёт колонку в панель группировки или фильтрации без зависимости от гонки с dragend.</summary>
+    [JSInvokable]
+    public async Task OnHeaderTrayDrop(string sqlName, string tray)
+    {
+        if (string.IsNullOrEmpty(sqlName) || tray is not ("group" or "filter")) return;
+        _dragState.DraggedColumn = sqlName;
+        if (tray == "group") await OnTrayDrop(new DragEventArgs(), -1);
+        else await OnFilterTrayDrop(new DragEventArgs());
+    }
 
     /// <summary>
     /// Вызывается из JS после завершения drag-and-drop заголовка колонки.

@@ -191,8 +191,17 @@ window.clayGridColumnDrag = (function () {
 
         function onDrop(e) {
             if (!srcSqlName) return;
+            var tray = e.target.closest ? e.target.closest('.grouping-tray, .filter-tray') : null;
+            if (tray && root.contains(tray)) {
+                e.preventDefault();
+                e.stopPropagation();
+                var trayKind = tray.classList.contains('grouping-tray') ? 'group' : 'filter';
+                var traySql = srcSqlName;
+                cleanup();
+                dotnetRef.invokeMethodAsync('OnHeaderTrayDrop', traySql, trayKind).catch(function(){});
+                return;
+            }
             if (!isOverOurThead(e.target)) {
-                // Blazor tray-drop читает состояние этого grid до последующего dragend.
                 hideIndicator();
                 stopAutoScroll();
                 return;
