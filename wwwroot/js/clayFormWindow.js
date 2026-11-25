@@ -27,6 +27,10 @@ window.clayFormWindow = {
     },
 
     open(url, formKey, defaults) {
+        return this.openHandle(url, formKey, defaults) !== null;
+    },
+
+    openHandle(url, formKey, defaults, windowName = formKey) {
         const saved = this.readSaved(formKey);
         const options = { ...defaults, ...(saved || {}) };
         const features = [
@@ -37,13 +41,12 @@ window.clayFormWindow = {
             `resizable=${options.resizable ? 'yes' : 'no'}`,
             'scrollbars=yes'
         ].join(',');
-        const child = window.open(url, formKey, features);
-        if (!child) return false;
-        child.opener = window;
+        const child = window.open(url, windowName, features);
+        if (!child) return null;
 
         const save = () => {
             try {
-                if (child.closed) return;
+                if (child.closed || child.location.origin !== window.location.origin) return;
                 const current = {
                     width: child.outerWidth,
                     height: child.outerHeight,
@@ -59,13 +62,16 @@ window.clayFormWindow = {
         const timer = window.setInterval(() => {
             if (child.closed) {
                 window.clearInterval(timer);
-                save();
                 return;
             }
             save();
         }, 500);
-        child.addEventListener('beforeunload', save);
-        return true;
+        try {
+            child.addEventListener('beforeunload', save);
+        } catch (_) {
+            // Browser isolation can prevent access to an external window.
+        }
+        return child;
     }
 };
 

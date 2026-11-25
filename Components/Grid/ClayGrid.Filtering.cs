@@ -285,7 +285,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <inheritdoc cref="IClayGrid.IsValueFilterAvailable"/>
     bool IClayGrid.IsValueFilterAvailable(string sqlName)
     {
-        if (!_opt.EnableValueFilter) return false;
+        if (!_opt.EnableValueFilter || (!_opt.Dynamic && DataLoader is null && DistinctValuesLoader is null)) return false;
         if (!_columnBySqlName.TryGetValue(sqlName, out var meta)) return false;
         return meta.Filterable && meta.AllowValueFilter
                && !_valueFilterDisabledColumns.Contains(sqlName);
@@ -299,7 +299,7 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <inheritdoc cref="IClayGrid.OpenValueFilterDialog"/>
     async Task IClayGrid.OpenValueFilterDialog(string sqlName)
     {
-        if (!_columnBySqlName.TryGetValue(sqlName, out var meta)) return;
+        if (!((IClayGrid)this).IsValueFilterAvailable(sqlName) || !_columnBySqlName.TryGetValue(sqlName, out var meta)) return;
 
         var colType = _opt.FilterColumnTypes.TryGetValue(sqlName, out var t) ? t : ColumnType.Text;
 
@@ -315,7 +315,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
         // В динамическом режиме DataLoader отсутствует — используем собственный запрос.
         Func<Task<DistinctValuesResult>> load = _opt.Dynamic
             ? () => LoadDistinctValuesDynamicAsync(sqlName, BuildCurrentQuery(), 100)
-            : () => DataLoader!.LoadDistinctValuesAsync(sqlName, BuildCurrentQuery(), 100);
+            : DistinctValuesLoader is { } loader
+                ? () => loader(sqlName, BuildCurrentQuery(), 100)
+                : () => DataLoader!.LoadDistinctValuesAsync(sqlName, BuildCurrentQuery(), 100);
 
         var parameters = new DialogParameters<ClayColumnValueFilterDialog>
         {

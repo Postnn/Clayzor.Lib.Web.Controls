@@ -153,6 +153,9 @@ public partial class ClayGrid<TEntity> where TEntity : class
     /// <summary>Событие изменения параметров запроса (поиск, сортировка, пагинация и т.д.).</summary>
     [Parameter] public EventCallback<ClayDataQuery> OnQueryChanged { get; set; }
 
+    /// <summary>Серверная загрузка значений фильтра для статического грида с внешним источником страниц.</summary>
+    [Parameter] public Func<string, ClayDataQuery, int, Task<DistinctValuesResult>>? DistinctValuesLoader { get; set; }
+
     /// <summary>Общее количество записей — используется для пагинации.</summary>
     [Parameter] public int TotalCount { get; set; }
 

@@ -11,6 +11,7 @@ namespace Clayzor.Lib.Web.Controls.Services;
 /// </summary>
 public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
 {
+    private static readonly JsonSerializerOptions KeyJson = new() { PropertyNameCaseInsensitive = true };
     private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonElement?>> _pending = new();
     private readonly DotNetObjectReference<ClaySelectAdvancedSearchService> _dotnetRef;
     private bool _disposed;
@@ -41,7 +42,8 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
         where TItem : class
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+            uri.Scheme is not ("http" or "https") || uri.UserInfo.Length != 0)
             throw new ArgumentException("URL расширенного поиска должен быть абсолютным.", nameof(url));
 
         var requestId = Guid.NewGuid().ToString("N");
@@ -53,10 +55,11 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
         {
             await JS.InvokeVoidAsync("claySelectAdvancedSearch.open", cancellationToken, url, requestId, _dotnetRef);
             var value = await completion.Task.WaitAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             if (value is null)
                 return null;
 
-            var id = value.Value.Deserialize<TValue>();
+            var id = value.Value.Deserialize<TValue>(KeyJson);
             if (id is null)
                 throw new InvalidOperationException("Внешняя форма вернула пустой идентификатор.");
             return ClaySelectExternalResult<TItem, TValue>.FromValue(id);
