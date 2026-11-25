@@ -135,6 +135,9 @@ public sealed class ClayTreeOptions
     /// <see cref="ClayTreeSelectionMode.Multiple"/> — управляемые отметки через IsChecked и ToggleCheckedAsync.
     /// </summary>
     public ClayTreeSelectionMode SelectionMode { get; set; } = ClayTreeSelectionMode.Single;
+    /// <summary>Возвращает разрешённую владельцем цепочку предков для восстановления пути.</summary>
+    public Func<string, Task<IReadOnlyList<string>>>? LoadStatePathAsync { get; set; }
+
     /// <summary>Текущее состояние отметки узла в управляемом множественном выборе.</summary>
     public Func<ClayTreeNode, bool>? IsChecked { get; set; }
 
@@ -149,6 +152,9 @@ public sealed class ClayTreeOptions
     /// Требует зарегистрированного <see cref="IClayTreeMutations"/>. По умолчанию выключено.
     /// </summary>
     public bool EnableDragDrop { get; set; }
+
+    /// <summary>Прикладной перенос с исходными снимками узлов. Возвращает true при подтверждённой записи.</summary>
+    public Func<ClayTreeNode, ClayTreeNode?, Task<bool>>? ReparentNodeAsync { get; set; }
 
     /// <summary>Включает пункт «Редактировать» в контекстном меню узла. По умолчанию выключено.</summary>
     public bool EnableEdit { get; set; }

@@ -45,6 +45,8 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     // ── Injects ──────────────────────────────────────────────────────────────────
 
     [Inject] private DbManager Db { get; set; } = default!;
+    /// <summary>Переопределяет хранилище состояния для владельца дерева.</summary>
+    [Parameter] public IClayTreeStateStore? CustomStateStore { get; set; }
     [Inject] private IClayTreeStateStore StateStore { get; set; } = default!;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 

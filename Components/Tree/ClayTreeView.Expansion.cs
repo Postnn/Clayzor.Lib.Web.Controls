@@ -27,7 +27,7 @@ public partial class ClayTreeView
             LastExpandedId = _lastExpandedId,
             SelectedIds    = [.._selectedIds],
         };
-        try { await StateStore.SaveAsync(Options.TreeId, state); }
+        try { await (CustomStateStore ?? StateStore).SaveAsync(Options.TreeId, state); }
         catch (SqlException) { /* персистенция состояния опциональна; ошибка уже показана ISqlErrorHandler */ }
     }
 
@@ -41,7 +41,7 @@ public partial class ClayTreeView
         if (!Options.PersistExpandedState) return;
         if (IsFilterActive) return; // фильтр важнее состояния
 
-        var state = await StateStore.LoadAsync(Options.TreeId);
+        var state = await (CustomStateStore ?? StateStore).LoadAsync(Options.TreeId);
         if (state is null)
         {
             if (Options.InitialExpandLevel > 0)
@@ -58,7 +58,7 @@ public partial class ClayTreeView
             return;
 
         // Получить цепочку предков целевой ноды
-        var chain = await LoadAncestorChainAsync(targetId);
+        var chain = Options.LoadStatePathAsync is { } loadPath ? await loadPath(targetId) : await LoadAncestorChainAsync(targetId);
         if (chain.Count == 0)
             return; // ноды больше нет в данных
 
