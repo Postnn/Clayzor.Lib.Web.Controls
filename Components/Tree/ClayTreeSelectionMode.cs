@@ -11,5 +11,6 @@ public enum ClayTreeSelectionMode
     /// <summary>Одиночное выделение (клик по узлу).</summary>
     Single = 1,
 
-    // Multiple = 2 — задел под множественный выбор (чекбоксы), в текущей версии не реализовано
+    /// <summary>Управляемый множественный выбор с отметками узлов.</summary>
+    Multiple = 2,
 }

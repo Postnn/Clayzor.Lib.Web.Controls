@@ -1,11 +1,11 @@
 window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
     requests: Object.create(null),
 
-    open: function (url, requestId, dotnetRef) {
+    open: function (url, requestId, dotnetRef, multiple = false) {
         const target = new URL(url, window.location.href);
         if (!['http:', 'https:'].includes(target.protocol) || target.username || target.password)
             throw new Error('Invalid advanced search URL');
-        target.searchParams.set('return', '1');
+        target.searchParams.set('return', multiple ? '2' : '1');
         target.searchParams.set('requestId', requestId);
         target.searchParams.set('returnOrigin', window.location.origin);
         const formKey = 'advanced-search:' + target.origin + target.pathname.toLowerCase().replace(/\.aspx$/, '');
@@ -29,7 +29,7 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
         const onMessage = event => {
             if (event.origin !== target.origin || event.source !== child) return;
             if (event.data?.type !== 'clay-select-return' || event.data?.requestId !== requestId
-                || !Object.hasOwn(event.data, 'value') || event.data.value == null) return;
+                || Array.isArray(event.data.value) !== multiple || !Object.hasOwn(event.data, 'value') || event.data.value == null) return;
             cleanup();
             void dotnetRef.invokeMethodAsync('CompleteAsync', requestId, event.data.value)
                 .catch(() => {}).finally(() => child.close());
@@ -53,7 +53,7 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
     returnValue: function (requestId, value) {
         if (!window.opener || window.opener.closed || !/^[a-f\d]{32}$/i.test(requestId)) return false;
         const query = new URLSearchParams(window.location.search);
-        if (query.get('return') !== '1' || query.get('requestId') !== requestId) return false;
+        if (query.get('return') !== (Array.isArray(value) ? '2' : '1') || query.get('requestId') !== requestId) return false;
         let openerOrigin;
         try { openerOrigin = window.opener.location.origin; }
         catch (_) { openerOrigin = document.referrer ? new URL(document.referrer).origin : null; }

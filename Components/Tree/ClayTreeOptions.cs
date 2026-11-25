@@ -1,3 +1,4 @@
+using Clayzor.Lib.Web.Controls.Components.Tree.Models;
 using Clayzor.Lib.Entities.Tree;
 
 namespace Clayzor.Lib.Web.Controls.Components.Tree;
@@ -131,9 +132,15 @@ public sealed class ClayTreeOptions
     /// <summary>
     /// Режим выделения узлов.
     /// <see cref="ClayTreeSelectionMode.Single"/> — одиночный клик подсвечивает узел.
-    /// <see cref="ClayTreeSelectionMode.Multiple"/> — задел, в текущей версии не реализовано.
+    /// <see cref="ClayTreeSelectionMode.Multiple"/> — управляемые отметки через IsChecked и ToggleCheckedAsync.
     /// </summary>
     public ClayTreeSelectionMode SelectionMode { get; set; } = ClayTreeSelectionMode.Single;
+    /// <summary>Текущее состояние отметки узла в управляемом множественном выборе.</summary>
+    public Func<ClayTreeNode, bool>? IsChecked { get; set; }
+
+    /// <summary>Обрабатывает отметку одного узла независимо от просмотра его содержимого.</summary>
+    public Func<ClayTreeNode, Task>? ToggleCheckedAsync { get; set; }
+
 
     // ── Изменение данных (CTM) ───────────────────────────────────────────────────
 

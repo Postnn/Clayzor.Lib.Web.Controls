@@ -41,6 +41,27 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
         CancellationToken cancellationToken = default)
         where TItem : class
     {
+        var value = await OpenCoreAsync(url, false, cancellationToken);
+        if (value is null) return null;
+        var id = value.Value.Deserialize<TValue>(KeyJson);
+        if (id is null) throw new InvalidOperationException("Внешняя форма вернула пустой идентификатор.");
+        return ClaySelectExternalResult<TItem, TValue>.FromValue(id);
+    }
+
+    /// <summary>Возвращает подтверждённый набор целочисленных ключей, включая пустой. Отмена возвращает null.</summary>
+    public async Task<int[]?> OpenMultipleIdsAsync(string url, CancellationToken cancellationToken = default)
+    {
+        var value = await OpenCoreAsync(url, true, cancellationToken);
+        if (value is null) return null;
+        if (value.Value.ValueKind != JsonValueKind.Array || value.Value.GetArrayLength() > 1000)
+            throw new JsonException("Недопустимый набор идентификаторов.");
+        var ids = value.Value.Deserialize<int[]>()!;
+        if (ids.Any(id => id <= 0)) throw new JsonException("Недопустимый идентификатор.");
+        return ids.Distinct().Order().ToArray();
+    }
+
+    private async Task<JsonElement?> OpenCoreAsync(string url, bool multiple, CancellationToken cancellationToken)
+    {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
             uri.Scheme is not ("http" or "https") || uri.UserInfo.Length != 0)
@@ -53,16 +74,10 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
 
         try
         {
-            await JS.InvokeVoidAsync("claySelectAdvancedSearch.open", cancellationToken, url, requestId, _dotnetRef);
+            await JS.InvokeVoidAsync("claySelectAdvancedSearch.open", cancellationToken, url, requestId, _dotnetRef, multiple);
             var value = await completion.Task.WaitAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            if (value is null)
-                return null;
-
-            var id = value.Value.Deserialize<TValue>(KeyJson);
-            if (id is null)
-                throw new InvalidOperationException("Внешняя форма вернула пустой идентификатор.");
-            return ClaySelectExternalResult<TItem, TValue>.FromValue(id);
+            return value;
         }
         finally
         {
