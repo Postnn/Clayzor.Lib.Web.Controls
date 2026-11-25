@@ -1965,9 +1965,9 @@ body {
 
 /* ── Общие контролы форм ── */
 .clay-page-title {
-    font-size: 1.5rem;
+    font-size: 0.875rem;
     font-weight: 500;
-    line-height: 1.334;
+    line-height: 1.125rem;
     letter-spacing: 0;
 }
 
