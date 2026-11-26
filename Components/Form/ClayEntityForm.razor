@@ -2,7 +2,10 @@
     <MudPaper Class="@($"clay-entity-form {_opt.Class}")"
               MaxWidth="@_opt.MaxWidth"
               Elevation="@_opt.Elevation">
-        @Toolbar
+        <div class="clay-entity-form-toolbar">
+            @Toolbar
+            @EntityFormActions
+        </div>
         <div class="clay-entity-form-content">
             @ChildContent
         </div>
@@ -17,6 +20,8 @@
 
 @code {
     private ClayEntityFormOptions _opt = new();
+
+    [CascadingParameter(Name = "EntityFormActions")] private RenderFragment? EntityFormActions { get; set; }
 
     /// <summary>Команды формы, закреплённые над прокручиваемым содержимым.</summary>
     [Parameter] public RenderFragment? Toolbar { get; set; }

@@ -706,6 +706,7 @@ body {
 /* ── Filter Tray (drag‑and‑drop column filter panel) ── */
 .filter-tray {
     min-height: 34px;
+    flex-wrap: nowrap;
     padding: 4px 10px;
     background: var(--mud-palette-background-gray);
     border: 1px solid var(--mud-palette-lines-default);
@@ -735,9 +736,14 @@ body {
 }
 
 .filter-tray-hint {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
     font-size: var(--clay-font-size);
     color: var(--mud-palette-text-disabled);
     font-style: italic;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     letter-spacing: 0.02em;
     line-height: 26px;
 }
@@ -2015,6 +2021,28 @@ body {
     padding: 0 12px;
 }
 
+.clay-entity-form-toolbar {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    margin: 0 0 12px;
+    background: var(--mud-palette-background-gray);
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.clay-entity-form-toolbar > .clay-form-toolbar {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    border-bottom: 0;
+}
+
+.clay-entity-form-toolbar > [role="group"] {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    padding-right: 12px;
+}
+
 .clay-form-toolbar {
     flex: 0 0 auto;
     margin: 0 0 12px;
@@ -2300,14 +2328,6 @@ body {
     justify-content: center;
     width: 20px;
     height: 20px;
-}
-
-.clay-navigation-menu__icon:empty::before {
-    width: 6px;
-    height: 6px;
-    background: var(--mud-palette-text-disabled);
-    border-radius: 1px;
-    content: "";
 }
 
 .clay-navigation-menu__icon img {
