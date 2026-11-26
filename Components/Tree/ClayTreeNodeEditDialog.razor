@@ -1,5 +1,6 @@
 @namespace Clayzor.Lib.Web.Controls.Components.Tree
 @using MudBlazor
+@using Clayzor.Lib.Web.Controls.Components.Form
 
 <MudDialog>
     <DialogContent>
@@ -11,8 +12,10 @@
                     <MudText Typo="Typo.body2">@Path</MudText>
                 </div>
             }
-            <MudTextField T="string" @bind-Value="_value" Label="@FieldLabel"
-                          Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <ClayEditorFocusScope Label="@FieldLabel" Ready="true" AdvanceOnEnter="true">
+                <MudTextField T="string" @bind-Value="_value" Label="@FieldLabel"
+                              Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </ClayEditorFocusScope>
         </div>
     </DialogContent>
     <DialogActions>

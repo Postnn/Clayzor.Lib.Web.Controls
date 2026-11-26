@@ -44,7 +44,8 @@
             </div>
         }
 
-        <div class="clay-tree-scroll">
+        <div class="clay-tree-scroll" @ref="_keyboardRoot" role="tree" aria-label="@Options.AccessibleLabel"
+             aria-multiselectable="@(Options.SelectionMode == ClayTreeSelectionMode.Multiple ? "true" : null)">
             @if (_error is not null)
             {
                 <MudAlert Severity="Severity.Warning" Class="clay-tree-error mb-2" Variant="Variant.Outlined">
@@ -59,7 +60,7 @@
             {
                 @foreach (var node in _roots)
                 {
-                    <ClayTreeNodeView Node="node" Tree="this" NodeTemplate="NodeTemplate" />
+                    <ClayTreeNodeView @key="node.Id" Node="node" Tree="this" NodeTemplate="NodeTemplate" />
                 }
             }
 

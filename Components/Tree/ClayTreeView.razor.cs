@@ -197,6 +197,7 @@ public partial class ClayTreeView : ComponentBase, IClayTreeView, IDisposable
     /// <summary>Освобождает собственный <see cref="DbManager"/>, если был создан.</summary>
     public void Dispose()
     {
+        _ = ReleaseKeyboardAsync();
         _customDb?.Dispose();
     }
 

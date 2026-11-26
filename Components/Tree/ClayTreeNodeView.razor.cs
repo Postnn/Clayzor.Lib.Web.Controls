@@ -34,9 +34,9 @@ public partial class ClayTreeNodeView : ComponentBase, IDisposable
             await view.ToggleAsync(Node);
     }
 
-    private async Task HandleClick()
+    private async Task HandleClick(MouseEventArgs args)
     {
-        if (Tree is ClayTreeView view)
+        if (args.Detail <= 1 && Tree is ClayTreeView view)
             await view.HandleNodeClick(Node);
     }
 

@@ -265,6 +265,10 @@ public sealed class ClayThemeTokenProvider : MudThemeProvider
         var colors = ClayTheme.GetColors(Preference);
         var focusColor = colors?.Focus ?? (Preference == ClayThemePreference.ClassicDark ? "#92BEFF" : ClayColors.BlueMid);
         css.AppendLine($"--clay-focus: {focusColor};");
+        const string dirtyOnLight = "#793C00";
+        var dirtyColor = Preference == ClayThemePreference.ClassicDark ? "#FFC479" : dirtyOnLight;
+        css.AppendLine($"--clay-dirty: {dirtyColor};");
+        css.AppendLine($"--clay-dirty-on-required: {dirtyOnLight};");
         if (colors is null)
             return;
 

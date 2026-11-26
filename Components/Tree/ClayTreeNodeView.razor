@@ -12,6 +12,7 @@
 }
 
 @{
+    var showChevron = Node.HasChildren || (Node.ChildrenAreFiltered && Node.Children.Count > 0);
     var dndOn = (Tree as ClayTreeView)?.Options.EnableDragDrop == true;
     var tv = Tree as ClayTreeView;
     var isDropTarget = tv is not null && tv.IsCurrentDropTarget(Node);
@@ -19,7 +20,11 @@
         isDropTarget ? (tv!.IsCurrentDropAllowed ? $" clay-tree-drop-{tv.CurrentDropZone}" : " clay-tree-drop-forbidden") : "";
 }
 
-<div class="@nodeClass @(Tree.SelectedIds.Contains(Node.Id) ? "clay-tree-node--selected" : "")">
+<div class="@nodeClass @(Tree.SelectedIds.Contains(Node.Id) ? "clay-tree-node--selected" : "")"
+     role="treeitem" aria-label="@Node.Text" tabindex="-1" data-clay-tree-node="@Node.Id"
+     aria-expanded="@(showChevron ? (Node.IsExpanded ? "true" : "false") : null)"
+     aria-selected="@(tv?.Options.SelectionMode == ClayTreeSelectionMode.Single ? (Tree.SelectedIds.Contains(Node.Id) ? "true" : "false") : null)"
+     aria-checked="@(tv?.Options is { SelectionMode: ClayTreeSelectionMode.Multiple, IsChecked: { } checkedState, ToggleCheckedAsync: not null } ? (checkedState(Node) ? "true" : "false") : null)">
     <div class="@($"clay-tree-node-row{dropClass}")"
          @ref="_rowRef"
          draggable="@dndOn.ToString().ToLowerInvariant()"
@@ -34,11 +39,6 @@
         @{
             var showSpinner = Node.IsLoading
                 && Tree is ClayTreeView { Options.ShowLoadingIndicator: true };
-        }
-
-        @{
-            var showChevron = Node.HasChildren
-                || (Node.ChildrenAreFiltered && Node.Children.Count > 0);
         }
 
         @if (showSpinner)
@@ -75,7 +75,7 @@
         else
         {
             <span class="clay-tree-node-text"
-                  @ref="_textRef"
+                  @ref="_textRef" data-clay-tree-caption
                   @onclick="HandleClick" @onclick:stopPropagation="true"
                   title="@(_isTruncated ? Node.Text : null)">
                 @Node.Text
@@ -138,10 +138,10 @@
         var childLevel = Node.Level + 1;
         var tailPadding = linesOn ? 0 : childLevel * Tree.IndentPx;
 
-        <div class="@(linesOn ? "clay-tree-children clay-tree-children--lines" : "clay-tree-children")">
+        <div role="group" class="@(linesOn ? "clay-tree-children clay-tree-children--lines" : "clay-tree-children")">
             @foreach (var child in Node.Children)
             {
-                <ClayTreeNodeView Node="child" Tree="Tree" NodeTemplate="NodeTemplate" />
+                <ClayTreeNodeView @key="child.Id" Node="child" Tree="Tree" NodeTemplate="NodeTemplate" />
             }
 
             @if (showPagingTail)

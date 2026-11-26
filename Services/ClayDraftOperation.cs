@@ -12,6 +12,9 @@ public enum ClayDraftOperationStatus
 
     /// <summary>Ответ потерян после возможного эффекта; требуется read-only сверка.</summary>
     Unknown,
+
+    /// <summary>Бизнес-результат доказан, требуется только принятие соответствующей ревизии.</summary>
+    Confirmed,
 }
 
 /// <summary>Типизированное намерение durable-попытки с точными областями, которые может принять commit.</summary>

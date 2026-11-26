@@ -13,6 +13,7 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
 {
     private static readonly JsonSerializerOptions KeyJson = new() { PropertyNameCaseInsensitive = true };
     private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonElement?>> _pending = new();
+    private readonly ConcurrentDictionary<string, AcknowledgedRequest> _acknowledged = new();
     private readonly DotNetObjectReference<ClaySelectAdvancedSearchService> _dotnetRef;
     private bool _disposed;
 
@@ -53,20 +54,152 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
     {
         var value = await OpenCoreAsync(url, true, cancellationToken);
         if (value is null) return null;
-        if (value.Value.ValueKind != JsonValueKind.Array || value.Value.GetArrayLength() > 1000)
+        return ReadIds(value.Value);
+    }
+
+    /// <summary>Открывает единичный поиск с подтверждением после фактического применения родителем.</summary>
+    public Task<bool> OpenAcknowledgedAsync<TItem, TValue>(
+        string url,
+        Func<ClaySelectExternalResult<TItem, TValue>, CancellationToken, Task<ClaySelectReturnDecision>> apply,
+        CancellationToken cancellationToken = default)
+        where TItem : class =>
+        OpenAcknowledgedCoreAsync(url, false, async (value, token) =>
+        {
+            TValue? id;
+            try { id = value.Deserialize<TValue>(KeyJson); }
+            catch (JsonException) { return ClaySelectReturnDecision.Rejected; }
+            return id is null ? ClaySelectReturnDecision.Rejected
+                : await apply(ClaySelectExternalResult<TItem, TValue>.FromValue(id), token);
+        }, cancellationToken);
+
+    /// <summary>Открывает множественный поиск, в котором пустой набор применяется как явный выбор.</summary>
+    public Task<bool> OpenAcknowledgedMultipleIdsAsync(
+        string url, Func<int[], CancellationToken, Task<ClaySelectReturnDecision>> apply,
+        CancellationToken cancellationToken = default) =>
+        OpenAcknowledgedCoreAsync(url, true, async (value, token) =>
+        {
+            int[] ids;
+            try { ids = ReadIds(value); }
+            catch (JsonException) { return ClaySelectReturnDecision.Rejected; }
+            return await apply(ids, token);
+        }, cancellationToken);
+
+    private static int[] ReadIds(JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Array || value.GetArrayLength() > 1000)
             throw new JsonException("Недопустимый набор идентификаторов.");
-        var ids = value.Value.Deserialize<int[]>()!;
+        var ids = value.Deserialize<int[]>()!;
         if (ids.Any(id => id <= 0)) throw new JsonException("Недопустимый идентификатор.");
         return ids.Distinct().Order().ToArray();
     }
 
+    private async Task<bool> OpenAcknowledgedCoreAsync(string url, bool multiple,
+        Func<JsonElement, CancellationToken, Task<ClaySelectReturnDecision>> apply, CancellationToken cancellationToken)
+    {
+        CheckUrl(url);
+        var requestId = Guid.NewGuid().ToString("N");
+        var request = new AcknowledgedRequest(apply, cancellationToken);
+        if (!_acknowledged.TryAdd(requestId, request))
+            throw new InvalidOperationException("Не удалось зарегистрировать запрос расширенного поиска.");
+
+        var accepted = false;
+        try
+        {
+            await JS.InvokeVoidAsync("claySelectAdvancedSearch.open", cancellationToken, url, requestId, _dotnetRef, multiple, true);
+            accepted = await request.Completion.Task.WaitAsync(cancellationToken);
+            return accepted;
+        }
+        finally
+        {
+            if (!accepted)
+            {
+                if (_acknowledged.TryRemove(requestId, out var cancelled))
+                    cancelled.Cancel();
+                await CancelBrowserRequestAsync(requestId);
+            }
+        }
+    }
+
+    /// <summary>Проверяет и применяет одну ревизию результата; повтор подтверждённой ревизии не применяет её заново.</summary>
+    [JSInvokable]
+    public async Task<string> ApplyAsync(string requestId, int revision, JsonElement value)
+    {
+        if (revision < 1 || value.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ||
+            !_acknowledged.TryGetValue(requestId, out var request))
+            return nameof(ClaySelectReturnDecision.Stale);
+
+        await request.Gate.WaitAsync();
+        try
+        {
+            if (request.Token.IsCancellationRequested || !_acknowledged.ContainsKey(requestId))
+                return nameof(ClaySelectReturnDecision.Stale);
+
+            var json = value.GetRawText();
+            if (revision == request.Revision && json == request.Json)
+                return request.Decision.ToString();
+
+            if (revision != request.Revision + 1 || request.Decision != ClaySelectReturnDecision.Rejected)
+                return nameof(ClaySelectReturnDecision.Stale);
+
+            request.Revision = revision;
+            request.Json = json;
+            try
+            {
+                request.Decision = await request.Apply(value, request.Token);
+            }
+            catch (OperationCanceledException) when (request.Token.IsCancellationRequested)
+            {
+                return nameof(ClaySelectReturnDecision.Stale);
+            }
+            catch (Exception)
+            {
+                // Callback мог изменить форму до сбоя. Не воспроизводим такую попытку.
+                request.Decision = ClaySelectReturnDecision.Indeterminate;
+            }
+
+            if (request.Token.IsCancellationRequested)
+                return nameof(ClaySelectReturnDecision.Stale);
+
+            if (request.Decision == ClaySelectReturnDecision.Accepted)
+                request.Completion.TrySetResult(true);
+
+            return request.Decision.ToString();
+        }
+        finally { request.Gate.Release(); }
+    }
+
+    private sealed class AcknowledgedRequest
+    {
+        private readonly CancellationTokenSource _lifetime;
+        internal Func<JsonElement, CancellationToken, Task<ClaySelectReturnDecision>> Apply { get; }
+        internal CancellationToken Token { get; }
+        internal SemaphoreSlim Gate { get; } = new(1, 1);
+        internal TaskCompletionSource<bool> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal int Revision { get; set; }
+        internal string? Json { get; set; }
+        internal ClaySelectReturnDecision Decision { get; set; } = ClaySelectReturnDecision.Rejected;
+
+        internal AcknowledgedRequest(Func<JsonElement, CancellationToken, Task<ClaySelectReturnDecision>> apply, CancellationToken token)
+        {
+            Apply = apply;
+            _lifetime = CancellationTokenSource.CreateLinkedTokenSource(token);
+            Token = _lifetime.Token;
+        }
+
+        internal void Cancel()
+        {
+            try { _lifetime.Cancel(); }
+            finally
+            {
+                _lifetime.Dispose();
+                Completion.TrySetResult(false);
+            }
+        }
+    }
+
     private async Task<JsonElement?> OpenCoreAsync(string url, bool multiple, CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
-            uri.Scheme is not ("http" or "https") || uri.UserInfo.Length != 0)
-            throw new ArgumentException("URL расширенного поиска должен быть абсолютным.", nameof(url));
-
+        CheckUrl(url);
         var requestId = Guid.NewGuid().ToString("N");
         var completion = new TaskCompletionSource<JsonElement?>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!_pending.TryAdd(requestId, completion))
@@ -84,6 +217,14 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
             _pending.TryRemove(requestId, out _);
             await CancelBrowserRequestAsync(requestId);
         }
+    }
+
+    private void CheckUrl(string url)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+            uri.Scheme is not ("http" or "https") || uri.UserInfo.Length != 0)
+            throw new ArgumentException("URL расширенного поиска должен быть абсолютным.", nameof(url));
     }
 
     /// <summary>
@@ -105,6 +246,8 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
     {
         if (_pending.TryGetValue(requestId, out var completion))
             completion.TrySetResult(null);
+        if (_acknowledged.TryRemove(requestId, out var request))
+            request.Cancel();
         return Task.CompletedTask;
     }
 
@@ -117,7 +260,7 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
             return;
 
         _disposed = true;
-        foreach (var requestId in _pending.Keys)
+        foreach (var requestId in _pending.Keys.Concat(_acknowledged.Keys))
         {
             await CancelBrowserRequestAsync(requestId);
             await CancelAsync(requestId);

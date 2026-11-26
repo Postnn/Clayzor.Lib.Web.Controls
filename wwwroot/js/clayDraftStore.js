@@ -84,8 +84,12 @@
         return JSON.parse(new TextDecoder().decode(data));
     }
 
+    function draftPrefix(reg) {
+        return `${reg.userKey}|${reg.formKey}|${reg.entityKey}|`;
+    }
+
     function draftKey(reg) {
-        return `${reg.userKey}|${reg.formKey}|${reg.entityKey}|${reg.draftId}`;
+        return draftPrefix(reg) + reg.draftId;
     }
 
     function snapshot(reg) {
@@ -267,7 +271,11 @@
     }
 
     function captureAll(reg) {
-        ownedFields(reg).forEach(element => captureField(reg, element));
+        for (const element of ownedFields(reg)) {
+            const scope = fieldScope(element, reg);
+            if (reg.restoreFailures.has(scope) || reg.restorePending.has(fieldKey(element, reg))) continue;
+            captureField(reg, element);
+        }
     }
 
     function isCurrentApply(reg, id, version) {
@@ -413,6 +421,93 @@
         return result;
     }
 
+    function restoreDraftState(reg, restored) {
+        Object.assign(reg, {
+            revision: restored.revision || 0,
+            epoch: restored.epoch || 0,
+            typedState: restored.typedState ?? null,
+            typedRevision: restored.typedRevision ?? restored.revision ?? 0,
+            typedScopes: normalizeTypedScopes(restored.typedScopes),
+            operation: normalizeOperation(restored.operation, restored.revision || 0,
+                restored.typedRevision ?? restored.revision ?? 0),
+            raw: normalizeRaw(restored.raw, restored.revision || 0),
+            cancelledScopes: restored.cancelledScopes || {},
+            persistedRevision: restored.revision || 0,
+        });
+        reg.restorePending = new Set(Object.entries(reg.raw)
+            .filter(([, value]) => !reg.cancelledScopes[value.scope || 'main'])
+            .map(([key]) => key));
+        reg.restoreFailures.clear();
+        reg.applyVersion++;
+    }
+
+    function describeRegistration(registrationId, reg, hasDraft) {
+        return {
+            registrationId, hasDraft, revision: reg.revision, typedState: reg.typedState,
+            operation: reg.operation ? JSON.stringify(reg.operation) : null,
+            cancelledScopes: Object.keys(reg.cancelledScopes),
+            typedScopes: Object.fromEntries(Object.entries(reg.typedScopes).map(([scope, value]) => [scope, value.data])),
+        };
+    }
+
+    const draftIdPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+
+    function ownsSnapshot(reg, state, draftId) {
+        return state.format === FORMAT_VERSION && state.userKey === reg.userKey &&
+            state.formKey === reg.formKey && state.entityKey === reg.entityKey && state.draftId === draftId;
+    }
+
+    async function listRecoveryCandidates(reg) {
+        const prefix = draftPrefix(reg);
+        const records = await request('drafts', 'readonly', store =>
+            store.getAll(IDBKeyRange.bound(prefix, prefix + '\uffff')));
+        const key = await userKey(reg.userKey);
+        const candidates = [];
+        for (const record of records) {
+            const draftId = record.id.slice(prefix.length);
+            if (draftId === reg.draftId || !draftIdPattern.test(draftId)) continue;
+            const state = await decrypt(key, record);
+            if (!ownsSnapshot(reg, state, draftId)) continue;
+            if (!state.operation && state.typedState == null && !Object.keys(state.typedScopes || {}).length &&
+                !Object.keys(state.raw || {}).length) continue;
+            candidates.push({
+                draftId, revision: state.revision || 0,
+                hasOperation: !!state.operation, canRecover: state.schema === reg.schema,
+            });
+        }
+        return candidates.sort((a, b) => b.revision - a.revision);
+    }
+
+    async function recoverListedDraft(id, draftId) {
+        const reg = get(id);
+        if (!draftIdPattern.test(draftId)) throw new Error('Неверный идентификатор черновика.');
+        if (reg.recoveredDraftId === draftId) return describeRegistration(id, reg, true);
+        await waitForIdle(reg);
+        if (draftId === reg.draftId || hasDraftState(reg)) return null;
+        const revision = reg.revision;
+        const release = await claimLock(`clay-draft:${reg.formKey}:${reg.entityKey}:${draftId}`);
+        if (!release) return null;
+        let adopted = false;
+        try {
+            const stored = await request('drafts', 'readonly', store => store.get(draftPrefix(reg) + draftId));
+            if (!stored) return null;
+            const state = await decrypt(await userKey(reg.userKey), stored);
+            if (!ownsSnapshot(reg, state, draftId) || state.schema !== reg.schema ||
+                reg.discarded || reg.released || reg.revision !== revision || hasDraftState(reg)) return null;
+
+            const releasePrevious = reg.releaseLock;
+            sessionStorage.setItem(`clay-draft:${reg.userKey}:${reg.formKey}:${reg.entityKey}`, draftId);
+            restoreDraftState(reg, state);
+            reg.draftId = reg.recoveredDraftId = draftId;
+            reg.releaseLock = release;
+            adopted = true;
+            await releasePrevious?.();
+            return describeRegistration(id, reg, true);
+        } finally {
+            if (!adopted) await release();
+        }
+    }
+
     async function register(formKey, entityKey, userKeyValue, schema, rootSelector) {
         if (!formKey || !entityKey || !userKeyValue) throw new Error('Draft scope is required.');
         if (rootSelector !== undefined && rootSelector !== null &&
@@ -460,37 +555,20 @@
                     await request('drafts', 'readwrite', store => store.put({ ...stored, id: `${id}:schema1-backup` }));
                     migrated = true;
                 }
-                Object.assign(reg, {
-                    revision: restored.revision || 0,
-                    epoch: restored.epoch || 0,
-                    typedState: restored.typedState,
-                    typedRevision: restored.typedRevision ?? restored.revision ?? 0,
-                    typedScopes: normalizeTypedScopes(restored.typedScopes),
-                    operation: normalizeOperation(restored.operation, restored.revision || 0,
-                        restored.typedRevision ?? restored.revision ?? 0),
-                    raw: normalizeRaw(restored.raw, restored.revision || 0),
-                    cancelledScopes: restored.cancelledScopes || {},
-                    persistedRevision: restored.revision || 0,
-                });
+                restoreDraftState(reg, restored);
             }
-            reg.restorePending = new Set(Object.entries(reg.raw)
-                .filter(([, value]) => !reg.cancelledScopes[value.scope || 'main'])
-                .map(([key]) => key));
             if (migrated) await queue(reg);
+            const hasDraft = hasDraftState(reg);
+            if (stored && !hasDraft) {
+                // A failed physical deletion is still a clean, empty record on the next open.
+                try { await removeEmptyDraft(reg); } catch { }
+            }
             const registrationId = crypto.randomUUID();
             reg.listener = event => captureField(reg, event.target);
             document.addEventListener('input', reg.listener, true);
             document.addEventListener('change', reg.listener, true);
             registrations.set(registrationId, reg);
-            return {
-                registrationId,
-                hasDraft: !!stored,
-                revision: reg.revision,
-                typedState: reg.typedState,
-                operation: reg.operation ? JSON.stringify(reg.operation) : null,
-                cancelledScopes: Object.keys(reg.cancelledScopes),
-                typedScopes: Object.fromEntries(Object.entries(reg.typedScopes).map(([scope, value]) => [scope, value.data])),
-            };
+            return describeRegistration(registrationId, reg, hasDraft);
         } catch (error) {
             if (reg) {
                 reg.released = true;
@@ -527,9 +605,20 @@
         return intent;
     }
 
+    function ensureAcceptedScopesRestored(reg, intent) {
+        const scopes = new Set(intent.acceptedScopes || []);
+        if (intent.acceptLegacyTyped) scopes.add('main');
+        if ([...scopes].some(scope => reg.restoreFailures.has(scope) || reg.cancelledScopes[scope]) ||
+            [...reg.restorePending].some(key => reg.raw[key] && scopes.has(reg.raw[key].scope || 'main'))) {
+            throw new Error('Сначала полностью восстановите ввод в принимаемых областях.');
+        }
+    }
+
     async function begin(reg, intent) {
+        ensureAcceptedScopesRestored(reg, intent);
         captureAll(reg);
         await waitForIdle(reg);
+        ensureAcceptedScopesRestored(reg, intent);
         if (reg.operation) throw new Error('Предыдущая команда не сверена; новая попытка заблокирована.');
         const revision = ++reg.revision;
         const scopes = (intent.acceptedScopes || []).map(scope => ({
@@ -579,9 +668,17 @@
         };
     }
 
+    async function removeEmptyDraft(reg) {
+        const revision = reg.revision;
+        await request('drafts', 'readwrite', store => {
+            if (!reg.discarded && !reg.released && reg.revision === revision && !hasDraftState(reg))
+                return store.delete(draftKey(reg));
+        });
+    }
+
     async function flushCommittedDraft(reg) {
         await queue(reg);
-        if (!hasDraftState(reg)) await remove(reg, false);
+        if (!hasDraftState(reg)) await removeEmptyDraft(reg);
     }
 
     async function replaceEditorScope(reg, scope, expectedRevision, replacement) {
@@ -654,6 +751,8 @@
 
     window.clayDraftStore = {
         register,
+        listRecoveryCandidates(id) { return listRecoveryCandidates(get(id)); },
+        recoverListedDraft,
         async saveTyped(id, typedState) {
             const reg = get(id);
             reg.typedState = typedState;
@@ -690,7 +789,8 @@
         async rejectOperation(id, revision) {
             const reg = get(id);
             await waitForIdle(reg);
-            requireOperation(reg, revision);
+            if (requireOperation(reg, revision).status === 'confirmed')
+                throw new Error('Подтверждённый исход нельзя заменить отказом.');
             reg.operation = null;
             reg.revision++;
             await queue(reg);
@@ -699,7 +799,23 @@
             const reg = get(id);
             await waitForIdle(reg);
             const operation = requireOperation(reg, revision);
+            if (operation.status === 'confirmed')
+                throw new Error('Подтверждённый исход нельзя заменить неизвестным.');
             reg.operation = { ...operation, status: 'unknown' };
+            reg.revision++;
+            await queue(reg);
+        },
+        async recordConfirmedOperation(id, revision) {
+            const reg = get(id);
+            if (!reg.operation && reg.confirmedCommitRevision === revision) return;
+            const operation = requireOperation(reg, revision);
+            if (operation.status === 'confirmed') {
+                if (reg.lastError) await queue(reg);
+                await waitForIdle(reg);
+                return;
+            }
+
+            reg.operation = { ...operation, status: 'confirmed' };
             reg.revision++;
             await queue(reg);
         },

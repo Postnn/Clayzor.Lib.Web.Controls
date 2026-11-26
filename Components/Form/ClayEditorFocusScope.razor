@@ -1,0 +1,73 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Form
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div @ref="_root" data-clay-edit-scope tabindex="-1" role="group" aria-label="@Label">
+    @ChildContent
+</div>
+
+@code {
+    private const string ModulePath = "./_content/Clayzor.Lib.Web.Controls/js/clayEditorFocus.js";
+    private ElementReference _root;
+    private Task<IJSObjectReference>? _module;
+    private (bool Ready, bool AdvanceOnEnter)? _appliedState;
+    private bool _disposed;
+
+    /// <summary>Содержимое области ввода, включая её поля в логическом порядке.</summary>
+    [Parameter, EditorRequired] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Доступное имя области, используемое в том числе при отсутствии доступных полей.</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    /// <summary>Данные и поля готовы к вводу после загрузки и восстановления, если они применимы.</summary>
+    [Parameter] public bool Ready { get; set; }
+
+    /// <summary>Разрешает переход по Enter в простых полях с обычной фиксацией ввода.</summary>
+    [Parameter] public bool AdvanceOnEnter { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            _module ??= JS.InvokeAsync<IJSObjectReference>("import", ModulePath).AsTask();
+            var module = await _module;
+            var state = (Ready, AdvanceOnEnter);
+            if (_disposed || _appliedState == state)
+                return;
+
+            _appliedState = state;
+            await module.InvokeVoidAsync("update", _root, state.Ready, state.AdvanceOnEnter);
+        }
+        catch (JSDisconnectedException)
+        {
+            _module = null;
+            _appliedState = null;
+        }
+    }
+
+    /// <summary>Освобождает клиентскую регистрацию области ввода.</summary>
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        if (_module is null)
+            return;
+
+        try
+        {
+            var module = await _module;
+            try
+            {
+                await module.InvokeVoidAsync("detach", _root);
+            }
+            finally
+            {
+                await module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // После закрытия circuit клиентская область становится недоступной для interop.
+        }
+    }
+}

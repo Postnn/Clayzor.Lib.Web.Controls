@@ -1,6 +1,7 @@
 <MudDatePicker Date="@Value"
                DateChanged="@ValueChanged"
                Label="@_opt.Label"
+               Placeholder="@(_opt.Required ? " " : null)"
                Required="@_opt.Required"
                RequiredError="@_opt.RequiredError"
                Disabled="@_opt.Disabled"

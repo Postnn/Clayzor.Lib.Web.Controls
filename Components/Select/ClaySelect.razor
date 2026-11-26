@@ -18,6 +18,7 @@
                disabled="@ResolvedOptions.Disabled"
                readonly="@ResolvedOptions.ReadOnly"
                required="@ResolvedOptions.Required"
+               data-clay-required-empty="@(ResolvedOptions.Required && IsMutable && !HasValue(Value) ? "" : null)"
                autocomplete="off"
                role="combobox"
                aria-autocomplete="list"

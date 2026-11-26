@@ -1634,6 +1634,25 @@ body {
     transition: background-color 0.1s;
 }
 
+.clay-tree-node:focus-visible {
+    outline: none;
+}
+
+.clay-tree-node:focus-visible > .clay-tree-node-row {
+    outline: 2px solid var(--clay-focus, var(--mud-palette-primary));
+    outline-offset: -2px;
+}
+
+.clay-tree-node--selected:focus-visible > .clay-tree-node-row {
+    outline-color: var(--mud-palette-primary-text);
+}
+
+@media (forced-colors: active) {
+    .clay-tree-node:focus-visible > .clay-tree-node-row {
+        outline-color: Highlight;
+    }
+}
+
 .clay-tree-node-row:hover {
     background-color: var(--mud-palette-action-default-hover);
 }
@@ -2460,12 +2479,15 @@ body {
         }
     }
 
-    /* Контрол объявляет обязательность и доступность независимо от текущего текста. */
+    /* Placeholder проверяет текущий ввод, а класс списка — отсутствие выбранного значения. */
     :is(.clay-required-editable.mud-input-control, .clay-required-editable .mud-input-control)
-        .mud-input:not(.mud-disabled),
-    .mud-input:has(> .mud-input-slot:required:not(:disabled, [readonly])):not(.mud-disabled, .mud-readonly) {
+        .mud-input:has(> :placeholder-shown:not(:disabled)):not(.mud-disabled),
+    .clay-required-empty .mud-input:not(.mud-disabled, .mud-readonly),
+    .mud-input:has(> .mud-input-slot:required:placeholder-shown:not(:disabled, [readonly])):not(.mud-disabled, .mud-readonly),
+    .mud-input:has(> :is(input[type="text"], textarea):required:invalid:not([pattern], [minlength], [readonly], :disabled)):not(.mud-disabled, .mud-readonly) {
         --clay-field-bg: var(--clay-input-required-bg);
         --clay-field-focus: var(--clay-input-required-fg);
+        --clay-field-dirty: var(--clay-dirty-on-required);
         background-color: var(--clay-field-bg);
         caret-color: var(--clay-input-required-fg);
 
@@ -2492,9 +2514,10 @@ body {
         }
     }
 
-    .clay-select-input:required:not(:disabled, [readonly]) {
+    .clay-select-input[data-clay-required-empty] {
         --clay-field-bg: var(--clay-input-required-bg);
         --clay-field-focus: var(--clay-input-required-fg);
+        --clay-field-dirty: var(--clay-dirty-on-required);
         background-color: var(--clay-field-bg);
         color: var(--clay-input-required-fg);
         caret-color: var(--clay-input-required-fg);
@@ -2505,11 +2528,40 @@ body {
         }
     }
 
+    /* Пунктир оставляет отдельными заливку Required, контур ошибки и внутренний outline фокуса. */
+    .clay-field-change[data-clay-field-changed] :is(.mud-input-outlined, .clay-select-input) {
+        --clay-field-focus-offset: -7px;
+    }
+
+    .clay-field-change .clay-select-field:has(> .clay-select-input[data-clay-required-empty]) {
+        --clay-field-dirty: var(--clay-dirty-on-required);
+    }
+
+    .clay-field-change[data-clay-field-changed] :is(.mud-input-outlined, .clay-select-field)::after {
+        content: "";
+        position: absolute;
+        inset: 3px;
+        border: 1px dashed var(--clay-field-dirty, var(--clay-dirty, var(--mud-palette-warning)));
+        border-radius: inherit;
+        pointer-events: none;
+    }
+
+    .clay-field-change-description {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
     /* Внутренняя рамка фокуса сохраняет геометрию и оставляет видимым контур ошибки. */
     :is(.clay-form-field, .clay-entity-form, .mud-dialog) .mud-input:has(> .mud-input-slot:focus-visible),
     .clay-select-input:focus-visible {
         outline: 2px solid var(--clay-field-focus, var(--clay-focus, var(--mud-palette-primary)));
-        outline-offset: -4px;
+        outline-offset: var(--clay-field-focus-offset, -4px);
     }
 
     :is(.clay-entity-form, .clay-form-field, .clay-select, .mud-dialog)
@@ -2519,6 +2571,10 @@ body {
     }
 
     @media (forced-colors: active) {
+        .clay-field-change[data-clay-field-changed] :is(.mud-input-outlined, .clay-select-field)::after {
+            border-color: CanvasText;
+        }
+
         :is(.clay-form-field, .clay-entity-form, .mud-dialog) .mud-input:has(> .mud-input-slot:focus-visible),
         .clay-select-input:focus-visible,
         :is(.clay-entity-form, .clay-form-field, .clay-select, .mud-dialog)

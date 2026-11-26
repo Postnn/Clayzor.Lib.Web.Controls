@@ -58,6 +58,13 @@ public sealed record ClayDraftEditorScopeState(
     [property: JsonPropertyName("hasRaw")] bool HasRaw,
     [property: JsonPropertyName("hasOperation")] bool HasOperation);
 
+/// <summary>Метаданные отдельного черновика из текущего контекста, без значений пользовательских полей.</summary>
+public sealed record ClayDraftRecoveryCandidate(
+    [property: JsonPropertyName("draftId")] string DraftId,
+    [property: JsonPropertyName("revision")] long Revision,
+    [property: JsonPropertyName("hasOperation")] bool HasOperation,
+    [property: JsonPropertyName("canRecover")] bool CanRecover);
+
 /// <summary>Общий DR-01 API долговечного клиентского черновика и snapshot бизнес-операции.</summary>
 public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
 {
@@ -278,6 +285,13 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
     public Task UnknownOperationAsync(string registrationId, long revision, CancellationToken cancellationToken = default) =>
         InvokeOperation(registrationId, "clayDraftStore.unknownOperation", revision, cancellationToken);
 
+    /// <summary>Записывает доказанный результат указанной попытки, не принимая ввод её областей.</summary>
+    internal async Task RecordConfirmedOperationAsync(string registrationId, long revision, CancellationToken cancellationToken)
+    {
+        RequireRegistration(registrationId);
+        await js.InvokeVoidAsync("clayDraftStore.recordConfirmedOperation", cancellationToken, registrationId, revision);
+    }
+
     /// <summary>Принимает только scope/revision из Begin и сохраняет late/unrelated input.</summary>
     public Task CommitOperationAsync(long revision, string? cleanTypedState = null, CancellationToken cancellationToken = default) =>
         CommitOperationAsync(RequireRegistration().RegistrationId, revision, cleanTypedState, cancellationToken);
@@ -305,6 +319,23 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
         return operation is null ? null : ClayDraftOperationSerializer.Deserialize(operation);
     }
 
+
+    /// <summary>Перечисляет сохранённые регистрации в том же удостоверенном контексте.</summary>
+    internal async Task<IReadOnlyList<ClayDraftRecoveryCandidate>> ListRecoveryCandidatesAsync(string registrationId, CancellationToken cancellationToken)
+    {
+        RequireRegistration(registrationId);
+        return await js.InvokeAsync<ClayDraftRecoveryCandidate[]>("clayDraftStore.listRecoveryCandidates", cancellationToken, registrationId);
+    }
+
+    /// <summary>Восстанавливает явно выбранный отдельный черновик при доступном блокировании.</summary>
+    internal async Task<ClayDraftRestore?> RecoverListedDraftAsync(string registrationId, string draftId, CancellationToken cancellationToken)
+    {
+        RequireRegistration(registrationId);
+        var recovered = await js.InvokeAsync<ClayDraftRestore?>("clayDraftStore.recoverListedDraft", cancellationToken, registrationId, draftId);
+        if (recovered is not null && recovered.RegistrationId != registrationId)
+            throw new InvalidOperationException("Изменился контекст восстановления черновика.");
+        return recovered;
+    }
 
     /// <summary>Читает состояние области перед явным решением об отмене, включая незавершённый ввод.</summary>
     internal async Task<ClayDraftEditorScopeState> ReadEditorScopeAsync(string registrationId, string scope, CancellationToken cancellationToken)

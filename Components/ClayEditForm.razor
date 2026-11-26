@@ -39,6 +39,7 @@
             }
             Сохранить
         </MudButton>
+        @AdditionalActions
     </DialogActions>
 </MudDialog>
 
@@ -54,6 +55,10 @@
     [Parameter] public string Title { get; set; } = "Редактирование";
     [Parameter] public string Icon { get; set; } = Icons.Material.Filled.Edit;
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Дополнительные команды, доступные в активном слое диалога.</summary>
+    [Parameter] public RenderFragment? AdditionalActions { get; set; }
+
     [Parameter] public TEntity Model { get; set; } = new();
     [Parameter] public EventCallback<TEntity> OnSave { get; set; }
     [Parameter] public EventCallback<TEntity> OnDelete { get; set; }

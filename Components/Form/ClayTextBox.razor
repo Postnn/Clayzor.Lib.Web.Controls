@@ -2,7 +2,7 @@
               Value="@Value"
               ValueChanged="@ValueChanged"
               Label="@_opt.Label"
-              Placeholder="@_opt.Placeholder"
+              Placeholder="@(_opt.Placeholder ?? (_opt.Required ? " " : null))"
               InputType="@_opt.InputType"
               Required="@_opt.Required"
               RequiredError="@_opt.RequiredError"

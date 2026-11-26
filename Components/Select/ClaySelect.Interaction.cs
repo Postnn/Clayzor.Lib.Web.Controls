@@ -277,11 +277,14 @@ public partial class ClaySelect<TItem, TValue>
         CancelSearch();
         _open = false;
         var version = _resolveVersion;
+        var appliedLegacyResult = false;
         try
         {
             var result = await AdvancedSearch(new ClaySelectAdvancedSearchContext
             {
                 SearchText = HasCurrentSelectionText() ? string.Empty : _text,
+                ApplyResult = (Func<ClaySelectExternalResult<TItem, TValue>, CancellationToken, Task<ClaySelectReturnDecision>>)
+                    ((result, token) => ApplyAcknowledgedResultAsync(result, version, token)),
             });
 
             if (result is null || version != _resolveVersion || !IsMutable || _disposed)
@@ -291,6 +294,7 @@ public partial class ClaySelect<TItem, TValue>
                 await SelectItemAsync(result.Item!);
             else
                 await ApplyExternalValueAsync(result.Value);
+            appliedLegacyResult = true;
         }
         catch (OperationCanceledException)
         {
@@ -298,13 +302,65 @@ public partial class ClaySelect<TItem, TValue>
         finally
         {
             _advancedRunning = false;
-            if (!_disposed)
+            if (!_disposed && (appliedLegacyResult || version == _resolveVersion))
             {
                 if (version == _resolveVersion)
                     RestoreSelectedText();
                 await FocusAsync();
             }
         }
+    }
+
+    private async Task<ClaySelectReturnDecision> ApplyAcknowledgedResultAsync(
+        ClaySelectExternalResult<TItem, TValue> result, int version, CancellationToken token)
+    {
+        var decision = ClaySelectReturnDecision.Stale;
+        await InvokeAsync(async () =>
+        {
+            bool Current() => !token.IsCancellationRequested && !_disposed && IsMutable && version == _resolveVersion;
+            if (!Current())
+                return;
+
+            var item = result.Item;
+            if (!result.ContainsItem && result.Value is { } value)
+            {
+                if (!TryFindStaticItem(value, out item) && DataSource is { } source)
+                {
+                    try { item = await source.GetByIdAsync(value, token); }
+                    catch (Exception ex) when (Current())
+                    {
+                        _readError = new ClaySelectReadError(ClaySelectReadOperation.Resolve, ex, null);
+                        await ReadError.InvokeAsync(_readError);
+                        StateHasChanged();
+                        decision = ClaySelectReturnDecision.Rejected;
+                        return;
+                    }
+                    catch (OperationCanceledException) when (!Current()) { return; }
+                }
+
+                if (item is not null && !EqualityComparer<TValue?>.Default.Equals(ValueSelector(item), value))
+                    item = null;
+            }
+
+            if (!Current())
+                return;
+            if (item is null)
+            {
+                decision = ClaySelectReturnDecision.Rejected;
+                return;
+            }
+
+            var id = ValueSelector(item);
+            await SelectItemAsync(item);
+            if (!token.IsCancellationRequested && !_disposed && IsMutable
+                && _resolveVersion == version + 1 && EqualityComparer<TValue?>.Default.Equals(Value, id))
+            {
+                decision = ClaySelectReturnDecision.Accepted;
+                StateHasChanged();
+            }
+        });
+
+        return decision;
     }
 
     /// <summary>Признак отображения пункта создания элемента.</summary>

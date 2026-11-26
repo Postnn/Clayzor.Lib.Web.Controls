@@ -12,10 +12,23 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     }
 
     /// <summary>Состояние, восстановленное при регистрации.</summary>
-    public ClayDraftRestore Restore { get; }
+    public ClayDraftRestore Restore { get; private set; }
 
     /// <summary>Устойчивый идентификатор именно этой live-регистрации.</summary>
     public string RegistrationId => Restore.RegistrationId;
+
+    /// <summary>Читает метаданные собственных черновиков этого контекста.</summary>
+    public Task<IReadOnlyList<ClayDraftRecoveryCandidate>> ListRecoveryCandidatesAsync(CancellationToken cancellationToken = default) =>
+        _owner.ListRecoveryCandidatesAsync(RegistrationId, cancellationToken);
+
+    /// <summary>Заменяет новую пустую регистрацию выбранным черновиком, не смешивая ввод.</summary>
+    public async Task<bool> RecoverListedDraftAsync(string draftId, CancellationToken cancellationToken = default)
+    {
+        var recovered = await _owner.RecoverListedDraftAsync(RegistrationId, draftId, cancellationToken);
+        if (recovered is null) return false;
+        Restore = recovered;
+        return true;
+    }
 
     /// <summary>Сохраняет legacy typed snapshot целиком без секретов.</summary>
     public Task<long> SaveTypedAsync(string typedState, CancellationToken cancellationToken = default) =>
@@ -61,6 +74,10 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     public Task UnknownOperationAsync(long revision, CancellationToken cancellationToken = default) =>
         _owner.UnknownOperationAsync(RegistrationId, revision, cancellationToken);
 
+    /// <summary>Фиксирует подтверждённый результат операции перед локальной очисткой этой же попытки.</summary>
+    public Task RecordConfirmedOperationAsync(long revision, CancellationToken cancellationToken = default) =>
+        _owner.RecordConfirmedOperationAsync(RegistrationId, revision, cancellationToken);
+
     /// <summary>Принимает только scopes/revisions, зафиксированные в BeginOperation.</summary>
     public Task CommitOperationAsync(long revision, string? cleanTypedState = null, CancellationToken cancellationToken = default) =>
         _owner.CommitOperationAsync(RegistrationId, revision, cleanTypedState, cancellationToken);
@@ -104,6 +121,16 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     /// <summary>Fail-closed gate перед командой: storage здоров и нет running/unknown попытки.</summary>
     public Task EnsureCommandAllowedAsync(CancellationToken cancellationToken = default) =>
         _owner.EnsureCommandAllowedAsync(RegistrationId, cancellationToken);
+
+    /// <summary>Проверяет хранилище и восстановление именно тех областей, которые собирается принять команда.</summary>
+    public async Task EnsureScopesCanBeAcceptedAsync(IReadOnlyCollection<string> acceptedScopes, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(acceptedScopes);
+        await EnsureCommandAllowedAsync(cancellationToken);
+        var readiness = await GetRestoreReadinessAsync(cancellationToken);
+        if (readiness.PendingScopes.Any(acceptedScopes.Contains) || readiness.FailedScopes.Any(acceptedScopes.Contains))
+            throw new InvalidOperationException("Сначала полностью восстановите ввод в принимаемых областях.");
+    }
 
     /// <summary>Удаляет editable values и backup; running/unknown marker остаётся durable до доказанного outcome.</summary>
     public Task DiscardAsync(CancellationToken cancellationToken = default) =>

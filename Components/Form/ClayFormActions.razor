@@ -1,0 +1,11 @@
+@using Clayzor.Lib.Web.Controls.Themes
+
+<div class="d-flex flex-wrap align-center justify-end" role="group" aria-label="Справка и оформление">
+    <ClayFormHelpButton Form="Form" />
+    <ClayThemeSelector />
+</div>
+
+@code {
+    /// <summary>Метаданные справки формы. Без регистрации отображается статус недоступности.</summary>
+    [Parameter] public ClayFormHelp? Form { get; set; }
+}

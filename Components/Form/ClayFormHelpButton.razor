@@ -1,7 +1,11 @@
 @using Clayzor.Lib.Web.Settings
 @inject ClayAppSettings Settings
 
-@if (ClayFormHelpUrl.Resolve(Settings.UriWikiHelp, Form) is { } url)
+@if (Form is null)
+{
+    <span>Документация формы недоступна</span>
+}
+else if (ClayFormHelpUrl.Resolve(Settings.UriWikiHelp, Form) is { } url)
 {
     <ClayButton Icon="@Icons.Material.Outlined.HelpOutline" Text="Документация"
                 Href="@url" Target="_blank" />

@@ -135,6 +135,9 @@ public sealed class ClayTreeOptions
     /// <see cref="ClayTreeSelectionMode.Multiple"/> — управляемые отметки через IsChecked и ToggleCheckedAsync.
     /// </summary>
     public ClayTreeSelectionMode SelectionMode { get; set; } = ClayTreeSelectionMode.Single;
+
+    /// <summary>Доступное имя области дерева.</summary>
+    public string AccessibleLabel { get; set; } = "Дерево";
     /// <summary>Возвращает разрешённую владельцем цепочку предков для восстановления пути.</summary>
     public Func<string, Task<IReadOnlyList<string>>>? LoadStatePathAsync { get; set; }
 

@@ -1,0 +1,20 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Form
+
+<div class="clay-field-change" data-clay-field-changed="@(Changed ? "" : null)"
+     role="@(Changed ? "group" : null)" aria-describedby="@(Changed ? _descriptionId : null)">
+    @ChildContent
+    @if (Changed)
+    {
+        <span id="@_descriptionId" class="clay-field-change-description">Есть несохранённое изменение</span>
+    }
+</div>
+
+@code {
+    private readonly string _descriptionId = $"clay-field-change-{Guid.NewGuid():N}";
+
+    /// <summary>Поле отличается от принятого исходного значения редактора.</summary>
+    [Parameter] public bool Changed { get; set; }
+
+    /// <summary>Содержимое одного логического поля.</summary>
+    [Parameter, EditorRequired] public RenderFragment? ChildContent { get; set; }
+}
