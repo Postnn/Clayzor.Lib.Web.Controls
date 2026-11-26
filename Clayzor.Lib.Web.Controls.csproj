@@ -7,6 +7,7 @@
     <NoWarn>NU1902</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <InternalsVisibleTo Include="Clayzor.Lib.Web.Controls.Tests" />
   </ItemGroup>
   <ItemGroup>

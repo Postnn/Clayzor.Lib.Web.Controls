@@ -123,7 +123,15 @@
         }
     }
 
+    function abortEditorWrite(reg) {
+        // IndexedDB can finish the transaction before delivering its completion event.
+        try { reg.editorWrite?.abort(); } catch (error) {
+            if (error.name !== 'InvalidStateError') throw error;
+        }
+    }
+
     function queue(reg) {
+        abortEditorWrite(reg);
         reg.pendingWrites++;
         const pending = reg.pending.catch(() => { }).then(() => put(reg));
         reg.pending = pending;
@@ -480,6 +488,7 @@
                 revision: reg.revision,
                 typedState: reg.typedState,
                 operation: reg.operation ? JSON.stringify(reg.operation) : null,
+                cancelledScopes: Object.keys(reg.cancelledScopes),
                 typedScopes: Object.fromEntries(Object.entries(reg.typedScopes).map(([scope, value]) => [scope, value.data])),
             };
         } catch (error) {
@@ -573,6 +582,74 @@
     async function flushCommittedDraft(reg) {
         await queue(reg);
         if (!hasDraftState(reg)) await remove(reg, false);
+    }
+
+    async function replaceEditorScope(reg, scope, expectedRevision, replacement) {
+        validateScope(scope);
+        await waitForIdle(reg);
+        const isCurrent = () => !reg.discarded && !reg.released && !reg.operation &&
+            !reg.cancelledScopes[scope] && reg.revision === expectedRevision;
+
+        if (!isCurrent()) return false;
+
+        const state = snapshot(reg);
+        state.revision++;
+        state.raw = Object.fromEntries(Object.entries(reg.raw)
+            .filter(([, field]) => (field.scope || 'main') !== scope));
+        state.typedScopes = { ...reg.typedScopes };
+        state.cancelledScopes = { ...reg.cancelledScopes };
+
+        if (replacement === null) {
+            delete state.typedScopes[scope];
+            state.cancelledScopes[scope] = true;
+        } else {
+            state.typedScopes[scope] = { data: replacement, revision: state.revision };
+        }
+        if (scope === 'main') {
+            state.typedState = null;
+            state.typedRevision = state.revision;
+        }
+
+        const key = await userKey(reg.userKey);
+        const payload = await encrypt(key, state);
+        const db = await openDb();
+        if (!isCurrent() || reg.pendingWrites !== 0) return false;
+
+        const tx = db.transaction('drafts', 'readwrite');
+        const write = new Promise((resolve, reject) => {
+            tx.oncomplete = () => {
+                if (!isCurrent()) {
+                    // A queued autosave will persist the still-visible input with the newer revision.
+                    resolve(false);
+                    return;
+                }
+                reg.typedState = state.typedState;
+                reg.typedRevision = state.typedRevision;
+                reg.typedScopes = state.typedScopes;
+                reg.raw = state.raw;
+                reg.cancelledScopes = state.cancelledScopes;
+                for (const key of reg.restorePending) {
+                    if (!reg.raw[key]) reg.restorePending.delete(key);
+                }
+                reg.restoreFailures.delete(scope);
+                reg.applyVersion++;
+                reg.revision = reg.persistedRevision = state.revision;
+                resolve(true);
+            };
+            tx.onabort = () => {
+                if (!isCurrent()) resolve(false);
+                else reject(tx.error || new Error('Не удалось сохранить отмену черновика.'));
+            };
+            tx.objectStore('drafts').put({ id: draftKey(reg), ...payload });
+        });
+        reg.editorWrite = tx;
+        reg.pendingWrites++;
+        reg.pending = write;
+        try { return await write; }
+        finally {
+            reg.editorWrite = null;
+            reg.pendingWrites--;
+        }
     }
 
     window.clayDraftStore = {
@@ -686,6 +763,7 @@
         async discard(id) {
             const reg = get(id);
             reg.discarded = true;
+            abortEditorWrite(reg);
             reg.epoch++;
             document.removeEventListener('input', reg.listener, true);
             document.removeEventListener('change', reg.listener, true);
@@ -732,6 +810,22 @@
             }
             await queue(reg);
             return reg.operation ? JSON.stringify(reg.operation) : null;
+        },
+        async readEditorScope(id, scope) {
+            const reg = get(id);
+            validateScope(scope);
+            await waitForIdle(reg);
+            return {
+                revision: reg.revision,
+                hasRaw: Object.values(reg.raw).some(field => (field.scope || 'main') === scope),
+                hasOperation: !!reg.operation,
+            };
+        },
+        async replaceEditorScope(id, scope, expectedRevision, replacement) {
+            if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0 ||
+                (replacement !== null && typeof replacement !== 'string'))
+                throw new Error('Неверный снимок отмены изменений.');
+            return replaceEditorScope(get(id), scope, expectedRevision, replacement);
         },
         async readRebaseState(id, scope) {
             const reg = get(id);

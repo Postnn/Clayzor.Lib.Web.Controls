@@ -1,0 +1,17 @@
+@using Clayzor.Lib.Web.Settings
+@inject ClayAppSettings Settings
+
+@if (ClayFormHelpUrl.Resolve(Settings.UriWikiHelp, Form) is { } url)
+{
+    <ClayButton Icon="@Icons.Material.Outlined.HelpOutline" Text="Документация"
+                Href="@url" Target="_blank" />
+}
+else
+{
+    <span>Справка не настроена</span>
+}
+
+@code {
+    /// <summary>Метаданные справки текущей формы.</summary>
+    [Parameter] public ClayFormHelp? Form { get; set; }
+}

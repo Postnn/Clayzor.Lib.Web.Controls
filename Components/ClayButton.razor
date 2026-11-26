@@ -2,7 +2,8 @@
     @if (!string.IsNullOrEmpty(Href))
     {
         <MudIconButton Icon="@Icon" Size="@Size" Class="@Class"
-                       Href="@Href" Target="@Target" Disabled="@Disabled" />
+                       Href="@Href" Target="@Target" Disabled="@Disabled"
+                       aria-label="@Text" rel="@LinkRel" />
     }
     else
     {
@@ -39,6 +40,7 @@
     /// <summary>Обработчик клика.</summary>
     [Parameter] public EventCallback OnClick { get; set; }
 
+    private string? LinkRel => Target == "_blank" ? "noopener noreferrer" : null;
     private int _key;
 
     private async Task HandleClick()

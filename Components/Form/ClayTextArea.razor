@@ -2,7 +2,7 @@
               Value="@Value"
               ValueChanged="@ValueChanged"
               Label="@_opt.Label"
-              Placeholder="@(_opt.Placeholder ?? (_opt.Required ? " " : null))"
+              Placeholder="@_opt.Placeholder"
               Required="@_opt.Required"
               RequiredError="@_opt.RequiredError"
               Disabled="@_opt.Disabled"
@@ -12,11 +12,15 @@
               Lines="@_opt.Lines"
               Variant="@_opt.Variant"
               Margin="@_opt.Margin"
-              Class="@_opt.Class"
+              Class="@FieldClass"
               data-draft-key="@_opt.DraftKey" />
 
 @code {
     private ClayTextAreaOptions _opt = new();
+
+    private string FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly
+        ? $"clay-form-field clay-required-editable {_opt.Class}"
+        : $"clay-form-field {_opt.Class}";
 
     /// <summary>Текущее значение.</summary>
     [Parameter] public string? Value { get; set; }

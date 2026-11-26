@@ -1807,7 +1807,8 @@ body {
 .clay-select-input {
     flex: 1;
     min-width: 0;
-    padding: 5px 8px;
+    box-sizing: border-box;
+    padding: 0 8px;
     color: var(--mud-palette-text-primary);
     background: var(--mud-palette-surface);
     border: 1px solid var(--mud-palette-lines-inputs);
@@ -2444,13 +2445,27 @@ body {
 
 /* The document scope includes popovers and dialogs rendered outside the page body. */
 @media screen {
-    /* A blank placeholder detects the live value without interpreting validation errors as emptiness.
-       Plain text without other native constraints and ClaySelect use the browser's required check. */
-    :is(.mud-input:has(> :required:placeholder-shown:not(:disabled, [readonly])),
-        .mud-input:has(> :is(input[type="text"], textarea):required:invalid:not([pattern], [minlength])),
-        .clay-required-picker .mud-input:has(> :required:placeholder-shown:not(:disabled)),
-        .clay-required-empty .mud-input):not(.mud-disabled, .mud-readonly) {
+    /* Слоты однострочных общих полей центрируются внутри существующей высоты рамки. */
+    .clay-form-field .mud-input:has(> :is(input.mud-input-root:not([type="hidden"]), div.mud-input-slot)) {
+        align-items: center;
+
+        & > .mud-input-root {
+            box-sizing: border-box;
+            height: 100%;
+            padding-block: 0;
+        }
+
+        & > div.mud-input-slot {
+            align-content: center;
+        }
+    }
+
+    /* Контрол объявляет обязательность и доступность независимо от текущего текста. */
+    :is(.clay-required-editable.mud-input-control, .clay-required-editable .mud-input-control)
+        .mud-input:not(.mud-disabled),
+    .mud-input:has(> .mud-input-slot:required:not(:disabled, [readonly])):not(.mud-disabled, .mud-readonly) {
         --clay-field-bg: var(--clay-input-required-bg);
+        --clay-field-focus: var(--clay-input-required-fg);
         background-color: var(--clay-field-bg);
         caret-color: var(--clay-input-required-fg);
 
@@ -2477,14 +2492,38 @@ body {
         }
     }
 
-    .clay-select-input:required:invalid {
+    .clay-select-input:required:not(:disabled, [readonly]) {
         --clay-field-bg: var(--clay-input-required-bg);
+        --clay-field-focus: var(--clay-input-required-fg);
         background-color: var(--clay-field-bg);
+        color: var(--clay-input-required-fg);
         caret-color: var(--clay-input-required-fg);
 
         &::placeholder {
             color: var(--clay-input-required-fg);
             opacity: 1;
+        }
+    }
+
+    /* Внутренняя рамка фокуса сохраняет геометрию и оставляет видимым контур ошибки. */
+    :is(.clay-form-field, .clay-entity-form, .mud-dialog) .mud-input:has(> .mud-input-slot:focus-visible),
+    .clay-select-input:focus-visible {
+        outline: 2px solid var(--clay-field-focus, var(--clay-focus, var(--mud-palette-primary)));
+        outline-offset: -4px;
+    }
+
+    :is(.clay-entity-form, .clay-form-field, .clay-select, .mud-dialog)
+        :is(button, a[href], [role="button"], input[type="checkbox"], input[type="radio"]):focus-visible {
+        outline: 2px solid var(--clay-field-focus, var(--clay-focus, var(--mud-palette-primary)));
+        outline-offset: -2px;
+    }
+
+    @media (forced-colors: active) {
+        :is(.clay-form-field, .clay-entity-form, .mud-dialog) .mud-input:has(> .mud-input-slot:focus-visible),
+        .clay-select-input:focus-visible,
+        :is(.clay-entity-form, .clay-form-field, .clay-select, .mud-dialog)
+            :is(button, a[href], [role="button"], input[type="checkbox"], input[type="radio"]):focus-visible {
+            outline-color: Highlight;
         }
     }
 
@@ -2596,7 +2635,7 @@ body {
 
         .mud-input-outlined.mud-readonly,
         .clay-select-input[readonly]:not(:disabled) {
-            background-color: var(--clay-command-bg);
+            background-color: var(--clay-field-bg, var(--clay-command-bg));
         }
 
         .mud-input-outlined.mud-disabled {

@@ -1,7 +1,6 @@
 <MudTimePicker Time="@Value"
                TimeChanged="@ValueChanged"
                Label="@_opt.Label"
-               Placeholder="@(_opt.Required ? " " : null)"
                Required="@_opt.Required"
                RequiredError="@_opt.RequiredError"
                Disabled="@_opt.Disabled"
@@ -19,8 +18,8 @@
     private ClayTimeOptions _opt = new();
 
     private string FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly
-        ? $"clay-time clay-required-picker {_opt.Class}"
-        : $"clay-time {_opt.Class}";
+        ? $"clay-form-field clay-time clay-required-editable {_opt.Class}"
+        : $"clay-form-field clay-time {_opt.Class}";
 
     /// <summary>Текущее время.</summary>
     [Parameter] public TimeSpan? Value { get; set; }

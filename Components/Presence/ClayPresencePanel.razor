@@ -1,0 +1,23 @@
+@namespace Clayzor.Lib.Web.Controls.Components.Presence
+
+@if (Target is not null)
+{
+    @if (_participants is null || _participants.Count == 0)
+    {
+        <small role="status">@Status</small>
+    }
+    else
+    {
+        <details>
+            <summary><small role="status">@Status</small></summary>
+            <ul>
+                @foreach (var person in _participants)
+                {
+                    <li @key="person.EmployeeId">
+                        @person.DisplayName (@(person.Activity == ClayPresenceActivity.Editing ? "редактирует" : "просматривает"))
+                    </li>
+                }
+            </ul>
+        </details>
+    }
+}

@@ -10,7 +10,8 @@ public sealed record ClayDraftRestore(
     [property: JsonPropertyName("revision")] long Revision,
     [property: JsonPropertyName("typedState")] string? TypedState,
     [property: JsonPropertyName("operation")] string? Operation,
-    [property: JsonPropertyName("typedScopes")] IReadOnlyDictionary<string, string>? TypedScopes = null)
+    [property: JsonPropertyName("typedScopes")] IReadOnlyDictionary<string, string>? TypedScopes = null,
+    [property: JsonPropertyName("cancelledScopes")] IReadOnlyList<string>? CancelledScopes = null)
 {
     /// <summary>Строго десериализованный versioned running/unknown marker.</summary>
     [JsonIgnore]
@@ -50,6 +51,12 @@ public sealed record ClayDraftRebaseState(
     [property: JsonPropertyName("revision")] long Revision,
     [property: JsonPropertyName("rawKeys")] IReadOnlyList<string> RawKeys);
 
+
+/// <summary>Ревизия и состояние редактируемой области, показанной в запросе отмены.</summary>
+public sealed record ClayDraftEditorScopeState(
+    [property: JsonPropertyName("revision")] long Revision,
+    [property: JsonPropertyName("hasRaw")] bool HasRaw,
+    [property: JsonPropertyName("hasOperation")] bool HasOperation);
 
 /// <summary>Общий DR-01 API долговечного клиентского черновика и snapshot бизнес-операции.</summary>
 public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
@@ -298,6 +305,22 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
         return operation is null ? null : ClayDraftOperationSerializer.Deserialize(operation);
     }
 
+
+    /// <summary>Читает состояние области перед явным решением об отмене, включая незавершённый ввод.</summary>
+    internal async Task<ClayDraftEditorScopeState> ReadEditorScopeAsync(string registrationId, string scope, CancellationToken cancellationToken)
+    {
+        RequireRegistration(registrationId);
+        return await js.InvokeAsync<ClayDraftEditorScopeState>("clayDraftStore.readEditorScope", cancellationToken, registrationId, scope);
+    }
+
+    /// <summary>Атомарно заменяет либо отзывает одну область при совпадении ревизии.</summary>
+    internal async Task<bool> ReplaceEditorScopeAsync(string registrationId, string scope, long expectedRevision,
+        string? replacement, CancellationToken cancellationToken)
+    {
+        RequireRegistration(registrationId);
+        return await js.InvokeAsync<bool>("clayDraftStore.replaceEditorScope", cancellationToken,
+            registrationId, scope, expectedRevision, replacement);
+    }
 
     /// <summary>Читает версию и сырые ключи области перед явным выбором пользователя.</summary>
     public async Task<ClayDraftRebaseState> ReadRebaseStateAsync(string registrationId, string scope, CancellationToken cancellationToken)

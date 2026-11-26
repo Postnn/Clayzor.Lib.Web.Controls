@@ -262,7 +262,10 @@ public sealed class ClayThemeTokenProvider : MudThemeProvider
         css.AppendLine($"--clay-swatch-legacy: {ClayTheme.GetColors(ClayThemePreference.LegacyLight)!.GridHeader};");
         css.AppendLine($"--clay-swatch-corporate: {ClayTheme.GetColors(ClayThemePreference.CorporateLight)!.GridHeader};");
         css.AppendLine($"--clay-swatch-modern: {ClayTheme.GetColors(ClayThemePreference.ModernLight)!.Accent};");
-        if (ClayTheme.GetColors(Preference) is not { } colors)
+        var colors = ClayTheme.GetColors(Preference);
+        var focusColor = colors?.Focus ?? (Preference == ClayThemePreference.ClassicDark ? "#92BEFF" : ClayColors.BlueMid);
+        css.AppendLine($"--clay-focus: {focusColor};");
+        if (colors is null)
             return;
 
         css.AppendLine($"--clay-grid-header-bg: {colors.GridHeader};");
@@ -278,7 +281,6 @@ public sealed class ClayThemeTokenProvider : MudThemeProvider
         css.AppendLine($"--clay-primary-button-hover: {colors.ButtonHover};");
         css.AppendLine($"--clay-secondary-button-bg: {ClayColors.White};");
         css.AppendLine($"--clay-secondary-button-fg: {colors.Text};");
-        css.AppendLine($"--clay-focus: {colors.Focus};");
         css.AppendLine($"--clay-accent-color: {colors.Accent};");
         css.AppendLine($"--clay-add-action: {colors.Add};");
         css.AppendLine($"--clay-input-bg: {ClayColors.White};");

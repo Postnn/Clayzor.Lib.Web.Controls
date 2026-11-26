@@ -1,0 +1,17 @@
+<MudDialog DefaultFocus="DefaultFocus.FirstChild">
+    <TitleContent>Несохранённые изменения</TitleContent>
+    <DialogContent>
+        <MudText>Что сделать с введёнными данными?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Choose(ClayEditorCancelChoice.Continue))">Продолжить редактирование</MudButton>
+        <MudButton Color="Color.Error" OnClick="@(() => Choose(ClayEditorCancelChoice.CloseWithoutSaving))">Закрыть без сохранения</MudButton>
+        <MudButton OnClick="@(() => Choose(ClayEditorCancelChoice.ResetAndStay))">Отменить мои изменения и загрузить из БД</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? Dialog { get; set; }
+
+    private void Choose(ClayEditorCancelChoice choice) => Dialog?.Close(DialogResult.Ok(choice));
+}

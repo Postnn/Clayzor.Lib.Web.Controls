@@ -78,6 +78,15 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
         _owner.RetryStorageAsync(RegistrationId, notSentAttemptId, cancellationToken);
 
 
+    /// <summary>Получает ревизию области и признаки raw/операции перед вопросом об отмене.</summary>
+    public Task<ClayDraftEditorScopeState> ReadEditorScopeAsync(string scope, CancellationToken cancellationToken = default) =>
+        _owner.ReadEditorScopeAsync(RegistrationId, scope, cancellationToken);
+
+    /// <summary>Атомарно принимает свежий снимок либо отменяет область, если ревизия не изменилась.</summary>
+    public Task<bool> ReplaceEditorScopeAsync(string scope, long expectedRevision, string? replacement,
+        CancellationToken cancellationToken = default) =>
+        _owner.ReplaceEditorScopeAsync(RegistrationId, scope, expectedRevision, replacement, cancellationToken);
+
     /// <summary>Читает версию и сырые ключи области перед явным разрешением конфликта.</summary>
     public Task<ClayDraftRebaseState> ReadRebaseStateAsync(string scope, CancellationToken cancellationToken) =>
         _owner.ReadRebaseStateAsync(RegistrationId, scope, cancellationToken);
