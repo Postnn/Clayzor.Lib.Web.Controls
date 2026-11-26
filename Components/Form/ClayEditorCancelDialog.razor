@@ -6,12 +6,15 @@
     <DialogActions>
         <MudButton OnClick="@(() => Choose(ClayEditorCancelChoice.Continue))">Продолжить редактирование</MudButton>
         <MudButton Color="Color.Error" OnClick="@(() => Choose(ClayEditorCancelChoice.CloseWithoutSaving))">Закрыть без сохранения</MudButton>
-        <MudButton OnClick="@(() => Choose(ClayEditorCancelChoice.ResetAndStay))">Отменить мои изменения и загрузить из БД</MudButton>
+        <MudButton OnClick="@(() => Choose(ClayEditorCancelChoice.ResetAndStay))">@ResetText</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance? Dialog { get; set; }
+
+    /// <summary>Подпись действия сброса для редактора существующей записи или режима создания.</summary>
+    [Parameter] public string ResetText { get; set; } = "Отменить мои изменения и загрузить из БД";
 
     private void Choose(ClayEditorCancelChoice choice) => Dialog?.Close(DialogResult.Ok(choice));
 }

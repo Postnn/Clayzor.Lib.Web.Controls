@@ -1,22 +1,44 @@
-<MudTextField T="string"
-              Value="@Value"
-              ValueChanged="@ValueChanged"
-              Label="@_opt.Label"
-              Placeholder="@(_opt.Placeholder ?? (_opt.Required ? " " : null))"
-              Required="@_opt.Required"
-              RequiredError="@_opt.RequiredError"
-              Disabled="@_opt.Disabled"
-              ReadOnly="@_opt.ReadOnly"
-              MaxLength="@(_opt.MaxLength > 0 ? _opt.MaxLength : int.MaxValue)"
-              Immediate="@_opt.Immediate"
-              Lines="@_opt.Lines"
-              Variant="@_opt.Variant"
-              Margin="@_opt.Margin"
-              Class="@FieldClass"
-              data-draft-key="@_opt.DraftKey" />
+@if (_opt.BrowserManaged)
+{
+    <div class="mud-input-control">
+        @if (!string.IsNullOrWhiteSpace(_opt.Label))
+        {
+            <label for="@_browserInputId">@_opt.Label</label>
+        }
+        <div class="mud-input-control-input-container">
+            <div class="@($"mud-input mud-input-outlined mud-input-margin-dense {FieldClass}")">
+                <textarea id="@_browserInputId" class="mud-input-root mud-input-root-outlined mud-input-root-margin-dense"
+                          rows="@_opt.Lines" maxlength="@(_opt.MaxLength > 0 ? _opt.MaxLength : (int?)null)"
+                          placeholder="@_opt.Placeholder" disabled="@_opt.Disabled" readonly="@_opt.ReadOnly" required="@_opt.Required"
+                          aria-label="@_opt.BrowserLabel" data-draft-key="@_opt.DraftKey">@Value</textarea>
+                <fieldset class="mud-input-outlined-border" aria-hidden="true"></fieldset>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <MudTextField T="string"
+                  Value="@Value"
+                  ValueChanged="@ValueChanged"
+                  Label="@_opt.Label"
+                  Placeholder="@(_opt.Placeholder ?? (_opt.Required ? " " : null))"
+                  Required="@_opt.Required"
+                  RequiredError="@_opt.RequiredError"
+                  Disabled="@_opt.Disabled"
+                  ReadOnly="@_opt.ReadOnly"
+                  MaxLength="@(_opt.MaxLength > 0 ? _opt.MaxLength : int.MaxValue)"
+                  Immediate="@_opt.Immediate"
+                  Lines="@_opt.Lines"
+                  Variant="@_opt.Variant"
+                  Margin="@_opt.Margin"
+                  Class="@FieldClass"
+                  data-draft-key="@_opt.DraftKey" />
+}
 
 @code {
     private ClayTextAreaOptions _opt = new();
+    private readonly string _browserInputId = $"clay-textarea-{Guid.NewGuid():N}";
 
     private string FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly
         ? $"clay-form-field clay-required-editable {_opt.Class}"

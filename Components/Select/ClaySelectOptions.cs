@@ -30,6 +30,9 @@ public sealed class ClaySelectOptions
     /// </summary>
     public bool AutoSelectExactMatch { get; set; } = true;
 
+    /// <summary>После подтверждённого выбора переводит фокус в следующую доступную позицию активной области редактора.</summary>
+    public bool AdvanceFocusOnSelection { get; set; }
+
     /// <summary>
     /// Разрешить очистку выбранного значения. Очистка недоступна в Disabled и ReadOnly состояниях.
     /// </summary>

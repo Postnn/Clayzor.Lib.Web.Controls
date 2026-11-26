@@ -39,9 +39,13 @@ window.claySelect = window.claySelect || {
 
     restoreDraftText: async function (inputId, text) {
         const instance = this.instances[inputId];
-        if (!instance) return;
-        instance.input.value = text || '';
-        await instance.dotnetRef.invokeMethodAsync('RestoreDraftTextAsync', text || '');
+        if (!instance || !instance.input.isConnected || instance.input.disabled) return false;
+        const previous = instance.input.value;
+        const value = text || '';
+        const accepted = await instance.dotnetRef.invokeMethodAsync('RestoreDraftTextAsync', value);
+        if (accepted !== true || this.instances[inputId] !== instance || !instance.input.isConnected) return false;
+        if (instance.input.value === previous) instance.input.value = value;
+        return true;
     },
 
     containsFocus: function (inputId) {

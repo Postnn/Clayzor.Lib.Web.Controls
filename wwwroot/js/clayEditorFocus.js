@@ -5,11 +5,15 @@ const unavailableSelector = '[hidden], [inert], [aria-hidden="true"], [aria-disa
 const excludedInputTypes = new Set(["hidden", "button", "submit", "reset", "image"]);
 const plainInputTypes = new Set(["text", "search", "email", "url", "tel", "password", "number"]);
 const scopes = new WeakMap();
+const selectionLeases = new WeakMap();
 
 let focusGeneration = 0;
+let selectionId = 0;
 const incrementGeneration = () => focusGeneration++;
 document.addEventListener("focusin", incrementGeneration, true);
 document.addEventListener("pointerdown", incrementGeneration, true);
+document.addEventListener("keydown", incrementGeneration, true);
+document.addEventListener("input", incrementGeneration, true);
 
 function visible(element) {
     return element.isConnected &&
@@ -49,6 +53,38 @@ function editors(root) {
         .sort((left, right) => order(left) - order(right));
 }
 
+function ownsFocus(origin) {
+    const active = document.activeElement;
+    return document.hasFocus() && (active === origin || origin.closest(".clay-select")?.contains(active));
+}
+
+export function captureSelectionAdvance(origin) {
+    const root = origin?.closest(scopeSelector);
+    const state = scopes.get(root);
+    if (!state?.ready || !state.advanceOnEnter || !isEditor(root, origin) || !isActiveScope(root) || !ownsFocus(origin))
+        return null;
+    const lease = { id: ++selectionId, root, state, epoch: state.epoch, focusGeneration };
+    selectionLeases.set(origin, lease);
+    return lease.id;
+}
+
+export function completeSelectionAdvance(origin, id) {
+    const lease = selectionLeases.get(origin);
+    if (!lease || lease.id !== id)
+        return false;
+    selectionLeases.delete(origin);
+    const { root, state } = lease;
+    if (scopes.get(root) !== state || state.epoch !== lease.epoch || focusGeneration !== lease.focusGeneration ||
+        !isEditor(root, origin) || !isActiveScope(root) || !ownsFocus(origin))
+        return false;
+    const fields = editors(root);
+    const next = fields[fields.indexOf(origin) + 1];
+    if (!next)
+        return false;
+    next.focus();
+    return document.activeElement === next;
+}
+
 function onKeyDown(root, state, event) {
     if (!state.ready || !state.advanceOnEnter || event.defaultPrevented || event.key !== "Enter" ||
         event.isComposing || event.keyCode === 229 || event.altKey || event.ctrlKey || event.shiftKey || event.metaKey)
@@ -64,6 +100,11 @@ function onKeyDown(root, state, event) {
     event.stopPropagation();
     if (event.repeat)
         return;
+
+    if (origin.validity?.valid === false) {
+        origin.reportValidity();
+        return;
+    }
 
     const fields = editors(root);
     fields[fields.indexOf(origin) + 1]?.focus();
@@ -87,12 +128,14 @@ export function update(root, ready, advanceOnEnter) {
 
     let state = scopes.get(root);
     if (!state) {
-        state = { generation: focusGeneration };
+        state = { generation: focusGeneration, epoch: 0 };
         state.keyDown = event => onKeyDown(root, state, event);
         scopes.set(root, state);
         root.addEventListener("keydown", state.keyDown);
     }
 
+    if (state.ready !== ready || state.advanceOnEnter !== advanceOnEnter)
+        state.epoch++;
     state.ready = ready;
     state.advanceOnEnter = advanceOnEnter;
     if (ready && !state.initialHandled && !state.frame) {

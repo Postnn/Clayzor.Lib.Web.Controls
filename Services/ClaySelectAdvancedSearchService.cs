@@ -72,6 +72,19 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
                 : await apply(ClaySelectExternalResult<TItem, TValue>.FromValue(id), token);
         }, cancellationToken);
 
+    /// <summary>Открывает выбор с перепривязкой только до первой передачи результата.</summary>
+    public Task<bool> OpenRecoverableAsync(string url, bool multiple, string proof,
+        Func<CancellationToken, Task<bool>> ready, Func<string, CancellationToken, Task> saveRequest,
+        Func<JsonElement, CancellationToken, Task<ClaySelectReturnDecision>> apply,
+        CancellationToken cancellationToken = default) =>
+        OpenAcknowledgedCoreAsync(url, multiple, apply, cancellationToken, proof: proof, ready: ready, saveRequest: saveRequest);
+
+    /// <summary>Перепривязывает сохранённый запрос без открытия нового окна и только до доставки результата.</summary>
+    public Task<bool> ResumeUndispatchedAsync(string url, bool multiple, string requestId, string proof,
+        Func<CancellationToken, Task<bool>> ready, Func<JsonElement, CancellationToken, Task<ClaySelectReturnDecision>> apply,
+        CancellationToken cancellationToken = default) =>
+        OpenAcknowledgedCoreAsync(url, multiple, apply, cancellationToken, proof: proof, ready: ready, resumeId: requestId);
+
     /// <summary>Открывает множественный поиск, в котором пустой набор применяется как явный выбор.</summary>
     public Task<bool> OpenAcknowledgedMultipleIdsAsync(
         string url, Func<int[], CancellationToken, Task<ClaySelectReturnDecision>> apply,
@@ -94,18 +107,41 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
     }
 
     private async Task<bool> OpenAcknowledgedCoreAsync(string url, bool multiple,
-        Func<JsonElement, CancellationToken, Task<ClaySelectReturnDecision>> apply, CancellationToken cancellationToken)
+        Func<JsonElement, CancellationToken, Task<ClaySelectReturnDecision>> apply, CancellationToken cancellationToken,
+        string? proof = null, string? resumeId = null, Func<CancellationToken, Task<bool>>? ready = null,
+        Func<string, CancellationToken, Task>? saveRequest = null)
     {
         CheckUrl(url);
-        var requestId = Guid.NewGuid().ToString("N");
-        var request = new AcknowledgedRequest(apply, cancellationToken);
+        if (proof is not null && !Guid.TryParseExact(proof, "N", out _) ||
+            resumeId is not null && !Guid.TryParseExact(resumeId, "N", out _))
+            throw new ArgumentException("Некорректный ключ восстановленного поиска.");
+        var requestId = resumeId ?? Guid.NewGuid().ToString("N");
+        var request = new AcknowledgedRequest(apply, cancellationToken)
+        {
+            BindingId = proof is null ? null : Guid.NewGuid().ToString("N"),
+            Ready = ready,
+        };
         if (!_acknowledged.TryAdd(requestId, request))
             throw new InvalidOperationException("Не удалось зарегистрировать запрос расширенного поиска.");
 
         var accepted = false;
         try
         {
-            await JS.InvokeVoidAsync("claySelectAdvancedSearch.open", cancellationToken, url, requestId, _dotnetRef, multiple, true);
+            if (resumeId is not null)
+            {
+                if (!await JS.InvokeAsync<bool>("claySelectAdvancedSearch.resumeUndispatched", cancellationToken,
+                    url, requestId, proof, request.BindingId, _dotnetRef, multiple))
+                    return false;
+            }
+            else if (proof is not null)
+            {
+                await saveRequest!(requestId, cancellationToken);
+                if (request.Token.IsCancellationRequested || _disposed) return false;
+                await JS.InvokeVoidAsync("claySelectAdvancedSearch.open", cancellationToken, url, requestId,
+                    _dotnetRef, multiple, true, new { key = proof, bindingId = request.BindingId });
+            }
+            else
+                await JS.InvokeVoidAsync("claySelectAdvancedSearch.open", cancellationToken, url, requestId, _dotnetRef, multiple, true);
             accepted = await request.Completion.Task.WaitAsync(cancellationToken);
             return accepted;
         }
@@ -115,9 +151,21 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
             {
                 if (_acknowledged.TryRemove(requestId, out var cancelled))
                     cancelled.Cancel();
-                await CancelBrowserRequestAsync(requestId);
+                await ReleaseBrowserRequestAsync(requestId, request.BindingId);
             }
         }
+    }
+
+    /// <summary>Проверяет доступность обработчика без передачи выбранного значения.</summary>
+    [JSInvokable]
+    public async Task<bool> ReadyForSelectionAsync(string requestId, int revision)
+    {
+        if (_disposed || !_acknowledged.TryGetValue(requestId, out var request) ||
+            request.Ready is not { } ready || request.Token.IsCancellationRequested || revision < 1)
+            return false;
+        // Повтор квитанции не применяет значение к живому редактору.
+        if (revision == request.Revision) return true;
+        return await ready(request.Token) && !request.Token.IsCancellationRequested && !_disposed;
     }
 
     /// <summary>Проверяет и применяет одну ревизию результата; повтор подтверждённой ревизии не применяет её заново.</summary>
@@ -175,6 +223,8 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
         internal CancellationToken Token { get; }
         internal SemaphoreSlim Gate { get; } = new(1, 1);
         internal TaskCompletionSource<bool> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal string? BindingId { get; init; }
+        internal Func<CancellationToken, Task<bool>>? Ready { get; init; }
         internal int Revision { get; set; }
         internal string? Json { get; set; }
         internal ClaySelectReturnDecision Decision { get; set; } = ClaySelectReturnDecision.Rejected;
@@ -260,19 +310,29 @@ public sealed class ClaySelectAdvancedSearchService : IAsyncDisposable
             return;
 
         _disposed = true;
-        foreach (var requestId in _pending.Keys.Concat(_acknowledged.Keys))
+        foreach (var requestId in _pending.Keys)
         {
             await CancelBrowserRequestAsync(requestId);
+            await CancelAsync(requestId);
+        }
+        foreach (var (requestId, acknowledged) in _acknowledged.ToArray())
+        {
+            await ReleaseBrowserRequestAsync(requestId, acknowledged.BindingId);
             await CancelAsync(requestId);
         }
         _dotnetRef.Dispose();
     }
 
-    private async Task CancelBrowserRequestAsync(string requestId)
+    private Task CancelBrowserRequestAsync(string requestId) => ReleaseBrowserRequestAsync(requestId, null);
+
+    private async Task ReleaseBrowserRequestAsync(string requestId, string? bindingId)
     {
         try
         {
-            await JS.InvokeVoidAsync("claySelectAdvancedSearch.cancel", requestId);
+            if (bindingId is null)
+                await JS.InvokeVoidAsync("claySelectAdvancedSearch.cancel", requestId);
+            else
+                await JS.InvokeVoidAsync("claySelectAdvancedSearch.detach", requestId, bindingId);
         }
         catch (JSDisconnectedException)
         {

@@ -14,4 +14,10 @@ public sealed class ClayTextAreaOptions : ClayInputOptions
 
     /// <summary>Передавать изменения при вводе, а не только при потере фокуса.</summary>
     public bool Immediate { get; set; } = true;
+
+    /// <summary>Отключает .NET input/change и оставляет нативное редактирование внешнему браузерному обработчику.</summary>
+    public bool BrowserManaged { get; set; }
+
+    /// <summary>Доступное название браузерного поля без видимой подписи.</summary>
+    public string? BrowserLabel { get; set; }
 }
