@@ -22,6 +22,7 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
 
         const request = {
             child, cleanup: null, applying: false, dispatched: false, searchUrl, multiple,
+            accepted: null,
             proof: acknowledged ? recovery?.key : null,
             binding: { id: recovery?.bindingId, receiver: dotnetRef }
         };
@@ -34,6 +35,16 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
         request.cleanup = cleanup;
         this.requests[requestId] = request;
 
+        const acknowledge = (message, decision) => {
+            // Только исходная страница закрывает себя после проверки контекста подтверждения.
+            try {
+                child.postMessage({ type: 'clay-select-ack', requestId, revision: message.revision,
+                    receipt: message.receipt, decision }, target.origin);
+            } catch {
+                // Подтверждённая квитанция остаётся в текущем запросе до повторной доставки или закрытия.
+            }
+        };
+
         const onMessage = async event => {
             if (event.origin !== target.origin || event.source !== child || this.requests[requestId] !== request
                 || ((!acknowledged || request.proof) && request.applying)) return;
@@ -44,8 +55,18 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
             if (acknowledged && (!Number.isInteger(message.revision) || message.revision < 1
                 || message.revision > 2147483647 || !/^[0-9a-f]{32}$/.test(message.receipt))) return;
 
+            let json = null;
+            if (acknowledged) {
+                try { json = JSON.stringify(message.value); }
+                catch { return; }
+
+                if (request.accepted) {
+                    const same = request.accepted.revision === message.revision && request.accepted.json === json;
+                    acknowledge(message, same ? 'Accepted' : 'Stale');
+                    return;
+                }
+            }
             if (request.proof) {
-                const json = JSON.stringify(message.value);
                 if (request.submitted && (request.submitted.revision !== message.revision || request.submitted.json !== json)) return;
                 request.submitted = { revision: message.revision, json };
             }
@@ -73,9 +94,9 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
             if (this.requests[requestId] !== request || child.closed) return;
             if (request.proof && decision === 'Rejected') request.submitted = null;
             if (acknowledged) {
-                // Только исходная страница закрывает себя после проверки контекста подтверждения.
-                child.postMessage({ type: 'clay-select-ack', requestId, revision: message.revision,
-                    receipt: message.receipt, decision }, target.origin);
+                if (decision === 'Accepted')
+                    request.accepted ??= { revision: message.revision, json };
+                acknowledge(message, decision);
             } else if (decision === 'Accepted') {
                 cleanup();
                 child.close();
