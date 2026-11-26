@@ -2,10 +2,11 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
     requests: Object.create(null),
     prepared: null,
 
-    open: function (url, requestId, dotnetRef, multiple = false, acknowledged = false) {
+    open: function (url, requestId, dotnetRef, multiple = false, acknowledged = false, recovery = null) {
         const target = new URL(url, window.location.href);
         if (!['http:', 'https:'].includes(target.protocol) || target.username || target.password)
             throw new Error('Invalid advanced search URL');
+        const searchUrl = target.href;
         target.searchParams.set('return', multiple ? '2' : '1');
         target.searchParams.set('requestId', requestId);
         target.searchParams.set('returnOrigin', window.location.origin);
@@ -19,7 +20,11 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
             return;
         }
 
-        const request = { child, cleanup: null, applying: false };
+        const request = {
+            child, cleanup: null, applying: false, dispatched: false, searchUrl, multiple,
+            proof: acknowledged ? recovery?.key : null,
+            binding: { id: recovery?.bindingId, receiver: dotnetRef }
+        };
         const cleanup = () => {
             window.removeEventListener('message', onMessage);
             window.clearInterval(closeTimer);
@@ -31,7 +36,7 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
 
         const onMessage = async event => {
             if (event.origin !== target.origin || event.source !== child || this.requests[requestId] !== request
-                || (!acknowledged && request.applying)) return;
+                || ((!acknowledged || request.proof) && request.applying)) return;
 
             const message = event.data;
             if (message?.type !== 'clay-select-return' || message.requestId !== requestId
@@ -39,12 +44,23 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
             if (acknowledged && (!Number.isInteger(message.revision) || message.revision < 1
                 || message.revision > 2147483647 || !/^[0-9a-f]{32}$/.test(message.receipt))) return;
 
-            request.applying = !acknowledged;
+            if (request.proof) {
+                const json = JSON.stringify(message.value);
+                if (request.submitted && (request.submitted.revision !== message.revision || request.submitted.json !== json)) return;
+                request.submitted = { revision: message.revision, json };
+            }
+            const binding = request.binding;
+            request.applying = !acknowledged || !!request.proof;
             let decision;
             try {
-                if (acknowledged)
-                    decision = await dotnetRef.invokeMethodAsync('ApplyAsync', requestId, message.revision, message.value);
-                else {
+                if (request.proof && (!binding?.receiver ||
+                    !await binding.receiver.invokeMethodAsync('ReadyForSelectionAsync', requestId, message.revision) ||
+                    request.binding !== binding || this.requests[requestId] !== request || child.closed)) {
+                    decision = 'Unavailable';
+                } else if (acknowledged) {
+                    if (request.proof) request.dispatched = true;
+                    decision = await binding.receiver.invokeMethodAsync('ApplyAsync', requestId, message.revision, message.value);
+                } else {
                     await dotnetRef.invokeMethodAsync('CompleteAsync', requestId, message.value);
                     decision = 'Accepted';
                 }
@@ -55,6 +71,7 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
             }
 
             if (this.requests[requestId] !== request || child.closed) return;
+            if (request.proof && decision === 'Rejected') request.submitted = null;
             if (acknowledged) {
                 // Только исходная страница закрывает себя после проверки контекста подтверждения.
                 child.postMessage({ type: 'clay-select-ack', requestId, revision: message.revision,
@@ -68,9 +85,32 @@ window.claySelectAdvancedSearch = window.claySelectAdvancedSearch || {
         const closeTimer = window.setInterval(() => {
             if (!child.closed) return;
             cleanup();
-            void dotnetRef.invokeMethodAsync('CancelAsync', requestId).catch(() => {});
+            void request.binding?.receiver.invokeMethodAsync('CancelAsync', requestId).catch(() => {});
         }, 500);
         window.addEventListener('message', onMessage);
+    },
+
+    resumeUndispatched: async function (url, requestId, proof, bindingId, dotnetRef, multiple) {
+        const request = this.requests[requestId];
+        if (!request?.proof || request.proof !== proof || request.searchUrl !== new URL(url, window.location.href).href
+            || request.multiple !== multiple || request.dispatched || request.applying || request.child.closed) return false;
+        const previous = request.binding;
+        if (previous?.receiver) {
+            let live = false;
+            try { live = await previous.receiver.invokeMethodAsync('ReadyForSelectionAsync', requestId, request.submitted?.revision ?? 1); }
+            catch { /* No selection is sent during the readiness check. */ }
+            if (live) return false;
+        }
+        if (this.requests[requestId] !== request || request.binding !== previous || request.dispatched ||
+            request.applying || request.child.closed) return false;
+        request.binding = { id: bindingId, receiver: dotnetRef };
+        return true;
+    },
+
+    detach: function (requestId, bindingId) {
+        const request = this.requests[requestId];
+        if (request?.proof && request.binding?.id === bindingId)
+            request.binding = null;
     },
 
     cancel: function (requestId) {

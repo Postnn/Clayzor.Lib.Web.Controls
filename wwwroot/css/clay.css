@@ -2579,6 +2579,7 @@ body {
 
     /* Внутренняя рамка фокуса сохраняет геометрию и оставляет видимым контур ошибки. */
     :is(.clay-form-field, .clay-entity-form, .mud-dialog) .mud-input:has(> .mud-input-slot:focus-visible),
+    .mud-input.clay-form-field:has(> textarea.mud-input-root:focus-visible),
     .clay-select-input:focus-visible {
         outline: 2px solid var(--clay-field-focus, var(--clay-focus, var(--mud-palette-primary)));
         outline-offset: var(--clay-field-focus-offset, -4px);
@@ -2596,6 +2597,7 @@ body {
         }
 
         :is(.clay-form-field, .clay-entity-form, .mud-dialog) .mud-input:has(> .mud-input-slot:focus-visible),
+        .mud-input.clay-form-field:has(> textarea.mud-input-root:focus-visible),
         .clay-select-input:focus-visible,
         :is(.clay-entity-form, .clay-form-field, .clay-select, .mud-dialog)
             :is(button, a[href], [role="button"], input[type="checkbox"], input[type="radio"]):focus-visible {

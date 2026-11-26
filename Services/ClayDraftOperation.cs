@@ -23,7 +23,8 @@ public sealed record ClayDraftOperationIntent(
     string Data,
     IReadOnlyList<string>? AcceptedScopes = null,
     string? AttemptId = null,
-    bool AcceptLegacyTyped = false);
+    bool AcceptLegacyTyped = false,
+    bool BlockOtherDraftOperations = false);
 
 /// <summary>Ревизии typed/raw состояния одной области на момент BeginOperation.</summary>
 public sealed record ClayDraftOperationScope(
@@ -74,6 +75,7 @@ public static class ClayDraftOperationSerializer
             acceptedScopes = intent.AcceptedScopes ?? [],
             attemptId = intent.AttemptId,
             acceptLegacyTyped = intent.AcceptLegacyTyped,
+            blockOtherDraftOperations = intent.BlockOtherDraftOperations,
         }, Options);
     }
 

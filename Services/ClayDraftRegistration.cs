@@ -5,11 +5,14 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
 {
     private readonly ClayDraftService _owner;
 
-    internal ClayDraftRegistration(ClayDraftService owner, ClayDraftRestore restore)
+    internal ClayDraftRegistration(ClayDraftService owner, ClayDraftRestore restore, long? maximumRestoreBytes = null)
     {
         _owner = owner;
         Restore = restore;
+        MaximumRestoreBytes = maximumRestoreBytes;
     }
+
+    internal long? MaximumRestoreBytes { get; }
 
     /// <summary>Состояние, восстановленное при регистрации.</summary>
     public ClayDraftRestore Restore { get; private set; }
@@ -49,6 +52,18 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     /// <summary>Применяет raw только этой editor scope после отдельной permission/DOM readiness.</summary>
     public Task<ClayDraftRawApplyResult> ApplyRawWithResultAsync(string scope, CancellationToken cancellationToken = default) =>
         _owner.ApplyRawWithResultAsync(RegistrationId, scope, cancellationToken);
+
+    /// <summary>Восстанавливает только ожидающие значения одной области, сохраняя уже восстановленный и новый ввод.</summary>
+    public Task<ClayDraftRawApplyResult> ApplyPendingRawAsync(string scope, CancellationToken cancellationToken = default) =>
+        _owner.ApplyPendingRawAsync(RegistrationId, scope, cancellationToken);
+
+    /// <summary>Восстанавливает ожидающие значения одной области без событий ввода.</summary>
+    public Task<ClayDraftRawApplyResult> ApplyPendingRawSilentlyAsync(string scope, CancellationToken cancellationToken = default) =>
+        _owner.ApplyPendingRawAsync(RegistrationId, scope, cancellationToken, notifyInput: false);
+
+    /// <summary>Восстанавливает DOM без событий ввода; вызывающая форма самостоятельно перечитывает значения.</summary>
+    public Task<ClayDraftRawApplyResult> ApplyRawSilentlyAsync(string scope, CancellationToken cancellationToken = default) =>
+        _owner.ApplyRawSilentlyAsync(RegistrationId, scope, cancellationToken);
 
     /// <summary>Возвращает pending/failed области без значений полей; Complete=false запрещает объявлять restore завершённым.</summary>
     public Task<ClayDraftRestoreReadiness> GetRestoreReadinessAsync(CancellationToken cancellationToken = default) =>

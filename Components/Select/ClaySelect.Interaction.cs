@@ -160,7 +160,7 @@ public partial class ClaySelect<TItem, TValue>
     protected async Task SelectResultAsync(TItem item)
     {
         if (_open && !_loading && _results.Contains(item))
-            await SelectItemAsync(item);
+            await SelectConfirmedItemAsync(item);
     }
 
     /// <summary>Идентификатор кнопки расширенного поиска.</summary>
@@ -231,7 +231,7 @@ public partial class ClaySelect<TItem, TValue>
                 break;
             case "Enter":
                 if (_open && _activeIndex >= 0 && _activeIndex < _results.Count)
-                    await SelectItemAsync(_results[_activeIndex]);
+                    await SelectConfirmedItemAsync(_results[_activeIndex]);
                 else if (!_open && !HasCurrentSelectionText())
                     await SearchAsync(_text, true);
                 break;
@@ -278,14 +278,31 @@ public partial class ClaySelect<TItem, TValue>
         _open = false;
         var version = _resolveVersion;
         var appliedLegacyResult = false;
+        var completedSearch = false;
+        int? acceptedVersion = null;
+        TValue? acceptedValue = default;
+        long? focusLease = null;
         try
         {
+            focusLease = await CaptureSelectionAdvanceAsync();
+            if (_disposed || !IsMutable || version != _resolveVersion)
+                return;
             var result = await AdvancedSearch(new ClaySelectAdvancedSearchContext
             {
                 SearchText = HasCurrentSelectionText() ? string.Empty : _text,
                 ApplyResult = (Func<ClaySelectExternalResult<TItem, TValue>, CancellationToken, Task<ClaySelectReturnDecision>>)
-                    ((result, token) => ApplyAcknowledgedResultAsync(result, version, token)),
+                    (async (result, token) =>
+                    {
+                        var decision = await ApplyAcknowledgedResultAsync(result, version, token);
+                        if (decision == ClaySelectReturnDecision.Accepted && !token.IsCancellationRequested && _resolveVersion == version + 1)
+                        {
+                            acceptedVersion = version + 1;
+                            acceptedValue = Value;
+                        }
+                        return decision;
+                    }),
             });
+            completedSearch = true;
 
             if (result is null || version != _resolveVersion || !IsMutable || _disposed)
                 return;
@@ -302,7 +319,9 @@ public partial class ClaySelect<TItem, TValue>
         finally
         {
             _advancedRunning = false;
-            if (!_disposed && (appliedLegacyResult || version == _resolveVersion))
+            if (completedSearch && acceptedVersion is { } confirmed && IsAcceptedSelection(confirmed, acceptedValue))
+                await CompleteSelectionAdvanceAsync(focusLease);
+            else if (!_disposed && (appliedLegacyResult || version == _resolveVersion))
             {
                 if (version == _resolveVersion)
                     RestoreSelectedText();

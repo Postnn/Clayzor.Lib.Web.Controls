@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.JSInterop;
 
@@ -65,6 +66,10 @@ public sealed record ClayDraftRecoveryCandidate(
     [property: JsonPropertyName("hasOperation")] bool HasOperation,
     [property: JsonPropertyName("canRecover")] bool CanRecover);
 
+internal sealed record ClayDraftRestoreStream(
+    [property: JsonPropertyName("registrationId")] string RegistrationId,
+    [property: JsonPropertyName("payload")] IJSStreamReference Payload);
+
 /// <summary>Общий DR-01 API долговечного клиентского черновика и snapshot бизнес-операции.</summary>
 public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
 {
@@ -128,17 +133,31 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
         return registration;
     }
 
+    /// <summary>Создаёт независимую регистрацию, передающую большие состояния восстановления потоком.</summary>
+    public async Task<ClayDraftRegistration> RegisterHandleAsync(
+        string formKey, string entityKey, string userKey, int schemaVersion, string rootSelector,
+        long maximumRestoreBytes, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumRestoreBytes);
+        var registration = await RegisterCoreAsync(formKey, entityKey, userKey, schemaVersion,
+            rootSelector, cancellationToken, maximumRestoreBytes);
+        _registrationId ??= registration.RegistrationId;
+        return registration;
+    }
+
     private async Task<ClayDraftRegistration> RegisterCoreAsync(
         string formKey,
         string entityKey,
         string userKey,
         int schemaVersion,
         string? rootSelector,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, long? maximumRestoreBytes = null)
     {
         if (rootSelector is not null && string.IsNullOrWhiteSpace(rootSelector))
             throw new ArgumentException("Draft DOM root selector is required.", nameof(rootSelector));
-        var restore = rootSelector is null
+        var restore = maximumRestoreBytes is { } limit
+            ? await RegisterStreamedRestoreAsync(formKey, entityKey, userKey, schemaVersion, rootSelector, limit, cancellationToken)
+            : rootSelector is null
             ? await js.InvokeAsync<ClayDraftRestore?>(
                 "clayDraftStore.register", cancellationToken, formKey, entityKey, userKey, schemaVersion)
             : await js.InvokeAsync<ClayDraftRestore?>(
@@ -151,7 +170,7 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
         {
             if (restore.Operation is not null)
                 _ = restore.OperationSnapshot;
-            var registration = new ClayDraftRegistration(this, restore);
+            var registration = new ClayDraftRegistration(this, restore, maximumRestoreBytes);
             _registrations.Add(restore.RegistrationId, registration);
             return registration;
         }
@@ -165,6 +184,44 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
             {
             }
             throw;
+        }
+    }
+
+    private async Task<ClayDraftRestore?> RegisterStreamedRestoreAsync(string formKey, string entityKey, string userKey,
+        int schemaVersion, string? rootSelector, long maximumRestoreBytes, CancellationToken token)
+    {
+        var envelope = await js.InvokeAsync<ClayDraftRestoreStream?>("clayDraftStore.registerStream",
+            token, formKey, entityKey, userKey, schemaVersion, rootSelector);
+        if (envelope is null)
+            return null;
+        try { return await ReadStreamedRestoreAsync(envelope, maximumRestoreBytes, token); }
+        catch
+        {
+            if (!string.IsNullOrWhiteSpace(envelope.RegistrationId))
+            {
+                try { await js.InvokeVoidAsync("clayDraftStore.unregister", envelope.RegistrationId); }
+                catch (Exception ex) when (ex is JSException or JSDisconnectedException or OperationCanceledException or InvalidOperationException) { }
+            }
+            throw;
+        }
+    }
+
+    private static async Task<ClayDraftRestore> ReadStreamedRestoreAsync(
+        ClayDraftRestoreStream envelope, long maximumRestoreBytes, CancellationToken token)
+    {
+        try
+        {
+            if (envelope.Payload is null || string.IsNullOrWhiteSpace(envelope.RegistrationId))
+                throw new InvalidOperationException("Контекст восстановления не подтверждён.");
+            await using var reference = envelope.Payload;
+            await using var stream = await reference.OpenReadStreamAsync(maximumRestoreBytes, token);
+            var restore = await JsonSerializer.DeserializeAsync<ClayDraftRestore>(stream, cancellationToken: token);
+            return restore is not null && restore.RegistrationId == envelope.RegistrationId
+                ? restore : throw new InvalidOperationException("Контекст восстановления не подтверждён.");
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or ArgumentException or InvalidOperationException or JSException or JSDisconnectedException)
+        {
+            throw new InvalidOperationException("Не удалось прочитать защищённые данные черновика.");
         }
     }
 
@@ -218,6 +275,21 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
         ValidateScope(scope);
         return await js.InvokeAsync<ClayDraftRawApplyResult>(
             "clayDraftStore.applyRaw", cancellationToken, registrationId, scope);
+    }
+
+    internal Task<ClayDraftRawApplyResult> ApplyPendingRawAsync(
+        string registrationId, string scope, CancellationToken token, bool notifyInput = true)
+    {
+        RequireRegistration(registrationId);
+        ValidateScope(scope);
+        return js.InvokeAsync<ClayDraftRawApplyResult>(
+            "clayDraftStore.applyPendingRaw", token, notifyInput ? [registrationId, scope] : [registrationId, scope, false]).AsTask();
+    }
+
+    internal Task<ClayDraftRawApplyResult> ApplyRawSilentlyAsync(string registrationId, string scope, CancellationToken token)
+    {
+        RequireRegistration(registrationId);
+        return js.InvokeAsync<ClayDraftRawApplyResult>("clayDraftStore.applyRaw", token, registrationId, scope, false).AsTask();
     }
 
     /// <summary>Возвращает незавершённые и отклонённые области restore без raw значений или секретов.</summary>
@@ -331,7 +403,25 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
     internal async Task<ClayDraftRestore?> RecoverListedDraftAsync(string registrationId, string draftId, CancellationToken cancellationToken)
     {
         RequireRegistration(registrationId);
-        var recovered = await js.InvokeAsync<ClayDraftRestore?>("clayDraftStore.recoverListedDraft", cancellationToken, registrationId, draftId);
+        ClayDraftRestore? recovered;
+        if (_registrations[registrationId].MaximumRestoreBytes is { } limit)
+        {
+            try
+            {
+                var envelope = await js.InvokeAsync<ClayDraftRestoreStream?>("clayDraftStore.recoverListedDraftStream",
+                    cancellationToken, registrationId, draftId);
+                recovered = envelope is null ? null : await ReadStreamedRestoreAsync(envelope, limit, cancellationToken);
+                if (recovered is not null && recovered.RegistrationId != registrationId)
+                    throw new InvalidOperationException("Изменился контекст восстановления черновика.");
+            }
+            catch
+            {
+                await DisposeRegistrationAsync(registrationId);
+                throw;
+            }
+        }
+        else
+            recovered = await js.InvokeAsync<ClayDraftRestore?>("clayDraftStore.recoverListedDraft", cancellationToken, registrationId, draftId);
         if (recovered is not null && recovered.RegistrationId != registrationId)
             throw new InvalidOperationException("Изменился контекст восстановления черновика.");
         return recovered;

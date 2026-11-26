@@ -256,7 +256,7 @@
         return left?.kind === right.kind && left?.value === right.value && left?.data === right.data;
     }
 
-    function captureField(reg, element) {
+    function captureField(reg, element, confirmedInput = false) {
         if (reg.discarded || reg.released ||
             !element?.matches?.('input,textarea,select') || element.disabled || element.type === 'file' ||
             !ownedBy(reg, element)) return;
@@ -265,6 +265,7 @@
         const key = fieldKey(element, reg);
         const value = fieldValue(element);
         const previous = reg.raw[key];
+        if (confirmedInput && previous?.scope === scope) reg.restorePending.delete(key);
         if (previous?.scope === scope && sameFieldValue(previous, value)) return;
         reg.raw[key] = { ...value, scope, revision: ++reg.revision };
         queue(reg).catch(() => { });
@@ -298,7 +299,7 @@
         reg.restorePending.add(key);
     }
 
-    async function applyRaw(id, scope) {
+    async function applyRaw(id, scope, notifyInput = true, pendingOnly = false) {
         const reg = get(id);
         if (scope !== undefined && scope !== null) validateScope(scope);
         if (scope) reg.restoreFailures.delete(scope);
@@ -309,7 +310,8 @@
             while (isCurrentApply(reg, id, version)) {
                 const state = reg.raw[key];
                 const stateScope = state?.scope || 'main';
-                if (!state || (scope && stateScope !== scope) || reg.cancelledScopes[stateScope]) break;
+                if (!state || (scope && stateScope !== scope) || reg.cancelledScopes[stateScope] ||
+                    (pendingOnly && !reg.restorePending.has(key))) break;
                 try {
                     let element = findField(key, reg);
                     if (!element && (key.startsWith('data:computer.hd:') || key.startsWith('data:computer.ssd:'))) {
@@ -326,18 +328,25 @@
                         pendingRaw(reg, result, key, stateScope);
                         break;
                     }
-                    if (element.getAttribute('role') === 'combobox' && window.claySelect?.restoreDraftText) {
-                        await window.claySelect.restoreDraftText(element.id, state.value || '');
+                    if (notifyInput && element.getAttribute('role') === 'combobox' && element.closest('.clay-select')) {
+                        const accepted = await window.claySelect?.restoreDraftText(element.id, state.value || '');
                         if (!isCurrentApply(reg, id, version)) break;
                         if (reg.raw[key] !== state) continue;
+                        if (pendingOnly && !reg.restorePending.has(key)) break;
+                        if (!accepted) {
+                            pendingRaw(reg, result, key, stateScope);
+                            break;
+                        }
                         appliedRaw(reg, result, key, stateScope);
                         break;
                     }
                     if (state.kind === 'checked') element.checked = state.value;
                     else if (state.kind === 'radio') element.checked = state.value && element.value === state.data;
                     else element.value = state.value;
-                    element.dispatchEvent(new Event('input', { bubbles: true }));
-                    if (state.kind !== 'value') element.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (notifyInput) {
+                        element.dispatchEvent(new Event('input', { bubbles: true }));
+                        if (state.kind !== 'value') element.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
                     appliedRaw(reg, result, key, stateScope);
                     break;
                 } catch (error) {
@@ -564,7 +573,7 @@
                 try { await removeEmptyDraft(reg); } catch { }
             }
             const registrationId = crypto.randomUUID();
-            reg.listener = event => captureField(reg, event.target);
+            reg.listener = event => captureField(reg, event.target, event.isTrusted);
             document.addEventListener('input', reg.listener, true);
             document.addEventListener('change', reg.listener, true);
             registrations.set(registrationId, reg);
@@ -615,9 +624,29 @@
     }
 
     async function begin(reg, intent) {
+        if (!intent.blockOtherDraftOperations) return recordAttempt(reg, intent);
+
+        if (!navigator.locks && !window.BroadcastChannel)
+            throw new Error('В браузере недоступна проверка параллельной записи.');
+        const context = JSON.stringify([reg.userKey, reg.formKey, reg.entityKey]);
+        const release = await claimLock(`clay-draft-operation:${context}`);
+        if (!release) throw new Error('Другая вкладка подтверждает запись в этом контексте.');
+        try {
+            const drafts = await listRecoveryCandidates(reg);
+            if (drafts.some(candidate => candidate.hasOperation))
+                throw new Error('В другом черновике есть незавершённая операция. Сверьте её перед записью.');
+            return await recordAttempt(reg, intent);
+        } finally {
+            await release();
+        }
+    }
+
+    async function recordAttempt(reg, intent) {
+        if (reg.discarded || reg.released) throw new Error('Draft registration is not active.');
         ensureAcceptedScopesRestored(reg, intent);
         captureAll(reg);
         await waitForIdle(reg);
+        if (reg.discarded || reg.released) throw new Error('Draft registration is not active.');
         ensureAcceptedScopesRestored(reg, intent);
         if (reg.operation) throw new Error('Предыдущая команда не сверена; новая попытка заблокирована.');
         const revision = ++reg.revision;
@@ -707,6 +736,10 @@
             state.typedRevision = state.revision;
         }
 
+        return writeEditorScopeState(reg, scope, state, isCurrent);
+    }
+
+    async function writeEditorScopeState(reg, scope, state, isCurrent) {
         const key = await userKey(reg.userKey);
         const payload = await encrypt(key, state);
         const db = await openDb();
@@ -735,7 +768,7 @@
             };
             tx.onabort = () => {
                 if (!isCurrent()) resolve(false);
-                else reject(tx.error || new Error('Не удалось сохранить отмену черновика.'));
+                else reject(tx.error || new Error('Не удалось сохранить изменение черновика.'));
             };
             tx.objectStore('drafts').put({ id: draftKey(reg), ...payload });
         });
@@ -749,8 +782,23 @@
         }
     }
 
+    async function streamRestore(restore) {
+        if (!restore) return null;
+        try {
+            return {
+                registrationId: restore.registrationId,
+                payload: DotNet.createJSStreamReference(new Blob([JSON.stringify(restore)], { type: 'application/json' }))
+            };
+        } catch {
+            await window.clayDraftStore.unregister(restore.registrationId);
+            throw new Error('Не удалось открыть защищённые данные черновика для чтения.');
+        }
+    }
+
     window.clayDraftStore = {
         register,
+        async registerStream(...args) { return streamRestore(await register(...args)); },
+        async recoverListedDraftStream(id, draftId) { return streamRestore(await recoverListedDraft(id, draftId)); },
         listRecoveryCandidates(id) { return listRecoveryCandidates(get(id)); },
         recoverListedDraft,
         async saveTyped(id, typedState) {
@@ -769,6 +817,10 @@
             return reg.revision;
         },
         applyRaw,
+        async applyPendingRaw(id, scope, notifyInput = true) {
+            validateScope(scope);
+            return applyRaw(id, scope, notifyInput, true);
+        },
         async beginOperation(id, operation) {
             const reg = get(id);
             let kind = 'legacy';
@@ -957,19 +1009,22 @@
             const reg = get(id);
             validateScope(scope);
             await waitForIdle(reg);
-            if (reg.operation || reg.revision !== expectedRevision || reg.cancelledScopes[scope])
-                throw new Error('Черновик изменился после открытия сверки.');
-            const pending = [...reg.restorePending].some(key => (reg.raw[key]?.scope || 'main') === scope);
-            if (pending || reg.restoreFailures.has(scope))
-                throw new Error('Сначала полностью восстановите ввод этой области.');
+            const isCurrent = () => !reg.discarded && !reg.released && !reg.operation &&
+                reg.revision === expectedRevision && !reg.cancelledScopes[scope];
+            if (!isCurrent()) throw new Error('Черновик изменился после открытия сверки.');
+            const hasUnrestoredInput = () => reg.restoreFailures.has(scope) ||
+                [...reg.restorePending].some(key => (reg.raw[key]?.scope || 'main') === scope);
+            if (hasUnrestoredInput()) throw new Error('Сначала полностью восстановите ввод этой области.');
 
             if (!Array.isArray(discardedRaw) || discardedRaw.some(key => !reg.raw[key] || (reg.raw[key].scope || 'main') !== scope))
                 throw new Error('Выбранный для замены ввод принадлежит другой области.');
-            for (const key of discardedRaw) delete reg.raw[key];
-            reg.typedScopes[scope] = { data: snapshotJson, revision: ++reg.revision };
+            const deleted = new Set(discardedRaw);
+            const state = snapshot(reg);
+            state.revision++;
+            state.raw = Object.fromEntries(Object.entries(reg.raw).filter(([key]) => !deleted.has(key)));
+            state.typedScopes = { ...reg.typedScopes, [scope]: { data: snapshotJson, revision: state.revision } };
             try {
-                await queue(reg);
-                return true;
+                return await writeEditorScopeState(reg, scope, state, () => isCurrent() && !hasUnrestoredInput());
             } catch {
                 return false;
             }
