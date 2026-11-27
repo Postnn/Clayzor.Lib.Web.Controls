@@ -95,7 +95,7 @@
 | **ClayErrorService** (Scoped) — хранит состояние последней ошибки SQL, реализует `ISqlErrorHandler` |
 | **ISqlErrorHandler** (DALC) — интерфейс, вызываемый `DbManager` при `SqlException` |
 | **ClayDbReconnectService** (Scoped) — авто-переподключение к SQL Server (3×30s health-check); forceLoad разрешён только после подтверждения сохранности черновиков через `clayDraftStore.canReload` |
-| **ClayDraftService** (Scoped) — общий API [DR-01](../../docs/agents/forms.md). Изоляция экземпляров, серверный AES-256 ключ в RAM документа, адресное удаление IndexedDB при штатном закрытии, scoped raw/typed и accepted revisions. Исход бизнес-команды передаётся долговечному серверному журналу. |
+| **ClayDraftService** (Scoped) — общий API [DR-01](../../docs/agents/forms.md). Изоляция экземпляров, серверный AES-256 ключ в RAM документа, адресное удаление IndexedDB при штатном закрытии, scoped raw/typed и accepted revisions. Хранятся только поля черновика и их ревизии; журнал бизнес-операций и попыток не используется. |
 | **ClayFormWindowService** (Scoped) — отдельные окна форм; `clayOpen` — единственный разрешённый API открытия карточек/форм с устойчивым ключом и сохранением размера/позиции в `localStorage`; прямой `window.open` вне этой реализации запрещён |
 | **ClayReflectionCellReader** — читает значение ячейки через рефлексию |
 | **ClayGridExportFileName** — `Sanitize(title)` — убирает недопустимые символы из имени файла |
