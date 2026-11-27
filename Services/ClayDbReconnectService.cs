@@ -86,16 +86,8 @@ public class ClayDbReconnectService : IDisposable
                 var healthOk = await TryHealthCheckAsync(ct);
                 if (healthOk)
                 {
-                    if (await CanReloadAsync(ct))
-                    {
-                        _nav.NavigateTo(_nav.Uri, forceLoad: true);
-                    }
-                    else
-                    {
-                        State = ReconnectState.Failed;
-                        LastError = "Соединение восстановлено, но черновик ещё не сохранён. Автоматическая перезагрузка отменена.";
-                        StateChanged?.Invoke();
-                    }
+                    if (!await TryReloadAsync(ct) && !ct.IsCancellationRequested)
+                        Reset();
                     return;
                 }
 
@@ -131,18 +123,22 @@ public class ClayDbReconnectService : IDisposable
         }
     }
 
-    private async Task<bool> CanReloadAsync(CancellationToken ct)
+    /// <summary>Перезагружает документ, если проверено отсутствие защищаемого ввода.</summary>
+    public async Task<bool> TryReloadAsync(CancellationToken ct = default)
     {
-        if (_js is null)
-            return true;
         try
         {
-            return await _js.InvokeAsync<bool>("clayDraftStore.canReload", ct);
+            if (_js is null || !await _js.InvokeAsync<bool>("clayDraftStore.canReload", ct) ||
+                ct.IsCancellationRequested)
+                return false;
         }
         catch (Exception ex) when (ex is JSException or JSDisconnectedException or OperationCanceledException)
         {
             return false;
         }
+
+        _nav.NavigateTo(_nav.Uri, forceLoad: true);
+        return true;
     }
 
     private async Task<bool> TryHealthCheckAsync(CancellationToken ct)

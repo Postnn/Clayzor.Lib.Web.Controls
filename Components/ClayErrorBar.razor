@@ -3,7 +3,7 @@
 
 @inject ClayErrorService ErrorService
 
-@if (ErrorService.HasError && !ErrorService.IsCurrentErrorConnectivity)
+@if (ErrorService.HasError && (!ErrorService.IsCurrentErrorConnectivity || ErrorService.HasOperationContext))
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
         <div class="clay-error-bar__header">
@@ -13,10 +13,10 @@
         </div>
 
         <div class="clay-error-details" @onclick="() => ToggleDetails()">
-            @(_showDebug ? "▲ Скрыть детали" : "▼ Детали запроса")
+            @(ErrorService.ShowDebug ? "▲ Скрыть детали" : "▼ Детали ошибки")
         </div>
 
-        @if (_showDebug)
+        @if (ErrorService.ShowDebug)
         {
             <div class="clay-error-details-wrapper">
                 @if (!string.IsNullOrEmpty(ErrorService.ConnectionString))
@@ -56,14 +56,17 @@
                         </tbody>
                     </table>
                 }
+                @if (ErrorService.ExceptionDetails is { } exception)
+                {
+                    <div class="mt-2 mb-1"><strong>Исключение:</strong></div>
+                    <pre class="clay-error-sql">@exception</pre>
+                }
             </div>
         }
     </MudAlert>
 }
 
 @code {
-    private bool _showDebug;
-
     protected override void OnInitialized()
     {
         ErrorService.OnChanged += StateHasChanged;
@@ -71,13 +74,12 @@
 
     private void ToggleDetails()
     {
-        _showDebug = !_showDebug;
+        ErrorService.ShowDebug = !ErrorService.ShowDebug;
         StateHasChanged();
     }
 
     private void Close()
     {
-        _showDebug = false;
         ErrorService.Clear();
     }
 

@@ -1,9 +1,12 @@
 @typeparam TItem where TItem : class
 @typeparam TValue
+@implements IAsyncDisposable
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 <MudSelect T="TValue"
            Value="@Value"
-           ValueChanged="@ValueChanged"
+           ValueChanged="@AcceptValueAsync"
+           OpenChanged="@OnOpenChangedAsync"
            Label="@_opt.Label"
            Placeholder="@_opt.Placeholder"
            Required="@_opt.Required"
@@ -13,7 +16,9 @@
            Variant="@_opt.Variant"
            Margin="@_opt.Margin"
            Class="@FieldClass"
-           data-draft-key="@_opt.DraftKey">
+           data-draft-key="@_opt.DraftKey"
+           data-clay-focus-editor="@(_opt.Disabled || _opt.ReadOnly ? null : string.Empty)"
+           data-clay-fixed-picker="@(_opt.AdvanceFocusOnSelection && !_opt.Disabled && !_opt.ReadOnly ? _focus.Key : null)">
     @if (Items is not null)
     {
         @foreach (var item in Items)
@@ -25,6 +30,7 @@
 
 @code {
     private ClayDropDownListOptions _opt = new();
+    private ClayEditorFocusClient _focus = null!;
 
     private string FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly && IsDisplayEmpty
         ? $"clay-form-field clay-required-empty {_opt.Class}"
@@ -54,4 +60,32 @@
 
     /// <inheritdoc />
     protected override void OnParametersSet() => _opt = Options ?? new ClayDropDownListOptions();
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => _focus = new(JS);
+
+    private async Task AcceptValueAsync(TValue? value)
+    {
+        var lease = _opt.AdvanceFocusOnSelection && !_opt.Disabled && !_opt.ReadOnly && value is not null
+            ? await _focus.ClaimAsync()
+            : null;
+        await ValueChanged.InvokeAsync(value);
+        if (_opt.AdvanceFocusOnSelection && !_opt.Disabled && !_opt.ReadOnly &&
+            EqualityComparer<TValue?>.Default.Equals(Value, value))
+            await _focus.CompleteAsync(lease);
+    }
+
+    private async Task OnOpenChangedAsync(bool open)
+    {
+        if (open || !_opt.AdvanceFocusOnSelection || _opt.Disabled || _opt.ReadOnly || Value is null)
+            return;
+        var selected = Value;
+        var lease = await _focus.ClaimAsync(alreadySelected: true);
+        if (_opt.AdvanceFocusOnSelection && !_opt.Disabled && !_opt.ReadOnly &&
+            EqualityComparer<TValue?>.Default.Equals(selected, Value))
+            await _focus.CompleteAsync(lease);
+    }
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync() => _focus.DisposeAsync();
 }

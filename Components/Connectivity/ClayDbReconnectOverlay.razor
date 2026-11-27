@@ -3,7 +3,6 @@
 @implements IDisposable
 
 @inject ClayDbReconnectService ReconnectService
-@inject NavigationManager Navigation
 
 @if (ReconnectService.State == ReconnectState.Reconnecting
      || ReconnectService.State == ReconnectState.Failed)
@@ -21,16 +20,27 @@
             <div class="clay-busy">
                 <MudIcon Icon="@Icons.Material.Filled.CloudOff" Size="Size.Large" Color="Color.Error" />
                 <span>Не удалось восстановить соединение с базой данных.</span>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           OnClick="ReloadPage">
-                    Перезагрузить страницу
-                </MudButton>
+                @if (_reloadBlocked)
+                {
+                    <span>Безопасность перезагрузки не подтверждена. При перезагрузке вручную несохранённые изменения могут пропасть.</span>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ReturnToForm">
+                        Вернуться к форме
+                    </MudButton>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ReloadPageAsync">
+                        Перезагрузить страницу
+                    </MudButton>
+                }
             </div>
         }
     </MudOverlay>
 }
 
 @code {
+    private bool _reloadBlocked;
+
     protected override void OnInitialized()
     {
         ReconnectService.StateChanged += OnStateChanged;
@@ -38,13 +48,20 @@
 
     private async void OnStateChanged()
     {
-        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(() =>
+        {
+            if (ReconnectService.State != ReconnectState.Failed)
+                _reloadBlocked = false;
+            StateHasChanged();
+        });
     }
 
-    private void ReloadPage()
+    private async Task ReloadPageAsync()
     {
-        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+        _reloadBlocked = !await ReconnectService.TryReloadAsync();
     }
+
+    private void ReturnToForm() => ReconnectService.Reset();
 
     public void Dispose()
     {

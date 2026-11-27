@@ -9,7 +9,7 @@
     else
     {
         <details>
-            <summary><small role="status">@Status</small></summary>
+            <summary><small role="status">С записью работают @string.Join(", ", _participants.Select(person => person.DisplayName))</small></summary>
             <ul>
                 @foreach (var person in _participants)
                 {

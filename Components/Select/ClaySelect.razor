@@ -11,6 +11,7 @@
         <input @ref="_inputRef"
                id="@InputId"
                data-draft-key="@ResolvedOptions.DraftKey"
+               data-clay-synced-text="@(WatchLookupRaw && IsMutable ? SelectedDisplayText : null)"
                class="clay-select-input"
                type="text"
                value="@DisplayText"

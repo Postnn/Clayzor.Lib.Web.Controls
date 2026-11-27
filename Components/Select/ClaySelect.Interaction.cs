@@ -395,8 +395,14 @@ public partial class ClaySelect<TItem, TValue>
         CancelSearch();
         _open = false;
         var version = _resolveVersion;
+        int? selectedVersion = null;
+        TValue? selectedValue = default;
+        long? focusLease = null;
         try
         {
+            focusLease = await CaptureSelectionAdvanceAsync();
+            if (_disposed || !IsMutable || version != _resolveVersion)
+                return;
             var result = await CreateItem(new ClaySelectAdvancedSearchContext
             {
                 SearchText = HasCurrentSelectionText() ? string.Empty : _text,
@@ -406,9 +412,16 @@ public partial class ClaySelect<TItem, TValue>
                 return;
 
             if (result.ContainsItem)
+            {
+                selectedValue = ValueSelector(result.Item!);
                 await SelectItemAsync(result.Item!);
+                selectedVersion = version + 1;
+            }
             else
-                await ApplyExternalValueAsync(result.Value);
+            {
+                selectedValue = result.Value;
+                selectedVersion = await ApplyExternalValueAsync(selectedValue);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -416,11 +429,15 @@ public partial class ClaySelect<TItem, TValue>
         finally
         {
             _advancedRunning = false;
-            if (!_disposed)
+            if (focusLease is not null && selectedVersion is { } accepted && IsAcceptedSelection(accepted, selectedValue) &&
+                _currentItem is { } current && EqualityComparer<TValue?>.Default.Equals(ValueSelector(current), selectedValue))
+                await CompleteSelectionAdvanceAsync(focusLease);
+            else if (!_disposed && IsMutable && (_resolveVersion == version || _resolveVersion == selectedVersion))
             {
                 if (version == _resolveVersion)
                     RestoreSelectedText();
-                await FocusAsync();
+                if (!_options.AdvanceFocusOnSelection)
+                    await FocusAsync();
             }
         }
     }
@@ -603,26 +620,33 @@ public partial class ClaySelect<TItem, TValue>
         await NotifyUserValidationAsync();
     }
 
-    private async Task ApplyExternalValueAsync(TValue? value)
+    private async Task<int?> ApplyExternalValueAsync(TValue? value)
     {
         if (value is null || !IsMutable)
-            return;
+            return null;
 
         _hasEditBackup = false;
         _itemBeforeEdit = null;
         _valueBeforeEdit = default;
         InvalidatePendingOperations();
+        var version = _resolveVersion;
         Value = value;
         _lastValue = value;
         _valueSynchronized = true;
         await ValueChanged.InvokeAsync(value);
+        if (_disposed || !IsMutable || version != _resolveVersion)
+            return null;
 
         if (TryFindStaticItem(value, out var item))
             await ApplyResolvedItemAsync(item!, true);
         else
+        {
+            if (DataSource is not null) version++;
             await ResolveItemAsync();
+        }
 
         await NotifyUserValidationAsync();
+        return version;
     }
 
     private async Task NotifyUserValidationAsync()
@@ -639,12 +663,11 @@ public partial class ClaySelect<TItem, TValue>
         RestoreSelectedText();
     }
 
-    private void RestoreSelectedText()
-    {
-        _text = _currentItem is not null
-            ? TextSelector(_currentItem)
-            : Value is null ? string.Empty : $"#{Value}";
-    }
+    private string SelectedDisplayText => _currentItem is not null
+        ? TextSelector(_currentItem)
+        : Value is null ? string.Empty : $"#{Value}";
+
+    private void RestoreSelectedText() => _text = SelectedDisplayText;
 
     private void CancelSearch()
     {

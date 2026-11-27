@@ -5,14 +5,17 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
 {
     private readonly ClayDraftService _owner;
 
-    internal ClayDraftRegistration(ClayDraftService owner, ClayDraftRestore restore, long? maximumRestoreBytes = null)
+    internal ClayDraftRegistration(ClayDraftService owner, ClayDraftRestore restore, long? maximumRestoreBytes = null,
+        bool isRam = false)
     {
         _owner = owner;
         Restore = restore;
         MaximumRestoreBytes = maximumRestoreBytes;
+        IsRam = isRam;
     }
 
     internal long? MaximumRestoreBytes { get; }
+    internal bool IsRam { get; }
 
     /// <summary>Состояние, восстановленное при регистрации.</summary>
     public ClayDraftRestore Restore { get; private set; }
@@ -93,7 +96,7 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     public Task RecordConfirmedOperationAsync(long revision, CancellationToken cancellationToken = default) =>
         _owner.RecordConfirmedOperationAsync(RegistrationId, revision, cancellationToken);
 
-    /// <summary>Принимает только scopes/revisions, зафиксированные в BeginOperation.</summary>
+    /// <summary>Принимает области и ревизии из BeginOperation после RecordConfirmedOperation.</summary>
     public Task CommitOperationAsync(long revision, string? cleanTypedState = null, CancellationToken cancellationToken = default) =>
         _owner.CommitOperationAsync(RegistrationId, revision, cleanTypedState, cancellationToken);
 
@@ -114,10 +117,24 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     public Task<ClayDraftEditorScopeState> ReadEditorScopeAsync(string scope, CancellationToken cancellationToken = default) =>
         _owner.ReadEditorScopeAsync(RegistrationId, scope, cancellationToken);
 
+    /// <summary>Получает ревизию и признаки ввода во всех областях экземпляра перед закрытием.</summary>
+    public Task<ClayDraftEditorCloseState> ReadEditorCloseStateAsync(CancellationToken cancellationToken = default) =>
+        _owner.ReadEditorCloseStateAsync(RegistrationId, cancellationToken);
+
+    /// <summary>Возвращает минимальное свидетельство об операции для серверного учёта перед закрытием.</summary>
+    public Task<ClayLegacyDraftOperationEvidence> ReadCloseOperationEvidenceAsync(long expectedRevision,
+        CancellationToken cancellationToken = default) =>
+        _owner.ReadCloseOperationEvidenceAsync(RegistrationId, expectedRevision, cancellationToken);
+
     /// <summary>Атомарно принимает свежий снимок либо отменяет область, если ревизия не изменилась.</summary>
     public Task<bool> ReplaceEditorScopeAsync(string scope, long expectedRevision, string? replacement,
         CancellationToken cancellationToken = default) =>
         _owner.ReplaceEditorScopeAsync(RegistrationId, scope, expectedRevision, replacement, cancellationToken);
+
+    /// <summary>Принимает новую ревизию снимка владельца и удаляет ввод только указанного вложенного редактора.</summary>
+    public Task<bool> ReplaceNestedEditorScopeAsync(string scope, long expectedRevision, string parentState, bool close,
+        CancellationToken cancellationToken = default) =>
+        _owner.ReplaceNestedEditorScopeAsync(RegistrationId, scope, expectedRevision, parentState, close, cancellationToken);
 
     /// <summary>Читает версию и сырые ключи области перед явным разрешением конфликта.</summary>
     public Task<ClayDraftRebaseState> ReadRebaseStateAsync(string scope, CancellationToken cancellationToken) =>
@@ -150,6 +167,14 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     /// <summary>Удаляет editable values и backup; running/unknown marker остаётся durable до доказанного outcome.</summary>
     public Task DiscardAsync(CancellationToken cancellationToken = default) =>
         _owner.DiscardAsync(RegistrationId, cancellationToken);
+
+    /// <summary>Штатно закрывает RAM-экземпляр после подтверждённой физической очистки клиентского черновика.</summary>
+    public Task CloseRamAsync(CancellationToken cancellationToken = default) =>
+        _owner.CloseRamAsync(RegistrationId, cancellationToken);
+
+    /// <summary>Закрывает RAM-экземпляр только при совпадении принятой ревизии.</summary>
+    public Task<bool> CloseRamIfRevisionAsync(long expectedRevision, CancellationToken cancellationToken = default) =>
+        _owner.CloseRamIfRevisionAsync(RegistrationId, expectedRevision, cancellationToken);
 
     /// <summary>Снимает listeners/lock, сохраняя durable draft для повторного открытия.</summary>
     public Task ReleaseAsync(CancellationToken cancellationToken = default) =>

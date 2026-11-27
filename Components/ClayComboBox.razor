@@ -1,8 +1,12 @@
 @typeparam TItem where TItem : ILookupEntity
+@using Clayzor.Lib.Web.Controls.Components.Form
+@implements IAsyncDisposable
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 <MudSelect T="int"
            Value="@Value"
-           ValueChanged="@ValueChanged"
+           ValueChanged="@AcceptValueAsync"
+           OpenChanged="@OnOpenChangedAsync"
            ToStringFunc="@ToStringFunc"
            Label="@Label"
            Variant="@Variant"
@@ -11,7 +15,9 @@
            Class="@(Required && string.IsNullOrEmpty(ToStringFunc(Value)) ? $"clay-form-field clay-required-empty {Class}" : $"clay-form-field {Class}")"
            Margin="Margin.Dense"
            Dense="true"
-           PopoverClass="clay-combo-popover">
+           PopoverClass="clay-combo-popover"
+           data-clay-focus-editor=""
+           data-clay-fixed-picker="@(AdvanceFocusOnSelection ? _focus.Key : null)">
     @if (_items is not null)
     {
         @foreach (var item in _items)
@@ -23,6 +29,7 @@
 
 @code {
     private List<TItem> _items = [];
+    private ClayEditorFocusClient _focus = null!;
 
     /// <summary>Выбранное значение (Id справочной сущности).</summary>
     [Parameter] public int Value { get; set; }
@@ -39,6 +46,11 @@
     [Parameter] public string? RequiredError { get; set; }
     /// <summary>CSS-классы.</summary>
     [Parameter] public string? Class { get; set; }
+    /// <summary>После подтверждения выбора переводит фокус внутри активной области формы.</summary>
+    [Parameter] public bool AdvanceFocusOnSelection { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => _focus = new(JS);
 
     protected override void OnParametersSet()
     {
@@ -49,4 +61,24 @@
     {
         return _items.FirstOrDefault(i => i.Id == v)?.Name ?? string.Empty;
     }
+
+    private async Task AcceptValueAsync(int value)
+    {
+        var lease = AdvanceFocusOnSelection ? await _focus.ClaimAsync() : null;
+        await ValueChanged.InvokeAsync(value);
+        if (AdvanceFocusOnSelection && Value == value)
+            await _focus.CompleteAsync(lease);
+    }
+
+    private async Task OnOpenChangedAsync(bool open)
+    {
+        if (open || !AdvanceFocusOnSelection) return;
+        var selected = Value;
+        var lease = await _focus.ClaimAsync(alreadySelected: true);
+        if (AdvanceFocusOnSelection && Value == selected)
+            await _focus.CompleteAsync(lease);
+    }
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync() => _focus.DisposeAsync();
 }
