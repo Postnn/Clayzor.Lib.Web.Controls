@@ -362,7 +362,8 @@ public partial class ClayGrid<TEntity> where TEntity : class
     private bool _menuVisible(ClayColumnMeta meta) =>
         meta is not null
         && _opt.ColumnMenuMode != ColumnMenuMode.Hidden
-        && ((_trayExpanded && meta.Groupable)
+        && ((_opt.ColumnMenuMode == ColumnMenuMode.Always && (meta.Groupable || meta.Filterable))
+            || (_trayExpanded && meta.Groupable)
             || (_filterTrayExpanded && meta.Filterable));
 
     /// <summary>

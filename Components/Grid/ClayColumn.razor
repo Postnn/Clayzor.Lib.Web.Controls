@@ -45,12 +45,12 @@
                 <ClayMenu Icon="@Icons.Material.Filled.MoreVert"
                            Class="@("clay-column-menu" + (Grid.Options.ColumnMenuMode == ColumnMenuMode.Mobile ? " column-menu-mobile" : ""))"
                            ActivatorStyle="padding:0;width:22px;height:22px;min-width:22px">
-                    @if (Grid.IsGroupingTrayExpanded && _meta.Groupable)
+                    @if ((Grid.IsGroupingTrayExpanded || Grid.Options.ColumnMenuMode == ColumnMenuMode.Always) && _meta.Groupable)
                     {
                         <MudMenuItem OnClick="async () => await Grid.AddGroupAsync(_meta.SqlName)"
                                      Icon="@Icons.Material.Filled.AccountTree" IconColor="Color.Primary">Группировать</MudMenuItem>
                     }
-                    @if (Grid.IsFilterTrayExpanded && _meta.Filterable)
+                    @if ((Grid.IsFilterTrayExpanded || Grid.Options.ColumnMenuMode == ColumnMenuMode.Always) && _meta.Filterable)
                     {
                         <MudMenuItem OnClick="async () => await Grid.AddFilterAsync(_meta.SqlName)"
                                      Icon="@Icons.Material.Filled.FilterAlt" IconColor="Color.Primary">Фильтровать</MudMenuItem>
@@ -91,7 +91,9 @@ Grid?.IsColumnHidden(_meta.SqlName) == true);
         Grid is not null
         && _meta is not null
         && Grid.Options.ColumnMenuMode != ColumnMenuMode.Hidden
-        && ((Grid.IsGroupingTrayExpanded && _meta.Groupable)
+        && ((Grid.Options.ColumnMenuMode == ColumnMenuMode.Always
+                && (_meta.Groupable || _meta.Filterable || Grid.IsValueFilterAvailable(_meta.SqlName)))
+            || (Grid.IsGroupingTrayExpanded && _meta.Groupable)
             || (Grid.IsFilterTrayExpanded && _meta.Filterable)
             || Grid.IsValueFilterAvailable(_meta.SqlName));
 

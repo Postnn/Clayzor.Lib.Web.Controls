@@ -66,10 +66,13 @@
                           Class="clay-grid-search"
                           Style="max-width:250px;min-width:140px" />
             }
-            <ClayButton Text="Настройка колонок"
-                         Icon="@Icons.Material.Filled.ViewColumn"
-                         Class="toolbar-columns-btn"
-                         OnClick="OpenColumnSettings" />
+            @if (_opt.ShowColumnSettings)
+            {
+                <ClayButton Text="Настройка колонок"
+                             Icon="@Icons.Material.Filled.ViewColumn"
+                             Class="toolbar-columns-btn"
+                             OnClick="OpenColumnSettings" />
+            }
             @if (_opt.Dynamic && !_isSharedMode)
             {
                 <ClayButton Text="Поделиться настройками"
@@ -340,7 +343,7 @@
     {
         var _filterSegments   = BuildFilterSegments();
         var _hasAnyFilter     = _filterSegments.Count > 0 || ValueFilterLeaves.Any();
-        <div class="filter-tray @(_hasAnyFilter ? "filter-tray--active" : "") d-flex align-items-center flex-nowrap gap-2 mb-2"
+        <div class="filter-tray @(_hasAnyFilter ? "filter-tray--active flex-wrap" : "flex-nowrap") d-flex align-items-center gap-2 mb-2"
              @ondragover="OnFilterTrayDragOver"
              @ondragover:preventDefault="true"
              @ondrop="OnFilterTrayDrop">
@@ -572,13 +575,13 @@
                                     <ClayMenu Icon="@Icons.Material.Filled.MoreVert"
                                                Class="@("clay-column-menu" + (_opt.ColumnMenuMode == ColumnMenuMode.Mobile ? " column-menu-mobile" : ""))"
                                                ActivatorStyle="padding:0;width:22px;height:22px;min-width:22px">
-                                        @if (_trayExpanded && ordMeta.Groupable)
+                                        @if ((_trayExpanded || _opt.ColumnMenuMode == ColumnMenuMode.Always) && ordMeta.Groupable)
                                         {
                                             <MudMenuItem OnClick="async () => await AddGroupColumn(gSqlName)"
                                                          Icon="@Icons.Material.Filled.AccountTree"
                                                          IconColor="Color.Primary">Группировать</MudMenuItem>
                                         }
-                                        @if (_filterTrayExpanded && ordMeta.Filterable)
+                                        @if ((_filterTrayExpanded || _opt.ColumnMenuMode == ColumnMenuMode.Always) && ordMeta.Filterable)
                                         {
                                             <MudMenuItem OnClick="async () => await ((IClayGrid)this).AddFilterAsync(gSqlName)"
                                                          Icon="@Icons.Material.Filled.FilterAlt"

@@ -705,6 +705,7 @@ body {
 
 /* ── Filter Tray (drag‑and‑drop column filter panel) ── */
 .filter-tray {
+    flex: 0 0 auto;
     min-height: 34px;
     flex-wrap: nowrap;
     padding: 4px 10px;
@@ -714,6 +715,10 @@ body {
     border-bottom: 2px solid var(--lh-gold);
     border-radius: 0;
     transition: border-left-color 0.15s, background 0.15s;
+}
+
+.filter-tray--active {
+    flex-wrap: wrap;
 }
 
 .filter-tray:has(.filter-chip:hover),
@@ -753,8 +758,10 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0;
-    padding: 0 2px 0 8px;
-    height: 24px;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 24px;
+    padding: 2px 2px 2px 8px;
     background: var(--lh-navy);
     color: var(--lh-white);
     border-radius: 999px;
@@ -766,6 +773,19 @@ body {
     user-select: none;
     transition: background 0.15s, box-shadow 0.15s;
     border-bottom: 2px solid transparent;
+}
+
+.filter-chip .chip-label {
+    min-width: 0;
+    padding: 2px 0;
+    line-height: 1.25;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.filter-chip .chip-remove-btn {
+    flex-shrink: 0;
+    align-self: center;
 }
 
 .filter-chip:hover {
@@ -1145,76 +1165,107 @@ body {
 
 /* ── Error bar (ClayErrorBar) ── */
 .clay-error-bar {
-    background: var(--mud-palette-error);
-    color: #fff;
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+    border: 1px solid var(--mud-palette-error);
+    border-left-width: 4px;
     padding: 12px 16px;
     margin-bottom: 16px;
 }
 .clay-error-bar__header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 12px;
 }
 .clay-error-bar__message {
     font-weight: 600;
-    word-break: break-word;
+    overflow-wrap: anywhere;
     flex: 1;
 }
 .clay-error-bar__close {
     cursor: pointer;
+    color: var(--mud-palette-text-secondary);
     font-size: var(--clay-font-size);
     padding: 0 4px;
 }
 
 .clay-error-details {
     cursor: pointer;
-    margin-top: 6px;
-    opacity: 0.85;
+    margin-top: 8px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--mud-palette-primary);
+    font: inherit;
     font-size: var(--clay-font-size);
 }
+.clay-error-details:hover {
+    text-decoration: underline;
+}
+.clay-error-details:focus-visible {
+    outline: 2px solid var(--clay-focus, var(--mud-palette-primary));
+    outline-offset: 2px;
+}
 .clay-error-details-wrapper {
-    margin-top: 8px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--mud-palette-lines-inputs);
+    border-radius: var(--clay-radius);
+    background: var(--mud-palette-background-gray);
+    color: var(--mud-palette-text-primary);
     font-size: var(--clay-font-size);
-    opacity: 0.9;
+    overflow-wrap: anywhere;
 }
 
 .clay-error-sql {
     white-space: pre-wrap;
-    word-break: break-all;
-    background: var(--mud-palette-error-darken);
-    color: var(--mud-palette-error-lighten);
-    padding: 8px;
-    margin: 0;
+    overflow-wrap: anywhere;
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+    border: 1px solid var(--mud-palette-lines-inputs);
+    border-radius: var(--clay-radius);
+    padding: 10px;
+    margin: 6px 0 0;
     max-height: 300px;
     overflow: auto;
+    font: 12px/1.45 Consolas, "Courier New", monospace;
+    tab-size: 4;
 }
 .clay-error-sql-summary {
     cursor: pointer;
-    padding: 4px 8px;
-    background: var(--mud-palette-error-darken);
+    padding: 6px 8px;
+    border: 1px solid var(--mud-palette-lines-inputs);
     border-radius: var(--clay-radius);
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
 }
 
 .clay-error-param-table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--mud-palette-error-darken);
+    border: 1px solid var(--mud-palette-lines-inputs);
     border-radius: var(--clay-radius);
+    background: var(--mud-palette-surface);
     overflow: hidden;
 }
 .clay-error-param-table th {
-    padding: 4px 8px;
+    padding: 6px 8px;
     text-align: left;
-    color: var(--mud-palette-error-lighten);
-    background: var(--mud-palette-error-darken);
+    color: var(--mud-palette-text-primary);
+    background: var(--mud-palette-background-gray);
 }
 .clay-error-param-table td {
-    padding: 3px 8px;
-    color: var(--mud-palette-error-lighten);
+    padding: 5px 8px;
+    border-top: 1px solid var(--mud-palette-lines-inputs);
+    color: var(--mud-palette-text-primary);
+    overflow-wrap: anywhere;
 }
 .clay-error-param-table .clay-error-param-value {
-    color: var(--mud-palette-error-lighten);
-    opacity: 0.85;
+    color: var(--mud-palette-text-primary);
+}
+.clay-error-param-value code {
+    color: inherit;
 }
 
 /* ── Cards (Home page) ── */
