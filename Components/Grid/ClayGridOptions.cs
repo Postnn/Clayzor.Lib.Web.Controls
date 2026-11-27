@@ -103,6 +103,9 @@ public sealed class ClayGridOptions
     /// <summary>Разрешить изменение сортировки по щелчку на заголовке.</summary>
     public bool AllowSorting { get; set; } = true;
 
+    /// <summary>Показывать кнопку настройки порядка и видимости колонок в toolbar.</summary>
+    public bool ShowColumnSettings { get; set; } = true;
+
     // ── Фильтрация ───────────────────────────────────────────────────────────────
 
     /// <summary>Раскрывать панель фильтрации при создании грида и после сброса его состояния.</summary>

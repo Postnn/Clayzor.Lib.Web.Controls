@@ -5,16 +5,16 @@
 
 @if (ErrorService.HasError && (!ErrorService.IsCurrentErrorConnectivity || ErrorService.HasOperationContext))
 {
-    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="clay-error-bar mb-4">
         <div class="clay-error-bar__header">
             <span class="clay-error-bar__message">@ErrorService.ErrorMessage</span>
             <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
                            Class="clay-error-bar__close" OnClick="() => Close()" />
         </div>
 
-        <div class="clay-error-details" @onclick="() => ToggleDetails()">
+        <button type="button" class="clay-error-details" aria-expanded="@(ErrorService.ShowDebug ? "true" : "false")" @onclick="() => ToggleDetails()">
             @(ErrorService.ShowDebug ? "▲ Скрыть детали" : "▼ Детали ошибки")
-        </div>
+        </button>
 
         @if (ErrorService.ShowDebug)
         {
