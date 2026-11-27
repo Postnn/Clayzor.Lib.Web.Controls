@@ -76,30 +76,6 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     public Task ReportRestoreScopeFailureAsync(string scope, CancellationToken cancellationToken = default) =>
         _owner.ReportRestoreScopeFailureAsync(RegistrationId, scope, cancellationToken);
 
-    /// <summary>Сохраняет legacy running marker; не принимает автоматически ни одну область при commit.</summary>
-    public Task<long> BeginOperationAsync(string operation, CancellationToken cancellationToken = default) =>
-        _owner.BeginOperationAsync(RegistrationId, operation, cancellationToken);
-
-    /// <summary>Сохраняет типизированную попытку с accepted scopes и стабильным attempt ID.</summary>
-    public Task<ClayDraftOperation> BeginOperationAsync(ClayDraftOperationIntent intent, CancellationToken cancellationToken = default) =>
-        _owner.BeginOperationAsync(RegistrationId, intent, cancellationToken);
-
-    /// <summary>Завершает попытку как доказанно не отправленную/отклонённую.</summary>
-    public Task RejectOperationAsync(long revision, CancellationToken cancellationToken = default) =>
-        _owner.RejectOperationAsync(RegistrationId, revision, cancellationToken);
-
-    /// <summary>Сохраняет Unknown до предметной read-only сверки.</summary>
-    public Task UnknownOperationAsync(long revision, CancellationToken cancellationToken = default) =>
-        _owner.UnknownOperationAsync(RegistrationId, revision, cancellationToken);
-
-    /// <summary>Фиксирует подтверждённый результат операции перед локальной очисткой этой же попытки.</summary>
-    public Task RecordConfirmedOperationAsync(long revision, CancellationToken cancellationToken = default) =>
-        _owner.RecordConfirmedOperationAsync(RegistrationId, revision, cancellationToken);
-
-    /// <summary>Принимает области и ревизии из BeginOperation после RecordConfirmedOperation.</summary>
-    public Task CommitOperationAsync(long revision, string? cleanTypedState = null, CancellationToken cancellationToken = default) =>
-        _owner.CommitOperationAsync(RegistrationId, revision, cleanTypedState, cancellationToken);
-
     /// <summary>Открывает область после явного cancel; обычный reopen выполняет владелец editor.</summary>
     public Task OpenScopeAsync(string scope, CancellationToken cancellationToken = default) =>
         _owner.OpenScopeAsync(RegistrationId, scope, cancellationToken);
@@ -108,11 +84,6 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     public Task DiscardScopeAsync(string scope, CancellationToken cancellationToken = default) =>
         _owner.DiscardScopeAsync(RegistrationId, scope, cancellationToken);
 
-    /// <summary>Повторяет только запись черновика, сохраняя маркер любого неподтверждённого исхода.</summary>
-    public Task<ClayDraftOperation?> RetryStorageAsync(string? notSentAttemptId, CancellationToken cancellationToken = default) =>
-        _owner.RetryStorageAsync(RegistrationId, notSentAttemptId, cancellationToken);
-
-
     /// <summary>Получает ревизию области и признаки raw/операции перед вопросом об отмене.</summary>
     public Task<ClayDraftEditorScopeState> ReadEditorScopeAsync(string scope, CancellationToken cancellationToken = default) =>
         _owner.ReadEditorScopeAsync(RegistrationId, scope, cancellationToken);
@@ -120,11 +91,6 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
     /// <summary>Получает ревизию и признаки ввода во всех областях экземпляра перед закрытием.</summary>
     public Task<ClayDraftEditorCloseState> ReadEditorCloseStateAsync(CancellationToken cancellationToken = default) =>
         _owner.ReadEditorCloseStateAsync(RegistrationId, cancellationToken);
-
-    /// <summary>Возвращает минимальное свидетельство об операции для серверного учёта перед закрытием.</summary>
-    public Task<ClayLegacyDraftOperationEvidence> ReadCloseOperationEvidenceAsync(long expectedRevision,
-        CancellationToken cancellationToken = default) =>
-        _owner.ReadCloseOperationEvidenceAsync(RegistrationId, expectedRevision, cancellationToken);
 
     /// <summary>Атомарно принимает свежий снимок либо отменяет область, если ревизия не изменилась.</summary>
     public Task<bool> ReplaceEditorScopeAsync(string scope, long expectedRevision, string? replacement,
@@ -164,7 +130,7 @@ public sealed class ClayDraftRegistration : IAsyncDisposable
             throw new InvalidOperationException("Сначала полностью восстановите ввод в принимаемых областях.");
     }
 
-    /// <summary>Удаляет editable values и backup; running/unknown marker остаётся durable до доказанного outcome.</summary>
+    /// <summary>Удаляет значения полей и резервную копию черновика.</summary>
     public Task DiscardAsync(CancellationToken cancellationToken = default) =>
         _owner.DiscardAsync(RegistrationId, cancellationToken);
 

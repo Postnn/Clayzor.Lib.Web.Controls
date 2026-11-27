@@ -10,16 +10,8 @@ public sealed record ClayDraftRestore(
     [property: JsonPropertyName("hasDraft")] bool HasDraft,
     [property: JsonPropertyName("revision")] long Revision,
     [property: JsonPropertyName("typedState")] string? TypedState,
-    [property: JsonPropertyName("operation")] string? Operation,
     [property: JsonPropertyName("typedScopes")] IReadOnlyDictionary<string, string>? TypedScopes = null,
-    [property: JsonPropertyName("cancelledScopes")] IReadOnlyList<string>? CancelledScopes = null)
-{
-    /// <summary>Строго десериализованный versioned running/unknown marker.</summary>
-    [JsonIgnore]
-    public ClayDraftOperation? OperationSnapshot => Operation is null
-        ? null
-        : ClayDraftOperationSerializer.Deserialize(Operation);
-}
+    [property: JsonPropertyName("cancelledScopes")] IReadOnlyList<string>? CancelledScopes = null);
 
 /// <summary>Результат ожидаемого raw restore; pending ключи остаются в защищённом draft.</summary>
 public sealed record ClayDraftRawApplyResult(
@@ -43,7 +35,6 @@ public sealed record ClayDraftStorageHealth(
     [property: JsonPropertyName("healthy")] bool Healthy,
     [property: JsonPropertyName("pendingWrites")] int PendingWrites,
     [property: JsonPropertyName("lastError")] string? LastError,
-    [property: JsonPropertyName("hasOperation")] bool HasOperation,
     [property: JsonPropertyName("revision")] long Revision,
     [property: JsonPropertyName("persistedRevision")] long PersistedRevision);
 
@@ -56,34 +47,25 @@ public sealed record ClayDraftRebaseState(
 /// <summary>Ревизия и состояние редактируемой области, показанной в запросе отмены.</summary>
 public sealed record ClayDraftEditorScopeState(
     [property: JsonPropertyName("revision")] long Revision,
-    [property: JsonPropertyName("hasRaw")] bool HasRaw,
-    [property: JsonPropertyName("hasOperation")] bool HasOperation);
+    [property: JsonPropertyName("hasRaw")] bool HasRaw);
 
 /// <summary>Ревизия всего экземпляра и признаки ввода во всех областях перед закрытием.</summary>
 public sealed record ClayDraftEditorCloseState(
     [property: JsonPropertyName("revision")] long Revision,
     [property: JsonPropertyName("hasRaw")] bool HasRaw,
-    [property: JsonPropertyName("hasOperation")] bool HasOperation,
     [property: JsonPropertyName("typedScopes")] IReadOnlyList<string> TypedScopes);
 
 /// <summary>Метаданные отдельного черновика из текущего контекста, без значений пользовательских полей.</summary>
 public sealed record ClayDraftRecoveryCandidate(
     [property: JsonPropertyName("draftId")] string DraftId,
     [property: JsonPropertyName("revision")] long Revision,
-    [property: JsonPropertyName("hasOperation")] bool HasOperation,
     [property: JsonPropertyName("canRecover")] bool CanRecover);
-
-/// <summary>Ограниченная проекция прежней попытки без пользовательского ввода и подтверждения исхода.</summary>
-public sealed record ClayLegacyDraftOperationEvidence(
-    [property: JsonPropertyName("attemptId")] string AttemptId,
-    [property: JsonPropertyName("kind")] string Kind,
-    [property: JsonPropertyName("data")] string Data);
 
 internal sealed record ClayDraftRestoreStream(
     [property: JsonPropertyName("registrationId")] string RegistrationId,
     [property: JsonPropertyName("payload")] IJSStreamReference Payload);
 
-/// <summary>Общий DR-01 API долговечного клиентского черновика и snapshot бизнес-операции.</summary>
+/// <summary>Общий DR-01 API клиентского черновика полей и его ревизий.</summary>
 public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
 {
     private readonly Dictionary<string, ClayDraftRegistration> _registrations = new(StringComparer.Ordinal);
@@ -91,74 +73,6 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
 
     /// <summary>Признак наличия хотя бы одной активной регистрации в текущем circuit.</summary>
     public bool HasActiveRegistration => _registrations.Count > 0;
-
-    /// <summary>Удерживает блокировку прежнего редактора до переноса и, по запросу, адресной очистки подтверждённых снимков.</summary>
-    public async Task TransferLegacyEvidenceAsync(string formKey, string entityKey, string userKey,
-        Func<IReadOnlyList<ClayLegacyDraftOperationEvidence>, CancellationToken, Task> import,
-        CancellationToken cancellationToken = default, bool retireSnapshotsAfterImport = false)
-    {
-        ArgumentNullException.ThrowIfNull(import);
-        var leaseId = Guid.NewGuid().ToString("N");
-        object?[] args = retireSnapshotsAfterImport
-            ? [formKey, entityKey, userKey, leaseId, true]
-            : [formKey, entityKey, userKey, leaseId];
-        try
-        {
-            var evidence = await js.InvokeAsync<ClayLegacyDraftOperationEvidence[]?>(
-                "clayDraftStore.beginLegacyOperationEvidenceTransfer", cancellationToken, args)
-                ?? throw new InvalidOperationException("Не удалось проверить прежние попытки.");
-            cancellationToken.ThrowIfCancellationRequested();
-            await import(evidence, cancellationToken);
-            if (retireSnapshotsAfterImport)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                await js.InvokeVoidAsync("clayDraftStore.retireLegacyOperationEvidenceTransfer", cancellationToken, leaseId);
-            }
-        }
-        finally
-        {
-            try { await js.InvokeVoidAsync("clayDraftStore.finishLegacyOperationEvidenceTransfer", leaseId); }
-            catch (Exception error) when (error is JSDisconnectedException or OperationCanceledException) { }
-        }
-    }
-
-    /// <summary>Передаёт все сведения и подтверждает новую RAM-регистрацию до адресной очистки старой.</summary>
-    public async Task<ClayDraftRegistration> TransferLegacyAndRegisterRamAsync(string formKey, string legacyEntityKey,
-        string legacyUserKey,
-        Func<IReadOnlyList<ClayLegacyDraftOperationEvidence>, CancellationToken, Task<ClayDraftRegistration>> transferAndAttach,
-        Func<bool> isCurrent, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(transferAndAttach);
-        ArgumentNullException.ThrowIfNull(isCurrent);
-        ClayDraftRegistration? registration = null;
-        void RequireCurrent()
-        {
-            ct.ThrowIfCancellationRequested();
-            if (!isCurrent())
-                throw new InvalidOperationException("Контекст редактора изменился во время переноса.");
-        }
-
-        try
-        {
-            RequireCurrent();
-            await TransferLegacyEvidenceAsync(formKey, legacyEntityKey, legacyUserKey, async (evidence, token) =>
-            {
-                RequireCurrent();
-                registration = await transferAndAttach(evidence, token);
-                if (registration is null || !registration.IsRam)
-                    throw new InvalidOperationException("RAM-регистрация редактора не подтверждена.");
-                RequireCurrent();
-            }, ct, retireSnapshotsAfterImport: true);
-            RequireCurrent();
-            return registration!;
-        }
-        catch
-        {
-            if (registration is not null)
-                await registration.DisposeAsync();
-            throw;
-        }
-    }
 
     /// <summary>Регистрирует draft и делает его текущим для обратно совместимых вызовов без handle.</summary>
     public async Task<ClayDraftRestore?> RegisterAsync(
@@ -270,8 +184,6 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
             throw new InvalidOperationException("Draft store returned a duplicate registration ID.");
         try
         {
-            if (restore.Operation is not null)
-                _ = restore.OperationSnapshot;
             var registration = new ClayDraftRegistration(this, restore, maximumRestoreBytes, isRam);
             _registrations.Add(restore.RegistrationId, registration);
             return registration;
@@ -414,72 +326,6 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
         await js.InvokeVoidAsync("clayDraftStore.reportRestoreScopeFailure", cancellationToken, registrationId, scope);
     }
 
-    /// <summary>Фиксирует legacy snapshot без автоматического принятия main/child областей.</summary>
-    public Task<long> BeginOperationAsync(string operation, CancellationToken cancellationToken = default) =>
-        BeginOperationAsync(RequireRegistration().RegistrationId, operation, cancellationToken);
-
-    /// <summary>Фиксирует legacy snapshot указанной регистрации.</summary>
-    public async Task<long> BeginOperationAsync(string registrationId, string operation, CancellationToken cancellationToken = default)
-    {
-        RequireRegistration(registrationId);
-        return await js.InvokeAsync<long>("clayDraftStore.beginOperation", cancellationToken, registrationId, operation);
-    }
-
-    /// <summary>Фиксирует versioned intent текущей регистрации и возвращает durable marker.</summary>
-    public Task<ClayDraftOperation> BeginOperationAsync(ClayDraftOperationIntent intent, CancellationToken cancellationToken = default) =>
-        BeginOperationAsync(RequireRegistration().RegistrationId, intent, cancellationToken);
-
-    /// <summary>Фиксирует versioned intent указанной регистрации через настоящий JSON wire contract.</summary>
-    public async Task<ClayDraftOperation> BeginOperationAsync(
-        string registrationId,
-        ClayDraftOperationIntent intent,
-        CancellationToken cancellationToken = default)
-    {
-        RequireRegistration(registrationId);
-        var intentJson = ClayDraftOperationSerializer.SerializeIntent(intent);
-        var operationJson = await js.InvokeAsync<string>(
-            "clayDraftStore.beginOperationIntent", cancellationToken, registrationId, intentJson);
-        return ClayDraftOperationSerializer.Deserialize(operationJson);
-    }
-
-    /// <summary>Снимает running snapshot после доказанного отказа до записи.</summary>
-    public Task RejectOperationAsync(long revision, CancellationToken cancellationToken = default) =>
-        RejectOperationAsync(RequireRegistration().RegistrationId, revision, cancellationToken);
-
-    /// <summary>Снимает running snapshot указанной регистрации.</summary>
-    public Task RejectOperationAsync(string registrationId, long revision, CancellationToken cancellationToken = default) =>
-        InvokeOperation(registrationId, "clayDraftStore.rejectOperation", revision, cancellationToken);
-
-    /// <summary>Сохраняет Unknown для последующей сверки без разрешения replay.</summary>
-    public Task UnknownOperationAsync(long revision, CancellationToken cancellationToken = default) =>
-        UnknownOperationAsync(RequireRegistration().RegistrationId, revision, cancellationToken);
-
-    /// <summary>Сохраняет Unknown указанной регистрации.</summary>
-    public Task UnknownOperationAsync(string registrationId, long revision, CancellationToken cancellationToken = default) =>
-        InvokeOperation(registrationId, "clayDraftStore.unknownOperation", revision, cancellationToken);
-
-    /// <summary>Записывает доказанный результат попытки текущей регистрации без изменения ввода.</summary>
-    public Task RecordConfirmedOperationAsync(long revision, CancellationToken cancellationToken = default) =>
-        RecordConfirmedOperationAsync(RequireRegistration().RegistrationId, revision, cancellationToken);
-
-    /// <summary>Записывает доказанный результат указанной попытки без изменения ввода её областей.</summary>
-    public async Task RecordConfirmedOperationAsync(string registrationId, long revision, CancellationToken cancellationToken = default)
-    {
-        RequireRegistration(registrationId);
-        await js.InvokeVoidAsync("clayDraftStore.recordConfirmedOperation", cancellationToken, registrationId, revision);
-    }
-
-    /// <summary>Принимает области подтверждённой попытки и сохраняет поздний и независимый ввод.</summary>
-    public Task CommitOperationAsync(long revision, string? cleanTypedState = null, CancellationToken cancellationToken = default) =>
-        CommitOperationAsync(RequireRegistration().RegistrationId, revision, cleanTypedState, cancellationToken);
-
-    /// <summary>Принимает области подтверждённой попытки указанной регистрации.</summary>
-    public async Task CommitOperationAsync(string registrationId, long revision, string? cleanTypedState = null, CancellationToken cancellationToken = default)
-    {
-        RequireRegistration(registrationId);
-        await js.InvokeVoidAsync("clayDraftStore.commitOperation", cancellationToken, registrationId, revision, cleanTypedState);
-    }
-
     /// <summary>Снимает tombstone отменённой области при явном новом открытии editor.</summary>
     public Task OpenScopeAsync(string registrationId, string scope, CancellationToken cancellationToken = default) =>
         InvokeScope(registrationId, "clayDraftStore.openScope", scope, cancellationToken);
@@ -487,15 +333,6 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
     /// <summary>Очищает только cancelled scope и запрещает его поздний autosave.</summary>
     public Task DiscardScopeAsync(string registrationId, string scope, CancellationToken cancellationToken = default) =>
         InvokeScope(registrationId, "clayDraftStore.discardScope", scope, cancellationToken);
-
-    /// <summary>Повторяет только сохранение браузерного черновика и сверяет метку неотправленной команды.</summary>
-    public async Task<ClayDraftOperation?> RetryStorageAsync(string registrationId, string? notSentAttemptId, CancellationToken cancellationToken = default)
-    {
-        RequireRegistration(registrationId);
-        var operation = await js.InvokeAsync<string?>("clayDraftStore.retryStorage", cancellationToken, registrationId, notSentAttemptId);
-        return operation is null ? null : ClayDraftOperationSerializer.Deserialize(operation);
-    }
-
 
     /// <summary>Перечисляет сохранённые регистрации в том же удостоверенном контексте.</summary>
     internal async Task<IReadOnlyList<ClayDraftRecoveryCandidate>> ListRecoveryCandidatesAsync(string registrationId, CancellationToken cancellationToken)
@@ -546,15 +383,6 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
         return await js.InvokeAsync<ClayDraftEditorCloseState>("clayDraftStore.readEditorCloseState", cancellationToken, registrationId);
     }
 
-    /// <summary>Читает минимальные сведения об операции закрываемого редактора по исходной ревизии.</summary>
-    internal async Task<ClayLegacyDraftOperationEvidence> ReadCloseOperationEvidenceAsync(string registrationId,
-        long expectedRevision, CancellationToken cancellationToken)
-    {
-        RequireRegistration(registrationId);
-        return await js.InvokeAsync<ClayLegacyDraftOperationEvidence>("clayDraftStore.readCloseOperationEvidence",
-            cancellationToken, registrationId, expectedRevision);
-    }
-
     /// <summary>Атомарно заменяет либо отзывает одну область при совпадении ревизии.</summary>
     internal async Task<bool> ReplaceEditorScopeAsync(string registrationId, string scope, long expectedRevision,
         string? replacement, CancellationToken cancellationToken)
@@ -603,15 +431,13 @@ public sealed class ClayDraftService(IJSRuntime js) : IAsyncDisposable
     public Task EnsureCommandAllowedAsync(CancellationToken cancellationToken = default) =>
         EnsureCommandAllowedAsync(RequireRegistration().RegistrationId, cancellationToken);
 
-    /// <summary>Запрещает команду при storage failure, pending writes или running/unknown marker.</summary>
+    /// <summary>Запрещает команду при ошибке хранилища или незавершённой записи черновика.</summary>
     public async Task EnsureCommandAllowedAsync(string registrationId, CancellationToken cancellationToken = default)
     {
         var health = await GetHealthAsync(registrationId, cancellationToken);
         if (!health.Healthy)
             throw new InvalidOperationException(health.LastError ??
                 "Черновик ещё не сохранён. Бизнес-команда заблокирована до подтверждения хранилища.");
-        if (health.HasOperation)
-            throw new InvalidOperationException("Предыдущая команда не сверена. Повторная отправка заблокирована.");
     }
 
     /// <summary>Явно отбрасывает текущий draft и запрещает поздний autosave.</summary>
