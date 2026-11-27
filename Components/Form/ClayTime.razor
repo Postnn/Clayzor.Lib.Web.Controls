@@ -1,4 +1,7 @@
-<MudTimePicker Time="@Value"
+@implements IAsyncDisposable
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<ClayConfirmedTimeInput @ref="_picker" Time="@Value"
                TimeChanged="@ValueChanged"
                Label="@_opt.Label"
                Placeholder="@(_opt.Required ? " " : null)"
@@ -13,10 +16,20 @@
                Variant="@_opt.Variant"
                Margin="@_opt.Margin"
                Class="@FieldClass"
-               data-draft-key="@_opt.DraftKey" />
+               PickerOpened="@Opened"
+               PickerClosed="@ClosedAsync"
+               Submitted="@SubmittedAsync"
+               data-draft-key="@_opt.DraftKey"
+               data-clay-focus-editor="@(_opt.Disabled || _opt.ReadOnly ? null : string.Empty)"
+               data-clay-picker-key="@(CanAdvance ? _focus.Key : null)"
+               data-clay-picker-kind="time"
+               data-clay-enter-native="" />
 
 @code {
     private ClayTimeOptions _opt = new();
+    private ClayConfirmedTimeInput _picker = null!;
+    private ClayPopupPickerFocus<TimeSpan> _focus = null!;
+    private bool CanAdvance => !_opt.Disabled && !_opt.ReadOnly;
 
     private string FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly
         ? $"clay-form-field clay-time clay-required-editable {_opt.Class}"
@@ -33,4 +46,14 @@
 
     /// <inheritdoc />
     protected override void OnParametersSet() => _opt = Options ?? new ClayTimeOptions();
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => _focus = new(JS);
+
+    private void Opened() => _focus.Opened();
+    private Task SubmittedAsync(TimeSpan? value) => CanAdvance ? _focus.SubmittedAsync(value) : Task.CompletedTask;
+    private Task ClosedAsync() => _focus.ClosedAsync(Value, CanAdvance && !_picker.HasErrors);
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync() => _focus.DisposeAsync();
 }

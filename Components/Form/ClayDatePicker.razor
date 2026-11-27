@@ -1,4 +1,7 @@
-<MudDatePicker Date="@Value"
+@implements IAsyncDisposable
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<ClayConfirmedDateInput @ref="_picker" Date="@Value"
                DateChanged="@ValueChanged"
                Label="@_opt.Label"
                Placeholder="@(_opt.Required ? " " : null)"
@@ -14,10 +17,20 @@
                Variant="@_opt.Variant"
                Margin="@_opt.Margin"
                Class="@FieldClass"
-               data-draft-key="@_opt.DraftKey" />
+               PickerOpened="@Opened"
+               PickerClosed="@ClosedAsync"
+               Submitted="@SubmittedAsync"
+               data-draft-key="@_opt.DraftKey"
+               data-clay-focus-editor="@(_opt.Disabled || _opt.ReadOnly ? null : string.Empty)"
+               data-clay-picker-key="@(CanAdvance ? _focus.Key : null)"
+               data-clay-picker-kind="date"
+               data-clay-enter-native="" />
 
 @code {
     private ClayDatePickerOptions _opt = new();
+    private ClayConfirmedDateInput _picker = null!;
+    private ClayPopupPickerFocus<DateTime> _focus = null!;
+    private bool CanAdvance => !_opt.Disabled && !_opt.ReadOnly;
 
     private string FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly
         ? $"clay-form-field clay-date clay-required-editable {_opt.Class}"
@@ -34,4 +47,14 @@
 
     /// <inheritdoc />
     protected override void OnParametersSet() => _opt = Options ?? new ClayDatePickerOptions();
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => _focus = new(JS);
+
+    private void Opened() => _focus.Opened();
+    private Task SubmittedAsync(DateTime? value) => CanAdvance ? _focus.SubmittedAsync(value) : Task.CompletedTask;
+    private Task ClosedAsync() => _focus.ClosedAsync(Value, CanAdvance && !_picker.HasErrors);
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync() => _focus.DisposeAsync();
 }

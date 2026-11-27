@@ -2,7 +2,7 @@
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 
-<div @ref="_root" data-clay-edit-scope tabindex="-1" role="group" aria-label="@Label">
+<div @ref="_root" data-clay-edit-scope tabindex="-1" role="group" aria-label="@Label" inert="@Inert">
     @ChildContent
 </div>
 
@@ -22,6 +22,9 @@
     /// <summary>Данные и поля готовы к вводу после загрузки и восстановления, если они применимы.</summary>
     [Parameter] public bool Ready { get; set; }
 
+    /// <summary>Блокирует ввод во время применения подтверждённого действия редактора.</summary>
+    [Parameter] public bool Inert { get; set; }
+
     /// <summary>Разрешает переход по Enter в простых полях с обычной фиксацией ввода.</summary>
     [Parameter] public bool AdvanceOnEnter { get; set; }
 
@@ -32,7 +35,7 @@
         {
             _module ??= JS.InvokeAsync<IJSObjectReference>("import", ModulePath).AsTask();
             var module = await _module;
-            var state = (Ready, AdvanceOnEnter);
+            var state = (Ready: Ready && !Inert, AdvanceOnEnter);
             if (_disposed || _appliedState == state)
                 return;
 
@@ -45,6 +48,25 @@
             _appliedState = null;
         }
     }
+
+    /// <summary>Запоминает элемент владельца перед открытием дочернего диалога.</summary>
+    public async Task<long?> CaptureDialogReturnAsync()
+    {
+        if (_disposed || _module is not { } module) return null;
+        try { return await (await module).InvokeAsync<long?>("captureDialogReturn", _root); }
+        catch (Exception error) when (IsFocusInteropFailure(error)) { return null; }
+    }
+
+    /// <summary>Восстанавливает фокус владельца, если диалог ушёл и фокус остался свободным.</summary>
+    public async Task RestoreDialogReturnAsync(long request)
+    {
+        if (_disposed || _module is not { } module) return;
+        try { await (await module).InvokeVoidAsync("restoreDialogReturn", _root, request); }
+        catch (Exception error) when (IsFocusInteropFailure(error)) { }
+    }
+
+    private static bool IsFocusInteropFailure(Exception error) =>
+        error is JSException or JSDisconnectedException or InvalidOperationException or OperationCanceledException;
 
     /// <summary>Освобождает клиентскую регистрацию области ввода.</summary>
     public async ValueTask DisposeAsync()

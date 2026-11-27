@@ -2549,7 +2549,7 @@ body {
     }
 
     /* Пунктир оставляет отдельными заливку Required, контур ошибки и внутренний outline фокуса. */
-    .clay-field-change[data-clay-field-changed] :is(.mud-input-outlined, .clay-select-input) {
+    .clay-field-change:is([data-clay-field-changed], [data-clay-field-raw-changed]):where(:not(:has(> .clay-collection-field))) :is(.mud-input-outlined, .clay-select-input) {
         --clay-field-focus-offset: -7px;
     }
 
@@ -2557,13 +2557,23 @@ body {
         --clay-field-dirty: var(--clay-dirty-on-required);
     }
 
-    .clay-field-change[data-clay-field-changed] :is(.mud-input-outlined, .clay-select-field)::after {
+    .clay-field-change:is([data-clay-field-changed], [data-clay-field-raw-changed]):where(:not(:has(> .clay-collection-field))) :is(.mud-input-outlined, .clay-select-field)::after {
         content: "";
         position: absolute;
         inset: 3px;
         border: 1px dashed var(--clay-field-dirty, var(--clay-dirty, var(--mud-palette-warning)));
         border-radius: inherit;
         pointer-events: none;
+    }
+
+    .clay-field-change[data-clay-field-changed]:where(:not(:has(> .clay-collection-field))) :is(.clay-checkbox-box, .mud-radio-group) {
+        outline: 1px dashed var(--clay-field-dirty, var(--clay-dirty, var(--mud-palette-warning)));
+        outline-offset: 2px;
+    }
+
+    .clay-field-change[data-clay-field-changed] > .clay-collection-field {
+        outline: 1px dashed var(--clay-field-dirty, var(--clay-dirty, var(--mud-palette-warning)));
+        outline-offset: -2px;
     }
 
     .clay-field-change-description {
@@ -2592,8 +2602,13 @@ body {
     }
 
     @media (forced-colors: active) {
-        .clay-field-change[data-clay-field-changed] :is(.mud-input-outlined, .clay-select-field)::after {
+        .clay-field-change:is([data-clay-field-changed], [data-clay-field-raw-changed]):where(:not(:has(> .clay-collection-field))) :is(.mud-input-outlined, .clay-select-field)::after {
             border-color: CanvasText;
+        }
+
+        .clay-field-change[data-clay-field-changed]:where(:not(:has(> .clay-collection-field))) :is(.clay-checkbox-box, .mud-radio-group),
+        .clay-field-change[data-clay-field-changed] > .clay-collection-field {
+            outline-color: CanvasText;
         }
 
         :is(.clay-form-field, .clay-entity-form, .mud-dialog) .mud-input:has(> .mud-input-slot:focus-visible),

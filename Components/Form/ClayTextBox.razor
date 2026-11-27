@@ -1,6 +1,9 @@
-<MudTextField T="string"
+@implements IAsyncDisposable
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<MudTextField T="string" @ref="_field"
               Value="@Value"
-              ValueChanged="@ValueChanged"
+              ValueChanged="@NotifyValueChangedAsync"
               Label="@_opt.Label"
               Placeholder="@(_opt.Placeholder ?? (_opt.Required ? " " : null))"
               InputType="@_opt.InputType"
@@ -13,10 +16,20 @@
               Variant="@_opt.Variant"
               Margin="@_opt.Margin"
               Class="@FieldClass"
-              data-draft-key="@_opt.DraftKey" />
+              OnKeyDown="@CommitEnterAsync"
+              data-draft-key="@(_opt.InputType == InputType.Password ? null : _opt.DraftKey)"
+              data-draft-exclude="@(_opt.InputType == InputType.Password ? string.Empty : null)"
+              data-clay-enter-native="@(_opt.InputType == InputType.Password ? string.Empty : null)"
+              data-clay-text-commit="@(CanCommitEnter ? _focus.Key : null)"
+              data-clay-text-deferred="@(CanCommitEnter && !_opt.Immediate ? string.Empty : null)" />
 
 @code {
     private ClayTextBoxOptions _opt = new();
+    private MudTextField<string> _field = null!;
+    private ClayEditorFocusClient _focus = null!;
+    private int _valueCallbacks;
+    private bool _enterPending;
+    private bool CanCommitEnter => !_opt.Disabled && !_opt.ReadOnly && _opt.InputType != InputType.Password;
 
     private string FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly
         ? $"clay-form-field clay-required-editable {_opt.Class}"
@@ -33,4 +46,51 @@
 
     /// <inheritdoc />
     protected override void OnParametersSet() => _opt = Options ?? new ClayTextBoxOptions();
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => _focus = new(JS);
+
+    private async Task NotifyValueChangedAsync(string? value)
+    {
+        _valueCallbacks++;
+        try { await ValueChanged.InvokeAsync(value); }
+        catch
+        {
+            _enterPending = false;
+            throw;
+        }
+        finally { _valueCallbacks--; }
+        await CompleteEnterIfReadyAsync();
+    }
+
+    private Task CommitEnterAsync(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args)
+    {
+        if (args.Key != "Enter" || !CanCommitEnter)
+            return Task.CompletedTask;
+        _enterPending = true;
+        return CompleteEnterIfReadyAsync();
+    }
+
+    private async Task CompleteEnterIfReadyAsync()
+    {
+        if (!_enterPending || _valueCallbacks != 0) return;
+        _enterPending = false;
+        if (!CanCommitEnter) return;
+        var field = _field;
+        var options = _opt;
+        var original = Value;
+        var entry = await _focus.ClaimTextEntryAsync();
+        if (entry is null || !CanCommitEnter || !ReferenceEquals(_field, field) ||
+            !ReferenceEquals(_opt, options) || Value != original || _valueCallbacks != 0 || !HasAcceptedText(entry.Value))
+            return;
+        await field.ValidateAsync();
+        if (CanCommitEnter && ReferenceEquals(_field, field) && ReferenceEquals(_opt, options) &&
+            _valueCallbacks == 0 && !field.HasErrors && HasAcceptedText(entry.Value))
+            await _focus.CompleteTextEntryAsync(entry.Id);
+    }
+
+    private bool HasAcceptedText(string text) => string.Equals(Value ?? string.Empty, text, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync() => _focus.DisposeAsync();
 }

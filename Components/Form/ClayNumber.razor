@@ -1,4 +1,7 @@
-<MudNumericField T="decimal?"
+@implements IAsyncDisposable
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<ClayNumericInput @ref="_field"
                  Value="@Value"
                  ValueChanged="@ValueChanged"
                  Label="@_opt.Label"
@@ -15,10 +18,15 @@
                  Variant="@_opt.Variant"
                  Margin="@_opt.Margin"
                  Class="@FieldClass"
-                 data-draft-key="@_opt.DraftKey" />
+                 data-draft-key="@_opt.DraftKey"
+                 OnKeyDown="@CommitEnterAsync"
+                 data-clay-text-commit="@(!_opt.Disabled && !_opt.ReadOnly ? _focus.Key : null)" />
 
 @code {
     private ClayNumberOptions _opt = new();
+    private ClayNumericInput _field = null!;
+    private ClayEditorFocusClient _focus = null!;
+    private bool _committing;
 
     private string FieldClass => _opt.Required && !_opt.Disabled && !_opt.ReadOnly
         ? $"clay-form-field clay-required-editable {_opt.Class}"
@@ -37,4 +45,31 @@
 
     /// <inheritdoc />
     protected override void OnParametersSet() => _opt = Options ?? new ClayNumberOptions();
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => _focus = new(JS);
+
+    private async Task CommitEnterAsync(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args)
+    {
+        if (args.Key != "Enter" || _opt.Disabled || _opt.ReadOnly || _committing) return;
+        var field = _field;
+        var options = _opt;
+        var original = Value;
+        _committing = true;
+        try
+        {
+            var entry = await _focus.ClaimTextEntryAsync();
+            if (entry is null || !IsCurrent() || Value != original) return;
+            var result = await field.CommitEnterValueAsync(entry.Value);
+            if (result.Accepted && Value == result.Value && IsCurrent())
+                await _focus.CompleteTextEntryAsync(entry.Id);
+        }
+        finally { _committing = false; }
+
+        bool IsCurrent() => ReferenceEquals(field, _field) && ReferenceEquals(options, _opt) &&
+            !_opt.Disabled && !_opt.ReadOnly;
+    }
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync() => _focus.DisposeAsync();
 }

@@ -27,7 +27,7 @@ public partial class ClayPresencePanel : IAsyncDisposable
 
     private string Status => _participants is null
         ? _unavailable ? "Не удалось получить сведения о присутствии" : "Подключение к сведениям о присутствии…"
-        : _participants.Count == 0 ? "Других редакторов сейчас нет" : "С записью работают…";
+        : "Других редакторов сейчас нет";
 
     /// <inheritdoc />
     protected override void OnParametersSet()

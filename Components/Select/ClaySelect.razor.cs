@@ -55,6 +55,7 @@ public partial class ClaySelect<TItem, TValue> : MudFormComponent<TValue, TValue
     /// Текст выбранного элемента или поисковый текст для отображения в поле.
     /// </summary>
     protected string DisplayText => _text;
+    [CascadingParameter(Name = "ClayWatchLookupRaw")] private bool WatchLookupRaw { get; set; }
 
     /// <summary>
     /// Доступное описание ошибки валидации.

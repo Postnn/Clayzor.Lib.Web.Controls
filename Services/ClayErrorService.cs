@@ -11,6 +11,14 @@ namespace Clayzor.Lib.Web.Controls;
 /// </summary>
 public class ClayErrorService : ISqlErrorHandler
 {
+    private Exception? _exception;
+
+    /// <summary>Тип, сообщение и стек исключения для раскрываемых деталей.</summary>
+    public string? ExceptionDetails => _exception?.ToString();
+
+    /// <summary>Показывать детали операции также при сбое соединения.</summary>
+    public bool HasOperationContext { get; private set; }
+
     /// <summary>Есть ли активная ошибка для отображения.</summary>
     public bool HasError { get; private set; }
 
@@ -44,6 +52,8 @@ public class ClayErrorService : ISqlErrorHandler
     /// <inheritdoc />
     public void HandleSqlError(SqlException exception, string connectionString, string commandText, IReadOnlyList<(string Name, object? Value)> parameters)
     {
+        _exception = exception;
+        HasOperationContext = false;
         ConnectionString = connectionString;
         ErrorMessage = exception.Message;
         CommandLabels = ["Запрос"];
@@ -60,9 +70,30 @@ public class ClayErrorService : ISqlErrorHandler
         OnChanged?.Invoke();
     }
 
+    /// <summary>Публикует сообщение операции и сохраняет детали того же SQL-исключения.</summary>
+    public void ReportOperationFailure(string message, Exception exception)
+    {
+        if (!ReferenceEquals(_exception, exception))
+        {
+            CommandLabels = [];
+            CommandTexts = [];
+            Parameters = [];
+            IsCurrentErrorConnectivity = exception is SqlException sql && DbManager.IsConnectivityError(sql);
+        }
+        ConnectionString = string.Empty;
+        _exception = exception;
+        ErrorMessage = message;
+        HasError = true;
+        HasOperationContext = true;
+        ShowDebug = false;
+        OnChanged?.Invoke();
+    }
+
     /// <summary>Скрывает баннер ошибки.</summary>
     public void Clear()
     {
+        _exception = null;
+        HasOperationContext = false;
         HasError = false;
         ErrorMessage = string.Empty;
         ShowDebug = false;
